@@ -9,6 +9,7 @@ The app combines structured weightlifting methodology with athlete feedback and 
 ## Purpose
 
 Oly is built for:
+
 - Olympic weightlifters
 - Strength-focused athletes
 - Coaches and training groups
@@ -19,11 +20,11 @@ The goal is not to replace coaching, but to **support better training decisions*
 
 ## Core Principles
 
-- Athlete-first design  
-- Long-term development over short-term peaks  
-- Clear structure, minimal distraction  
-- Intelligent adaptation based on readiness and soreness  
-- Calm, supportive coaching tone — never aggressive or overwhelming  
+- Athlete-first design
+- Long-term development over short-term peaks
+- Clear structure, minimal distraction
+- Intelligent adaptation based on readiness and soreness
+- Calm, supportive coaching tone — never aggressive or overwhelming
 
 ---
 
@@ -39,6 +40,7 @@ The first version of Oly will focus on:
 - Clean, minimal UI aligned with provided Figma designs
 
 **Out of scope for MVP:**
+
 - Payments
 - Public launch features
 - Advanced analytics
@@ -62,4 +64,16 @@ Figma link will be shared separately.
 > Final stack may evolve during development.
 
 Planned direction:
-- 
+**Frontend**
+
+- React Native (Expo)
+- Routing: `expo-router`
+- State Management: Redux
+- API Handling: RTK Query
+
+**Backend**
+
+- Node.js / Express
+- Database: MongoDB
+- Storage: AWS S3
+- Deployment: AWS ECS
