@@ -10,7 +10,7 @@ export interface ThemeColors {
     info: string;
     primary: string;
     surface: string;
-
+    lightBlue: string,
 }
 
 export interface ThemeContextType {
