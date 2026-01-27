@@ -1,31 +1,41 @@
+import CounterInput from "@/components/counter-input";
 import Header from "@/components/header";
+import ProgressBar from "@/components/progress-bar";
 import SegmentedSelector from "@/components/segmented-selector";
+import WeightInput from "@/components/weight-input";
 import CustomInput from "@/constants/custom-input";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
+import { saveOnboardingData } from "@/store/reducer/onboardingSlice";
 import { router } from "expo-router";
 
 import React from "react";
 import { Controller, useForm } from "react-hook-form";
 import { StyleSheet, View } from "react-native";
 import { scale } from "react-native-size-matters";
+import { useDispatch } from "react-redux";
 interface OnboardingScreen1Values {
   name: string;
   country: string;
   age: string;
   weight: string;
+  weightUnit: "KG" | "LB";
   experience: string;
   sex: string;
 }
 export default function OnboardingScreen1() {
   const { colors } = useTheme();
-
+  const dispatch = useDispatch();
   const onSubmit = (data: OnboardingScreen1Values) => {
-    router.push("/auth/onboarding/onboarding-screen3");
+    dispatch(saveOnboardingData(data));
+
+    router.push("/auth/onboarding/onboarding-screen2");
   };
   const {
     control,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<OnboardingScreen1Values>({
     defaultValues: {
@@ -33,6 +43,7 @@ export default function OnboardingScreen1() {
       country: "",
       age: "",
       weight: "",
+      weightUnit: "KG",
       experience: "",
       sex: "male",
     },
@@ -51,7 +62,7 @@ export default function OnboardingScreen1() {
   });
   return (
     <View style={styles.container}>
-      <View style={{ padding: 20, backgroundColor: "red" }}></View>
+      <ProgressBar totalSteps={7} currentStep={1} />
       <Header
         mainText="Athlete profile"
         subText="Used to set up your training profile"
@@ -90,7 +101,7 @@ export default function OnboardingScreen1() {
           render={({ field: { onChange, value } }) => (
             <CustomInput
               label="AGE"
-              placeholder="colombia"
+              placeholder="Years"
               onChangeText={onChange}
               value={value}
               error={errors.country?.message}
@@ -101,11 +112,12 @@ export default function OnboardingScreen1() {
           control={control}
           name="weight"
           render={({ field: { onChange, value } }) => (
-            <CustomInput
+            <WeightInput
               label="BODY WEIGHT"
-              placeholder="97 kg"
-              onChangeText={onChange}
               value={value}
+              onChangeText={onChange}
+              unit={watch("weightUnit")}
+              onUnitChange={(unit) => setValue("weightUnit", unit)}
               error={errors.weight?.message}
             />
           )}
@@ -115,11 +127,11 @@ export default function OnboardingScreen1() {
           control={control}
           name="experience"
           render={({ field: { onChange, value } }) => (
-            <CustomInput
+            <CounterInput
               label="EXPERIENCE"
-              placeholder="Beginner / Intermediate"
-              onChangeText={onChange}
               value={value}
+              onChangeText={onChange}
+              //  suffix="YEARS"
               error={errors.experience?.message}
             />
           )}

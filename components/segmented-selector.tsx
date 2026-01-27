@@ -12,9 +12,10 @@ type SegmentOption = {
 type SegmentedSelectorProps = {
   title: string;
   options: SegmentOption[];
-  selectedValue: string;
-  onChange: (value: string) => void;
+  selectedValue: string | string[];
+  onChange: (value: string | string[]) => void;
   segments?: number;
+  allowMultiple?: boolean;
 };
 
 const chunkArray = <T,>(arr: T[], size: number): T[][] => {
@@ -31,10 +32,31 @@ const SegmentedSelector: React.FC<SegmentedSelectorProps> = ({
   selectedValue,
   onChange,
   segments,
+  allowMultiple = false,
 }) => {
   const { colors } = useTheme();
 
   const displayedOptions = segments ? options.slice(0, segments) : options;
+
+  const handleSelect = (value: string) => {
+    if (allowMultiple) {
+      const currentValues = Array.isArray(selectedValue) ? selectedValue : [];
+      if (currentValues.includes(value)) {
+        onChange(currentValues.filter((v) => v !== value));
+      } else {
+        onChange([...currentValues, value]);
+      }
+    } else {
+      onChange(value);
+    }
+  };
+
+  const isActive = (value: string) => {
+    if (allowMultiple) {
+      return Array.isArray(selectedValue) && selectedValue.includes(value);
+    }
+    return selectedValue === value;
+  };
 
   const styles = StyleSheet.create({
     title: {
@@ -89,24 +111,24 @@ const SegmentedSelector: React.FC<SegmentedSelectorProps> = ({
 
         <View style={[containerStyle, { flexDirection: "row" }]}>
           {displayedOptions.map((option) => {
-            const isActive = option.value === selectedValue;
+            const active = isActive(option.value);
 
             return (
               <TouchableOpacity
                 key={option.value}
                 style={[
                   styles.segment,
-                  isActive && {
-                    backgroundColor: colors.primary,
+                  {
+                    backgroundColor: active ? colors.primary : colors.lightBlue,
                   },
                 ]}
                 activeOpacity={0.8}
-                onPress={() => onChange(option.value)}
+                onPress={() => handleSelect(option.value)}
               >
                 <Text
                   style={[
                     styles.label,
-                    { color: isActive ? colors.text : colors.textSecondary },
+                    { color: active ? colors.text : colors.textSecondary },
                   ]}
                 >
                   {option.label}
@@ -139,16 +161,15 @@ const SegmentedSelector: React.FC<SegmentedSelectorProps> = ({
             ]}
           >
             {rowOptions.map((option, index) => {
-              const isActive = option.value === selectedValue;
+              const active = isActive(option.value);
 
               return (
                 <TouchableOpacity
                   key={option.value}
                   style={[
                     styles.segment,
-                    // Always apply background for unselected to match ≤3 segments style
                     {
-                      backgroundColor: isActive
+                      backgroundColor: active
                         ? colors.primary
                         : colors.lightBlue,
                     },
@@ -156,14 +177,12 @@ const SegmentedSelector: React.FC<SegmentedSelectorProps> = ({
                     index === rowOptions.length - 1 ? { marginRight: 0 } : {},
                   ]}
                   activeOpacity={0.8}
-                  onPress={() => onChange(option.value)}
+                  onPress={() => handleSelect(option.value)}
                 >
                   <Text
                     style={[
                       styles.label,
-                      {
-                        color: isActive ? colors.text : colors.textSecondary,
-                      },
+                      { color: active ? colors.text : colors.textSecondary },
                     ]}
                   >
                     {option.label}

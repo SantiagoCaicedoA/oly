@@ -169,13 +169,13 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
         style={{
           borderLeftColor: colors.success || "#4CAF50",
           backgroundColor:
-            colors.background === "#0f1722" ? "#1a1a1a" : "#ffffff",
+            colors.background === "#15202a" ? "#15202a" : "#ffffff",
           height: undefined,
           minHeight: 60,
         }}
         contentContainerStyle={{
           backgroundColor:
-            colors.background === "#000000" ? "#1a1a1a" : "#ffffff",
+            colors.background === "#15202a" ? "#1a1a1a" : "#ffffff",
           paddingVertical: 12,
         }}
         text1Style={{
@@ -197,13 +197,13 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
         style={{
           borderLeftColor: colors.error || "#F44336",
           backgroundColor:
-            colors.background === "#0f1722" ? "#1a1a1a" : "#ffffff",
+            colors.background === "#15202a" ? "#15202a" : "#ffffff",
           height: undefined,
           minHeight: 60,
         }}
         contentContainerStyle={{
           backgroundColor:
-            colors.background === "#000000" ? "#1a1a1a" : "#ffffff",
+            colors.background === "#15202a" ? "#1a1a1a" : "#ffffff",
           paddingVertical: 12,
         }}
         text1Style={{

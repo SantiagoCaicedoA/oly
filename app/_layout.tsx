@@ -27,7 +27,7 @@ function AppContent() {
     "Ubuntu-Bold": require("../assets/fonts/Ubuntu-Bold.ttf"),
   });
 
-  //if (!loaded) return null; // wait for fonts to load
+  //if (!loaded) return null;
 
   return (
     <ToastProvider>

@@ -1,12 +1,17 @@
+import DaysName from "@/components/days-name";
+import NumberOfDays from "@/components/days-number";
 import Header from "@/components/header";
+import ProgressBar from "@/components/progress-bar";
 import SegmentedSelector from "@/components/segmented-selector";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
+import { saveOnboardingData } from "@/store/reducer/onboardingSlice";
 import { router } from "expo-router";
 import React from "react";
 import { Controller, useForm } from "react-hook-form";
 import { StyleSheet, View } from "react-native";
 import { scale } from "react-native-size-matters";
+import { useDispatch } from "react-redux";
 interface OnboardingScreen4Values {
   days_per_week: string;
   duration: string;
@@ -14,9 +19,11 @@ interface OnboardingScreen4Values {
 }
 export default function OnboardingScreen4() {
   const { colors } = useTheme();
-
+  const dispatch = useDispatch();
   const onSubmit = (data: OnboardingScreen4Values) => {
-    router.push("/auth/onboarding/onboarding-screen4");
+    dispatch(saveOnboardingData(data));
+
+    router.push("/auth/onboarding/onboarding-screen5");
   };
   const {
     control,
@@ -26,7 +33,7 @@ export default function OnboardingScreen4() {
     defaultValues: {
       days_per_week: "",
       duration: "45 min",
-      rest_days: "Moderate",
+      rest_days: "",
     },
   });
   const styles = StyleSheet.create({
@@ -38,18 +45,28 @@ export default function OnboardingScreen4() {
     },
     formGroup: {
       marginVertical: scale(20),
-      gap: scale(15),
+      gap: scale(20),
     },
   });
   return (
     <View style={styles.container}>
-      <View style={{ padding: 20, backgroundColor: "red" }}></View>
+      <ProgressBar totalSteps={7} currentStep={4} />
       <Header
         mainText="Availability"
         subText="Used to structure your weekly training."
       />
 
       <View style={styles.formGroup}>
+        <Controller
+          control={control}
+          name="days_per_week"
+          render={({ field: { onChange, value } }) => (
+            <NumberOfDays
+              value={value ? Number(value) : null}
+              onChange={(v) => onChange(v.toString())}
+            />
+          )}
+        />
         <Controller
           control={control}
           name="duration"
@@ -65,6 +82,16 @@ export default function OnboardingScreen4() {
               selectedValue={value}
               onChange={onChange}
               segments={4}
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="rest_days"
+          render={({ field: { onChange, value } }) => (
+            <DaysName
+              value={value ? value.split(",") : []}
+              onChange={(v) => onChange(v.join(","))}
             />
           )}
         />

@@ -1,22 +1,27 @@
 import Header from "@/components/header";
+import ProgressBar from "@/components/progress-bar";
 import SegmentedSelector from "@/components/segmented-selector";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
+import { saveOnboardingData } from "@/store/reducer/onboardingSlice";
 import { router } from "expo-router";
 import React from "react";
 import { Controller, useForm } from "react-hook-form";
 import { StyleSheet, View } from "react-native";
 import { scale } from "react-native-size-matters";
+import { useDispatch } from "react-redux";
 interface OnboardingScreen3Values {
   limitation: string;
-  affected_area: string;
+  affected_area: string[];
   impact: string;
-  when_to_show: string;
+  when_to_show: string[];
 }
 export default function OnboardingScreen3() {
   const { colors } = useTheme();
+  const dispatch = useDispatch();
 
   const onSubmit = (data: OnboardingScreen3Values) => {
+    dispatch(saveOnboardingData(data));
     router.push("/auth/onboarding/onboarding-screen4");
   };
   const {
@@ -26,9 +31,9 @@ export default function OnboardingScreen3() {
   } = useForm<OnboardingScreen3Values>({
     defaultValues: {
       limitation: "yes",
-      affected_area: "Lower back",
+      affected_area: ["Lower back"],
       impact: "Moderate",
-      when_to_show: "During pills",
+      when_to_show: [],
     },
   });
   const styles = StyleSheet.create({
@@ -40,12 +45,12 @@ export default function OnboardingScreen3() {
     },
     formGroup: {
       marginVertical: scale(20),
-      gap: scale(15),
+      gap: scale(20),
     },
   });
   return (
     <View style={styles.container}>
-      <View style={{ padding: 20, backgroundColor: "red" }}></View>
+      <ProgressBar totalSteps={7} currentStep={3} />
       <Header
         mainText="Training considerations"
         subText="Used to modify training when needed."
@@ -83,9 +88,10 @@ export default function OnboardingScreen3() {
                 { label: "Hips", value: "Hips" },
                 { label: "Ankles", value: "Ankles" },
               ]}
-              selectedValue={value}
+              selectedValue={value || []}
               onChange={onChange}
               segments={6}
+              allowMultiple
             />
           )}
         />
@@ -120,9 +126,10 @@ export default function OnboardingScreen3() {
                 { label: "After training", value: "After training" },
                 { label: "Inconsistent", value: "Inconsistent" },
               ]}
-              selectedValue={value}
+              selectedValue={value || []}
               onChange={onChange}
               segments={6}
+              allowMultiple
             />
           )}
         />

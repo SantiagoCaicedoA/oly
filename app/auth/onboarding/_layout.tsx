@@ -8,6 +8,10 @@ export default function OnboardingLayout() {
       <Stack.Screen name="onboarding-screen2" />
       <Stack.Screen name="onboarding-screen3" />
       <Stack.Screen name="onboarding-screen4" />
+      <Stack.Screen name="onboarding-screen5" />
+      <Stack.Screen name="onboarding-screen6" />
+      <Stack.Screen name="onboarding-screen7" />
+      <Stack.Screen name="onboarding-screen8" />
     </Stack>
   );
 }
