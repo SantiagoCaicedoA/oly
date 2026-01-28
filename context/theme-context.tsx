@@ -14,6 +14,7 @@ export const COLORS = {
     error: "#F44336",
     warning: "#FF9800",
     info: "#2196F3",
+    lightBlue: "#0a274c",
   },
   dark: {
     background: "#15202a",
@@ -26,6 +27,7 @@ export const COLORS = {
     error: "#F44336",
     warning: "#FF9800",
     info: "#2196F3",
+    lightBlue: "#0a274c",
   },
 } as const;
 
