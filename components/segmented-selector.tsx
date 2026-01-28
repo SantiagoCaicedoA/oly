@@ -172,6 +172,9 @@ const SegmentedSelector: React.FC<SegmentedSelectorProps> = ({
                       backgroundColor: active
                         ? colors.primary
                         : colors.lightBlue,
+                      borderColor: colors.primary,
+                      borderWidth:
+                        displayedOptions.length > 3 && !active ? 1 : 0,
                     },
                     index === 0 ? { marginLeft: 0 } : {},
                     index === rowOptions.length - 1 ? { marginRight: 0 } : {},

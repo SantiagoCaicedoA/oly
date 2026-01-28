@@ -104,7 +104,19 @@ export default function EquipmentList({
             <View style={styles.content}>
               {item.title && <Text style={styles.title}>{item.title}</Text>}
               {item.description && (
-                <Text style={styles.description}>{item.description}</Text>
+                <Text
+                  style={[
+                    styles.description,
+                    {
+                      color:
+                        showCheckbox && isChecked
+                          ? colors.text
+                          : colors.textSecondary,
+                    },
+                  ]}
+                >
+                  {item.description}
+                </Text>
               )}
             </View>
 

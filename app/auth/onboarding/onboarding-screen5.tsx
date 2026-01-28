@@ -1,35 +1,43 @@
 import EquipmentList from "@/components/equipment";
 import Header from "@/components/header";
-import ProgressBar from "@/components/progress-bar";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
-import { router } from "expo-router";
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { scale } from "react-native-size-matters";
-
-export default function OnboardingScreen5() {
+interface OnboardingScreen5Props {
+  onBack?: () => void;
+  onComplete?: () => void;
+}
+export default function OnboardingScreen5({
+  onBack,
+  onComplete,
+}: OnboardingScreen5Props) {
   const { colors } = useTheme();
   const onSubmit = () => {
-    router.push("/auth/onboarding/onboarding-screen6");
+    if (onComplete) {
+      onComplete();
+    }
   };
   const styles = StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: colors.background,
-      paddingVertical: scale(60),
-      paddingHorizontal: scale(20),
     },
+    scrollContent: {},
     formGroup: {
       marginVertical: scale(20),
       gap: scale(12),
+      marginBottom: scale(50),
     },
   });
 
   return (
-    <View style={styles.container}>
-      <ProgressBar totalSteps={7} currentStep={5} />
-
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
       <Header
         mainText="Equipment"
         subText="Used to tailor exercise selection and loading."
@@ -76,7 +84,7 @@ export default function OnboardingScreen5() {
           ]}
         />
       </View>
-      <ActionButtonsRow onPrimaryPress={onSubmit} />
-    </View>
+      <ActionButtonsRow onPrimaryPress={onSubmit} onSecondaryPress={onBack} />
+    </ScrollView>
   );
 }

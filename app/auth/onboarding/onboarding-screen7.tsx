@@ -1,27 +1,34 @@
 import EquipmentList from "@/components/equipment";
 import Header from "@/components/header";
-import ProgressBar from "@/components/progress-bar";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
 import { saveOnboardingData } from "@/store/reducer/onboardingSlice";
-import { router } from "expo-router";
 import React from "react";
 import { Controller, useForm } from "react-hook-form";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { scale } from "react-native-size-matters";
 import { useDispatch } from "react-redux";
+interface OnboardingScreen7Props {
+  onBack?: () => void;
+  onComplete?: () => void;
+}
 interface OnboardingScreen7Values {
   pulling_positioning: boolean[];
   receiving_bar: boolean[];
   squat_leg_strength: boolean[];
   overhead_stability: boolean[];
 }
-export default function OnboardingScreen7() {
+export default function OnboardingScreen7({
+  onBack,
+  onComplete,
+}: OnboardingScreen7Props) {
   const { colors } = useTheme();
   const dispatch = useDispatch();
   const onSubmit = (data: OnboardingScreen7Values) => {
     dispatch(saveOnboardingData(data));
-    router.push("/auth/onboarding/onboarding-screen8");
+    if (onComplete) {
+      onComplete();
+    }
   };
 
   const { control, handleSubmit } = useForm<OnboardingScreen7Values>({
@@ -38,13 +45,11 @@ export default function OnboardingScreen7() {
       flex: 1,
       backgroundColor: colors.background,
     },
-    scrollContent: {
-      paddingVertical: scale(60),
-      paddingHorizontal: scale(20),
-    },
+    scrollContent: {},
     formGroup: {
       marginVertical: scale(20),
       gap: scale(12),
+      marginBottom: scale(50),
     },
   });
 
@@ -52,9 +57,8 @@ export default function OnboardingScreen7() {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
     >
-      <ProgressBar totalSteps={7} currentStep={7} />
-
       <Header
         mainText="Performance gaps"
         subText="Used to emphasize areas that need the most attention."
@@ -152,7 +156,10 @@ export default function OnboardingScreen7() {
           )}
         />
       </View>
-      <ActionButtonsRow onPrimaryPress={handleSubmit(onSubmit)} />
+      <ActionButtonsRow
+        onPrimaryPress={handleSubmit(onSubmit)}
+        onSecondaryPress={onBack}
+      />
     </ScrollView>
   );
 }

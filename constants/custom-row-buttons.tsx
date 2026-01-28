@@ -45,13 +45,13 @@ const ActionButtonsRow: React.FC<ActionButtonsRowProps> = ({
     },
     secondaryText: {
       fontSize: Typography.fontSize.lg,
-      fontWeight: Typography.fontWeight.bold,
+      fontWeight: Typography.fontWeight.medium,
       letterSpacing: Typography.letterSpacing.normal,
       color: colors.text,
     },
     primaryText: {
       fontSize: Typography.fontSize.lg,
-      fontWeight: Typography.fontWeight.bold,
+      fontWeight: Typography.fontWeight.medium,
       letterSpacing: Typography.letterSpacing.normal,
       color: colors.text,
     },

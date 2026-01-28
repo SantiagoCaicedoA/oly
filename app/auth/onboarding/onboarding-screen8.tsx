@@ -2,6 +2,7 @@ import Header from "@/components/header";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
 import { selectOnboardingData } from "@/store/reducer/onboardingSlice";
+import { router } from "expo-router";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { scale } from "react-native-size-matters";
@@ -11,7 +12,9 @@ export default function OnboardingScreen8() {
   const { colors } = useTheme();
   const allData = useSelector(selectOnboardingData);
 
-  const onSubmit = () => {};
+  const onSubmit = () => {
+    router.push("/(tabs)/home");
+  };
   const styles = StyleSheet.create({
     container: {
       flex: 1,

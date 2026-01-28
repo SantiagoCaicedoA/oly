@@ -1,6 +1,5 @@
 import CounterInput from "@/components/counter-input";
 import Header from "@/components/header";
-import ProgressBar from "@/components/progress-bar";
 import SegmentedSelector from "@/components/segmented-selector";
 import WeightInput from "@/components/weight-input";
 import CustomInput from "@/constants/custom-input";
@@ -11,7 +10,7 @@ import { router } from "expo-router";
 
 import React from "react";
 import { Controller, useForm } from "react-hook-form";
-import { StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { scale } from "react-native-size-matters";
 import { useDispatch } from "react-redux";
 interface OnboardingScreen1Values {
@@ -22,14 +21,25 @@ interface OnboardingScreen1Values {
   weightUnit: "KG" | "LB";
   experience: string;
   sex: string;
+  height: string;
+  measurement_system: "Metric" | "Imperial";
 }
-export default function OnboardingScreen1() {
+interface OnboardingScreen1Props {
+  onComplete?: () => void;
+}
+export default function OnboardingScreen1({
+  onComplete,
+}: OnboardingScreen1Props) {
   const { colors } = useTheme();
   const dispatch = useDispatch();
   const onSubmit = (data: OnboardingScreen1Values) => {
     dispatch(saveOnboardingData(data));
 
-    router.push("/auth/onboarding/onboarding-screen2");
+    if (onComplete) {
+      onComplete();
+    } else {
+      router.push("/auth/onboarding/onboarding-screen2");
+    }
   };
   const {
     control,
@@ -46,23 +56,29 @@ export default function OnboardingScreen1() {
       weightUnit: "KG",
       experience: "",
       sex: "male",
+      height: "",
+      measurement_system: "Metric",
     },
   });
   const styles = StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: colors.background,
-      paddingVertical: scale(60),
-      paddingHorizontal: scale(20),
     },
+    scrollContent: {},
     formGroup: {
       marginVertical: scale(20),
       gap: scale(7),
+      marginBottom: scale(50),
     },
   });
   return (
-    <View style={styles.container}>
-      <ProgressBar totalSteps={7} currentStep={1} />
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* <ProgressBar totalSteps={7} currentStep={1} /> */}
       <Header
         mainText="Athlete profile"
         subText="Used to set up your training profile"
@@ -73,7 +89,7 @@ export default function OnboardingScreen1() {
           name="name"
           render={({ field: { onChange, value } }) => (
             <CustomInput
-              placeholder="your name"
+              placeholder="Your name"
               label="FULL NAME"
               onChangeText={onChange}
               value={value}
@@ -86,7 +102,7 @@ export default function OnboardingScreen1() {
           name="country"
           render={({ field: { onChange, value } }) => (
             <CustomInput
-              placeholder="colombia"
+              placeholder="Select your country"
               label="YOUR COUNTRY"
               onChangeText={onChange}
               value={value}
@@ -110,6 +126,23 @@ export default function OnboardingScreen1() {
         />
         <Controller
           control={control}
+          name="measurement_system"
+          render={({ field: { onChange, value } }) => (
+            <WeightInput
+              label="UNITS"
+              value={value}
+              onChangeText={onChange}
+              unit={watch("measurement_system")}
+              onUnitChange={(unit: string) =>
+                setValue("measurement_system", unit as "Metric" | "Imperial")
+              }
+              error={errors.measurement_system?.message}
+              units={["Metric", "Imperial"]}
+            />
+          )}
+        />
+        <Controller
+          control={control}
           name="weight"
           render={({ field: { onChange, value } }) => (
             <WeightInput
@@ -117,12 +150,27 @@ export default function OnboardingScreen1() {
               value={value}
               onChangeText={onChange}
               unit={watch("weightUnit")}
-              onUnitChange={(unit) => setValue("weightUnit", unit)}
+              onUnitChange={(unit: string) =>
+                setValue("weightUnit", unit as "KG" | "LB")
+              }
               error={errors.weight?.message}
+              units={["KG", "LB"]}
             />
           )}
         />
-
+        <Controller
+          control={control}
+          name="height"
+          render={({ field: { onChange, value } }) => (
+            <CustomInput
+              label="HEIGHT"
+              placeholder="0 cm"
+              onChangeText={onChange}
+              value={value}
+              error={errors.height?.message}
+            />
+          )}
+        />
         <Controller
           control={control}
           name="experience"
@@ -156,6 +204,6 @@ export default function OnboardingScreen1() {
       </View>
 
       <ActionButtonsRow onPrimaryPress={handleSubmit(onSubmit)} />
-    </View>
+    </ScrollView>
   );
 }

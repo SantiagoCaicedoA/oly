@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -25,7 +26,7 @@ export default function CounterInput({
   error,
 }: CounterInputProps) {
   const { colors } = useTheme();
-
+  const [isFocused, setIsFocused] = useState(false);
   const increment = () => {
     const numValue = parseInt(value || "0");
     onChangeText((numValue + 1).toString());
@@ -51,8 +52,8 @@ export default function CounterInput({
     inputContainer: {
       flexDirection: "row",
       alignItems: "center",
-      borderWidth: 0.3,
-      borderColor: colors.text,
+      borderWidth: isFocused ? 0.5 : 0.3,
+      borderColor: isFocused ? colors.primary : colors.text,
       borderRadius: scale(10),
       paddingHorizontal: scale(12),
       minHeight: verticalScale(35),
@@ -83,7 +84,7 @@ export default function CounterInput({
       width: scale(32),
       height: scale(20),
       borderRadius: scale(6),
-      //backgroundColor: colors.primary,
+
       justifyContent: "center",
       alignItems: "center",
     },
@@ -111,6 +112,8 @@ export default function CounterInput({
           placeholder="0 Years"
           placeholderTextColor={colors.textSecondary}
           keyboardType="numeric"
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
         />
         <Text style={styles.suffix}>{suffix}</Text>
         <View style={styles.counterButtons}>

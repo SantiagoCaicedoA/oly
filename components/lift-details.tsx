@@ -77,7 +77,6 @@ export default function LiftDetailsCard({
     icon: {
       width: scale(18),
       height: scale(18),
-      //tintColor: colors.primary,
     },
   });
 

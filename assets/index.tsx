@@ -1,4 +1,15 @@
 export const Images = {
   checkMark: require("./images/checkMark.png"),
   plus: require("./images/plus.png"),
+  home: require("./images/home.png"),
+  man: require("./images/man.png"),
+  profile: require("./images/profile.png"),
+  like: require("./images/like.png"),
+  comment: require("./images/comment.png"),
+  arrowforward: require("./images/arrowforward.png"),
+  search: require("./images/search.png"),
+  notificationicon: require("./images/notificationicon.png"),
+  workout: require("./images/workout.png"),
+  rank: require("./images/rank.png"),
+  analytics: require("./images/analytics.png"),
 };

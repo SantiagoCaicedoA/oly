@@ -48,8 +48,8 @@ const CustomInput = forwardRef<TextInput, CustomInputProps>(
         ...labelStyle,
       },
       inputContainer: {
-        borderWidth: 0.3,
-        borderColor: colors.text,
+        borderWidth: isFocused ? 0.5 : 0.3,
+        borderColor: isFocused ? colors.primary : colors.text,
         borderRadius: scale(10),
         paddingHorizontal: scale(12),
         minHeight: verticalScale(35),

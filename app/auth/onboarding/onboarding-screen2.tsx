@@ -1,13 +1,11 @@
 import Header from "@/components/header";
 import LiftDetailsCard from "@/components/lift-details";
-import ProgressBar from "@/components/progress-bar";
 import SegmentedSelector from "@/components/segmented-selector";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
 import { useToast } from "@/context/toast-context";
 import { saveOnboardingData } from "@/store/reducer/onboardingSlice";
 import * as ImagePicker from "expo-image-picker";
-import { router } from "expo-router";
 import React, { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
@@ -16,6 +14,7 @@ import {
   Alert,
   Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -23,30 +22,61 @@ import {
 } from "react-native";
 import { scale } from "react-native-size-matters";
 import { useDispatch } from "react-redux";
+interface OnboardingScreen2Props {
+  onBack?: () => void;
+  onComplete?: () => void;
+}
 interface OnboardingScreen2Values {
   accuracy: "Tested" | "Estimated" | "Unsure";
   olympic_lifts: boolean[];
   squats: boolean[];
 }
 
-export default function OnboardingScreen2() {
+type LiftCategory = "olympic" | "squat";
+
+interface LiftIdentifier {
+  category: LiftCategory;
+  index: number;
+  label: string;
+}
+
+const OLYMPIC_LIFTS = [
+  "Snatch",
+  "Power Snatch",
+  "Clean & Jerk",
+  "Clean",
+  "Power Clean",
+  "Jerk",
+];
+
+const SQUAT_LIFTS = ["Back Squat", "Front Squat"];
+
+export default function OnboardingScreen2({
+  onComplete,
+  onBack,
+}: OnboardingScreen2Props) {
   const { colors } = useTheme();
   const { showSuccess, showError } = useToast();
   const [isUploading, setIsUploading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [currentFormData, setCurrentFormData] =
-    useState<OnboardingScreen2Values | null>(null);
+  const [liftVideos, setLiftVideos] = useState<Record<string, string>>({});
+  const [currentLift, setCurrentLift] = useState<LiftIdentifier | null>(null);
   const dispatch = useDispatch();
-  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
-  const { control, handleSubmit } = useForm<OnboardingScreen2Values>({
-    defaultValues: {
-      accuracy: "Tested",
-      olympic_lifts: [false, false, false, false, false, false],
-      squats: [false, false],
-    },
-  });
 
-  const pickVideo = async (formData: OnboardingScreen2Values) => {
+  const { control, handleSubmit, watch, setValue } =
+    useForm<OnboardingScreen2Values>({
+      defaultValues: {
+        accuracy: "Tested",
+        olympic_lifts: [false, false, false, false, false, false],
+        squats: [false, false],
+      },
+    });
+
+  const getLiftKey = (lift: LiftIdentifier): string => {
+    return `${lift.category}_${lift.index}`;
+  };
+
+  const pickVideo = async (lift: LiftIdentifier) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (status !== "granted") {
@@ -65,43 +95,56 @@ export default function OnboardingScreen2() {
 
     if (!result.canceled) {
       setIsUploading(true);
+      setCurrentLift(lift);
 
       try {
         await new Promise((resolve) => setTimeout(resolve, 1500));
 
-        setSelectedVideo(result.assets[0].uri);
-        setCurrentFormData(formData);
+        const key = getLiftKey(lift);
+        setLiftVideos((prev) => ({
+          ...prev,
+          [key]: result.assets[0].uri,
+        }));
         setShowSuccessModal(true);
       } catch (error) {
         showError("Failed to upload video");
+        setCurrentLift(null);
       } finally {
         setIsUploading(false);
       }
+    } else {
+      setCurrentLift(null);
     }
   };
 
-  const handleSaveVideo = () => {
-    if (currentFormData && selectedVideo) {
-      dispatch(
-        saveOnboardingData({
-          ...currentFormData,
-          video: selectedVideo,
-        }),
-      );
-
-      setShowSuccessModal(false);
-      showSuccess("Video saved successfully!");
-      router.push("/auth/onboarding/onboarding-screen3");
-    }
+  const handleContinue = () => {
+    setShowSuccessModal(false);
+    setCurrentLift(null);
+    showSuccess("Video saved!");
   };
 
   const handleRemoveVideo = () => {
-    setSelectedVideo(null);
+    if (currentLift) {
+      const key = getLiftKey(currentLift);
+      setLiftVideos((prev) => {
+        const updated = { ...prev };
+        delete updated[key];
+        return updated;
+      });
+
+      const fieldName =
+        currentLift.category === "olympic" ? "olympic_lifts" : "squats";
+      const currentValues = watch(fieldName);
+      const updated = [...currentValues];
+      updated[currentLift.index] = false;
+      setValue(fieldName, updated);
+    }
     setShowSuccessModal(false);
+    setCurrentLift(null);
     showSuccess("Video removed!");
   };
 
-  const showVideoOptions = (formData: OnboardingScreen2Values) => {
+  const showVideoOptions = (lift: LiftIdentifier) => {
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
         {
@@ -110,51 +153,91 @@ export default function OnboardingScreen2() {
         },
         (buttonIndex) => {
           if (buttonIndex === 1) {
-            pickVideo(formData);
+            pickVideo(lift);
           }
         },
       );
     } else {
       Alert.alert("Video Options", "Choose an action", [
         { text: "Cancel", style: "cancel" },
-        { text: "Add Video", onPress: () => pickVideo(formData) },
+        { text: "Add Video", onPress: () => pickVideo(lift) },
       ]);
     }
   };
 
+  const handleLiftToggle = (
+    category: LiftCategory,
+    index: number,
+    isChecked: boolean,
+    onChange: (value: boolean[]) => void,
+    currentValues: boolean[],
+  ) => {
+    if (isChecked) {
+      const key = `${category}_${index}`;
+      if (liftVideos[key]) {
+        return;
+      }
+    }
+    const updated = [...currentValues];
+    updated[index] = !updated[index];
+    onChange(updated);
+
+    if (!isChecked) {
+      const label =
+        category === "olympic" ? OLYMPIC_LIFTS[index] : SQUAT_LIFTS[index];
+      showVideoOptions({ category, index, label });
+    }
+  };
+
   const onSubmit = (data: OnboardingScreen2Values) => {
-    const hasOlympicSelection = data.olympic_lifts.some(
-      (lift) => lift === true,
-    );
-    const hasSquatSelection = data.squats.some((squat) => squat === true);
+    const hasOlympicSelection = data.olympic_lifts.some((lift) => lift);
+    const hasSquatSelection = data.squats.some((squat) => squat);
 
     if (!hasOlympicSelection && !hasSquatSelection) {
       showError("Please choose one lift before proceeding");
       return;
     }
 
-    if (!selectedVideo) {
-      showVideoOptions(data);
-    } else {
-      dispatch(
-        saveOnboardingData({
-          ...data,
-          video: selectedVideo,
-        }),
-      );
-      router.push("/auth/onboarding/onboarding-screen3");
+    const missingVideos: string[] = [];
+
+    data.olympic_lifts.forEach((isSelected, index) => {
+      if (isSelected && !liftVideos[`olympic_${index}`]) {
+        missingVideos.push(OLYMPIC_LIFTS[index]);
+      }
+    });
+
+    data.squats.forEach((isSelected, index) => {
+      if (isSelected && !liftVideos[`squat_${index}`]) {
+        missingVideos.push(SQUAT_LIFTS[index]);
+      }
+    });
+
+    if (missingVideos.length > 0) {
+      showError(`Please add video for: ${missingVideos.join(", ")}`);
+      return;
+    }
+
+    dispatch(
+      saveOnboardingData({
+        ...data,
+        liftVideos,
+      }),
+    );
+
+    if (onComplete) {
+      onComplete();
     }
   };
   const styles = StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: colors.background,
-      paddingVertical: scale(60),
-      paddingHorizontal: scale(20),
     },
+    scrollContent: {},
     formGroup: {
       marginVertical: scale(20),
       gap: scale(12),
+      marginBottom: scale(50),
     },
     loaderContainer: {
       position: "absolute",
@@ -215,10 +298,13 @@ export default function OnboardingScreen2() {
       fontWeight: "600",
     },
   });
-  return (
-    <View style={styles.container}>
-      <ProgressBar totalSteps={7} currentStep={2} />
 
+  return (
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
       <Header
         mainText="Current strength"
         subText="Used to guide training loads and progression."
@@ -240,11 +326,15 @@ export default function OnboardingScreen2() {
                 { label: "Jerk", value: 168 },
               ]}
               checkedValues={value}
-              onToggle={(index) => {
-                const updated = [...value];
-                updated[index] = !updated[index];
-                onChange(updated);
-              }}
+              onToggle={(index) =>
+                handleLiftToggle(
+                  "olympic",
+                  index,
+                  value[index],
+                  onChange,
+                  value,
+                )
+              }
             />
           )}
         />
@@ -260,16 +350,13 @@ export default function OnboardingScreen2() {
                 { label: "Front Squat", value: 190 },
               ]}
               checkedValues={value}
-              onToggle={(index) => {
-                const updated = [...value];
-                updated[index] = !updated[index];
-                onChange(updated);
-              }}
+              onToggle={(index) =>
+                handleLiftToggle("squat", index, value[index], onChange, value)
+              }
             />
           )}
         />
 
-        {/* 👇 SAME CONTROLLER PATTERN */}
         <Controller
           control={control}
           name="accuracy"
@@ -288,14 +375,18 @@ export default function OnboardingScreen2() {
           )}
         />
       </View>
-      <ActionButtonsRow onPrimaryPress={handleSubmit(onSubmit)} />
+
+      <ActionButtonsRow
+        onPrimaryPress={handleSubmit(onSubmit)}
+        onSecondaryPress={onBack}
+      />
+
       {isUploading && (
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color={colors.primary || "#fff"} />
         </View>
       )}
 
-      {/* Success Modal */}
       <Modal
         visible={showSuccessModal}
         transparent={true}
@@ -319,14 +410,14 @@ export default function OnboardingScreen2() {
 
               <TouchableOpacity
                 style={[styles.modalButton, styles.saveButton]}
-                onPress={handleSaveVideo}
+                onPress={handleContinue}
               >
-                <Text style={styles.buttonText}>Save & Continue</Text>
+                <Text style={styles.buttonText}>Continue</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-    </View>
+    </ScrollView>
   );
 }
