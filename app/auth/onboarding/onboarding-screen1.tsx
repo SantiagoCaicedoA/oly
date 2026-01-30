@@ -78,7 +78,6 @@ export default function OnboardingScreen1({
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
     >
-      {/* <ProgressBar totalSteps={7} currentStep={1} /> */}
       <Header
         mainText="Athlete profile"
         subText="Used to set up your training profile"

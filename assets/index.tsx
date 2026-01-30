@@ -12,4 +12,6 @@ export const Images = {
   workout: require("./images/workout.png"),
   rank: require("./images/rank.png"),
   analytics: require("./images/analytics.png"),
+  arrowBack: require("./images/arrowBack.png"),
+  graph: require("./images/graph.png"),
 };

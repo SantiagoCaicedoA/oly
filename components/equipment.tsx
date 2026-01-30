@@ -11,9 +11,10 @@ export type EquipmentItem = {
 };
 
 type EquipmentListProps = {
-  heading: string;
+  heading?: string;
   items: EquipmentItem[];
   showCheckbox?: boolean;
+  singleSelect?: boolean;
   onToggle?: (index: number) => void;
 };
 
@@ -21,6 +22,7 @@ export default function EquipmentList({
   heading,
   items,
   showCheckbox = false,
+  singleSelect = false,
   onToggle,
 }: EquipmentListProps) {
   const { colors } = useTheme();

@@ -8,15 +8,14 @@ import { Controller, useForm } from "react-hook-form";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { scale } from "react-native-size-matters";
 import { useDispatch } from "react-redux";
+
 interface OnboardingScreen6Props {
   onBack?: () => void;
   onComplete?: () => void;
 }
+
 interface OnboardingScreen6Values {
-  high_intensity: boolean;
-  balanced: boolean;
-  higher_volume: boolean;
-  adaptive: boolean;
+  training_preferences: boolean[];
 }
 
 export default function OnboardingScreen6({
@@ -25,20 +24,20 @@ export default function OnboardingScreen6({
 }: OnboardingScreen6Props) {
   const { colors } = useTheme();
   const dispatch = useDispatch();
+
   const onSubmit = (data: OnboardingScreen6Values) => {
     dispatch(saveOnboardingData(data));
     if (onComplete) {
       onComplete();
     }
   };
+
   const { control, handleSubmit } = useForm<OnboardingScreen6Values>({
     defaultValues: {
-      high_intensity: false,
-      balanced: false,
-      higher_volume: false,
-      adaptive: false,
+      training_preferences: [false, false, false, false],
     },
   });
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -67,82 +66,57 @@ export default function OnboardingScreen6({
         <View style={styles.formGroup}>
           <Controller
             control={control}
-            name="high_intensity"
-            render={({ field: { value, onChange } }) => (
-              <EquipmentList
-                heading="Essential Equipment"
-                showCheckbox
-                items={[
-                  {
-                    title: "High Intensity",
-                    description:
-                      "Frequent heavy singles and doubles to prioritize neural output.",
-                    checked: value,
-                  },
-                ]}
-                onToggle={() => onChange(!value)}
-              />
-            )}
-          />
+            name="training_preferences"
+            render={({ field: { value, onChange } }) => {
+              const safeValue = Array.isArray(value)
+                ? value
+                : [false, false, false, false];
 
-          <Controller
-            control={control}
-            name="balanced"
-            render={({ field: { value, onChange } }) => (
-              <EquipmentList
-                showCheckbox
-                heading=""
-                items={[
-                  {
-                    title: "Balanced",
-                    description:
-                      "Structured progression with balanced volume and intensity.",
-                    checked: value,
-                  },
-                ]}
-                onToggle={() => onChange(!value)}
-              />
-            )}
-          />
+              return (
+                <EquipmentList
+                  heading="TRAINING PREFERENCES"
+                  showCheckbox
+                  singleSelect={true}
+                  items={[
+                    {
+                      title: "High Intensity",
+                      description:
+                        "Frequent heavy singles and doubles to prioritize neural output.",
+                      checked: safeValue[0] || false,
+                    },
+                    {
+                      title: "Balanced",
+                      description:
+                        "Structured progression with balanced volume and intensity.",
+                      checked: safeValue[1] || false,
+                    },
+                    {
+                      title: "Higher Volume",
+                      description:
+                        "Higher repetition work to build technical and work capacity.",
+                      checked: safeValue[2] || false,
+                    },
+                    {
+                      title: "Adaptive",
+                      description:
+                        "Automatically adjusts based on readiness and recent performance.",
+                      checked: safeValue[3] || false,
+                    },
+                  ]}
+                  onToggle={(index) => {
+                    const isCurrentlySelected = safeValue[index];
 
-          <Controller
-            control={control}
-            name="higher_volume"
-            render={({ field: { value, onChange } }) => (
-              <EquipmentList
-                showCheckbox
-                heading=""
-                items={[
-                  {
-                    title: "Higher Volume",
-                    description:
-                      "Higher repetition work to build technical and work capacity.",
-                    checked: value,
-                  },
-                ]}
-                onToggle={() => onChange(!value)}
-              />
-            )}
-          />
-
-          <Controller
-            control={control}
-            name="adaptive"
-            render={({ field: { value, onChange } }) => (
-              <EquipmentList
-                showCheckbox
-                heading=""
-                items={[
-                  {
-                    title: "Adaptive",
-                    description:
-                      "Automatically adjusts based on readiness and recent performance.",
-                    checked: value,
-                  },
-                ]}
-                onToggle={() => onChange(!value)}
-              />
-            )}
+                    if (isCurrentlySelected) {
+                      onChange([false, false, false, false]);
+                    } else {
+                      const updated = [false, false, false, false];
+                      updated[index] = true;
+                      onChange(updated);
+                    }
+                  }}
+                />
+              );
+            }}
           />
         </View>
       </ScrollView>

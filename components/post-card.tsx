@@ -1,13 +1,16 @@
 import { Images } from "@/assets";
 import { useTheme } from "@/context/theme-context";
 import { Typography } from "@/utils/custom-styles";
+import { router } from "expo-router";
 import React from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
 
 export default function PostCard() {
   const { colors } = useTheme();
-
+  const handlePress = () => {
+    router.push("/athlete");
+  };
   const styles = StyleSheet.create({
     container: {
       backgroundColor: colors.background,
@@ -84,7 +87,7 @@ export default function PostCard() {
   });
 
   return (
-    <View style={styles.container}>
+    <TouchableOpacity style={styles.container} onPress={handlePress}>
       <View style={styles.header}>
         <Image source={Images.profile} style={styles.profile} />
         <View style={styles.userInfo}>
@@ -115,6 +118,6 @@ export default function PostCard() {
         <Image source={Images.comment} style={styles.icon} />
         <Text style={styles.count}>3</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
