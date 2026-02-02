@@ -27,8 +27,8 @@ export default function DailyCheckIn() {
   const [stressLevel, setStressLevel] = useState(3);
   const [mentalReadiness, setMentalReadiness] = useState(6);
 
-  const [muscleSoreness, setMuscleSoreness] = useState(8);
-  const [soreAreas, setSoreAreas] = useState(["LOWER BACK", "SHOULDER"]);
+  const [muscleSoreness, setMuscleSoreness] = useState(0);
+  const [soreAreas, setSoreAreas] = useState(["LOWER BACK"]);
   const [specificArea, setSpecificArea] = useState("");
   const [areaIntensities, setAreaIntensities] = useState<{
     [key: string]: number;

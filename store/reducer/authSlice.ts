@@ -1,5 +1,6 @@
-import { AuthState, Driver } from "@/types/api/auth";
+import { Athlete, AuthState } from "@/types/api/auth";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import type { RootState } from "../store";
 
 const initialState: AuthState = {
   user: null,
@@ -11,7 +12,7 @@ const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    setUser(state, action: PayloadAction<Driver | null>) {
+    setUser(state, action: PayloadAction<Athlete | null>) {
       state.user = action.payload;
       state.isLoggedIn = !!action.payload;
     },
@@ -22,7 +23,7 @@ const authSlice = createSlice({
 
     loginSuccess(
       state,
-      action: PayloadAction<{ user: Driver; token: string }>,
+      action: PayloadAction<{ user: Athlete; token: string }>,
     ) {
       state.user = action.payload.user;
       state.token = action.payload.token;
@@ -44,5 +45,10 @@ const authSlice = createSlice({
 
 export const { setUser, setTokens, loginSuccess, logout, clearUser } =
   authSlice.actions;
+
+export const selectUser = (state: RootState) => state.auth.user;
+export const selectToken = (state: RootState) => state.auth.token;
+export const selectIsLoggedIn = (state: RootState) => state.auth.isLoggedIn;
+export const selectUserId = (state: RootState) => state.auth.user?._id || null;
 
 export default authSlice.reducer;

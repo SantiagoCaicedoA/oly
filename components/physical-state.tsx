@@ -6,11 +6,11 @@ import {
   PanResponder,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { scale } from "react-native-size-matters";
+import SegmentedSelector from "./segmented-selector";
 
 interface PhysicalStateProps {
   muscleSoreness: number;
@@ -198,8 +198,8 @@ const PhysicalState: React.FC<PhysicalStateProps> = ({
     gridItem: {
       width: scale(45),
       height: scale(45),
-      borderRadius: scale(12),
-      borderWidth: scale(2),
+      borderRadius: scale(9),
+      borderWidth: scale(1),
       justifyContent: "center",
       alignItems: "center",
       backgroundColor: colors.lightBlue,
@@ -221,17 +221,21 @@ const PhysicalState: React.FC<PhysicalStateProps> = ({
       marginBottom: scale(16),
     },
     pill: {
-      paddingHorizontal: scale(20),
-      paddingVertical: scale(12),
-      borderRadius: scale(25),
-      flexDirection: "row",
-      alignItems: "center",
-      gap: scale(8),
+      paddingHorizontal: scale(7),
+      paddingVertical: scale(3),
+      borderRadius: scale(24),
+      borderWidth: 1,
+      borderColor: colors.primary,
+      backgroundColor: colors.lightBlue,
     },
     pillText: {
       fontSize: Typography.fontSize.base,
       fontWeight: Typography.fontWeight.medium,
       color: colors.text,
+    },
+    chipSelected: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
     },
     removeButton: {
       width: scale(16),
@@ -256,6 +260,29 @@ const PhysicalState: React.FC<PhysicalStateProps> = ({
       marginBottom: scale(20),
       borderWidth: scale(0.3),
       borderColor: colors.text,
+    },
+    chipsContainer: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: scale(8),
+      marginTop: scale(16),
+    },
+    chip: {
+      paddingHorizontal: scale(7),
+      paddingVertical: scale(3),
+      borderRadius: scale(24),
+      borderWidth: 1,
+      borderColor: colors.primary,
+      backgroundColor: colors.lightBlue,
+    },
+
+    chipText: {
+      fontSize: Typography.fontSize.base,
+      fontWeight: "500",
+      color: colors.text,
+    },
+    chipTextSelected: {
+      color: colors.text,
     },
   });
 
@@ -297,79 +324,72 @@ const PhysicalState: React.FC<PhysicalStateProps> = ({
         ))}
       </View>
 
-      <Text style={styles.sectionTitle}>Sore areas</Text>
-
-      <View style={styles.pillsContainer}>
-        {predefinedAreas.map((area) => (
-          <TouchableOpacity
-            key={area}
-            style={[
-              styles.pill,
-              {
-                backgroundColor: soreAreas.includes(area)
-                  ? colors.primary
-                  : colors.surface,
-                borderWidth: scale(2),
-                borderColor: colors.primary,
-              },
+      {muscleSoreness >= 8 && (
+        <>
+          <SegmentedSelector
+            title="Sore areas"
+            options={[
+              { label: "Lower back", value: "LOWER BACK" },
+              { label: "Shoulders", value: "SHOULDERS" },
+              { label: "Knees", value: "KNEES" },
+              { label: "Hips", value: "HIPS" },
+              { label: "Quads", value: "QUADS" },
+              { label: "Hamstrings", value: "HAMSTRINGS" },
             ]}
-            onPress={() => toggleArea(area)}
-          >
-            <Text style={styles.pillText}>{area}</Text>
-            {soreAreas.includes(area) && (
-              <TouchableOpacity
-                style={styles.removeButton}
-                onPress={() => removeArea(area)}
-              >
-                <Text style={styles.removeText}>×</Text>
-              </TouchableOpacity>
-            )}
-          </TouchableOpacity>
-        ))}
-        {soreAreas
-          .filter((area) => !predefinedAreas.includes(area))
-          .map((area) => (
-            <View
-              key={area}
-              style={[
-                styles.pill,
-                {
-                  backgroundColor: colors.primary,
-                  borderWidth: scale(2),
-                  borderColor: colors.primary,
-                },
-              ]}
-            >
-              <Text style={styles.pillText}>{area}</Text>
-              <TouchableOpacity
-                style={styles.removeButton}
-                onPress={() => removeArea(area)}
-              >
-                <Text style={styles.removeText}>×</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-      </View>
+            selectedValue={soreAreas}
+            onChange={(value) => {
+              if (Array.isArray(value)) {
+                onSoreAreasChange(value);
+              }
+            }}
+            segments={6}
+            allowMultiple
+          />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Specific area..."
-        placeholderTextColor={colors.textSecondary}
-        value={specificArea}
-        onChangeText={onSpecificAreaChange}
-        onSubmitEditing={addSpecificArea}
-        returnKeyType="done"
-      />
+          {soreAreas.length > 0 && (
+            <>
+              <View style={styles.chipsContainer}>
+                {soreAreas.map((area) => {
+                  const isSelected = specificArea === area;
+                  return (
+                    <TouchableOpacity
+                      key={area}
+                      style={[styles.chip, isSelected && styles.chipSelected]}
+                      onPress={() => onSpecificAreaChange(area)}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          isSelected && styles.chipTextSelected,
+                        ]}
+                      >
+                        {area}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
 
-      {soreAreas.map((area, index) => (
-        <AreaSlider
-          key={area}
-          area={area}
-          value={areaIntensities[area] || 5}
-          onChange={(value) => onAreaIntensityChange(area, value)}
-          isLast={index === soreAreas.length - 1}
-        />
-      ))}
+              {specificArea && (
+                <>
+                  <Text style={[styles.sectionTitle, { marginTop: scale(20) }]}>
+                    Intensity
+                  </Text>
+                  <AreaSlider
+                    area={specificArea}
+                    value={areaIntensities[specificArea] || 5}
+                    onChange={(value) =>
+                      onAreaIntensityChange(specificArea, value)
+                    }
+                    isLast={true}
+                  />
+                </>
+              )}
+            </>
+          )}
+        </>
+      )}
     </View>
   );
 };

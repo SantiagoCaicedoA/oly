@@ -15,7 +15,7 @@ interface OnboardingScreen5Props {
 }
 
 interface OnboardingScreen5Values {
-  optional_equipment: boolean[];
+  optional_equipment: string[];
 }
 
 export default function OnboardingScreen5({
@@ -24,6 +24,12 @@ export default function OnboardingScreen5({
 }: OnboardingScreen5Props) {
   const { colors } = useTheme();
   const dispatch = useDispatch();
+  const OPTIONAL_EQUIPMENT = [
+    "Lifting Blocks",
+    "Pull-up Bar",
+    "Dumbbells & Kettlebells",
+    "GHD Machine",
+  ];
 
   const onSubmit = (data: OnboardingScreen5Values) => {
     dispatch(saveOnboardingData(data));
@@ -34,7 +40,7 @@ export default function OnboardingScreen5({
 
   const { control, handleSubmit } = useForm<OnboardingScreen5Values>({
     defaultValues: {
-      optional_equipment: [false, false, false, false],
+      optional_equipment: [],
     },
   });
 
@@ -84,32 +90,19 @@ export default function OnboardingScreen5({
             <EquipmentList
               heading="Optional Equipment"
               showCheckbox
-              items={[
-                {
-                  title: "Lifting Blocks",
-                  description: "Used for pull and lift variations",
-                  checked: value[0] || false,
-                },
-                {
-                  title: "Pull-up Bar",
-                  description: "Used for upper-body and accessory work",
-                  checked: value[1] || false,
-                },
-                {
-                  title: "Dumbbells & Kettlebells",
-                  description: "Used for unilateral and general strength work",
-                  checked: value[2] || false,
-                },
-                {
-                  title: "GHD Machine",
-                  description: "Used for posterior-chain and trunk work",
-                  checked: value[3] || false,
-                },
-              ]}
+              items={OPTIONAL_EQUIPMENT.map((title) => ({
+                title,
+                description: "",
+                checked: value.includes(title),
+              }))}
               onToggle={(index) => {
-                const updated = [...value];
-                updated[index] = !updated[index];
-                onChange(updated);
+                const item = OPTIONAL_EQUIPMENT[index];
+
+                if (value.includes(item)) {
+                  onChange(value.filter((v) => v !== item));
+                } else {
+                  onChange([...value, item]);
+                }
               }}
             />
           )}

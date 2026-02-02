@@ -15,9 +15,9 @@ interface OnboardingScreen4Props {
   onComplete?: () => void;
 }
 interface OnboardingScreen4Values {
-  days_per_week: string;
-  duration: string;
-  rest_days: string;
+  days_per_week: number;
+  duration: number;
+  rest_days: string[];
 }
 export default function OnboardingScreen4({
   onBack,
@@ -38,9 +38,9 @@ export default function OnboardingScreen4({
     formState: { errors },
   } = useForm<OnboardingScreen4Values>({
     defaultValues: {
-      days_per_week: "",
-      duration: "45 min",
-      rest_days: "",
+      days_per_week: 1,
+      duration: 45,
+      rest_days: [],
     },
   });
   const styles = StyleSheet.create({
@@ -74,7 +74,7 @@ export default function OnboardingScreen4({
             render={({ field: { onChange, value } }) => (
               <NumberOfDays
                 value={value ? Number(value) : null}
-                onChange={(v) => onChange(v.toString())}
+                onChange={(v) => onChange(v)}
               />
             )}
           />
@@ -85,25 +85,27 @@ export default function OnboardingScreen4({
               <SegmentedSelector
                 title="Session Duration"
                 options={[
-                  { label: "45 min", value: "45 min" },
-                  { label: "60 min", value: "60 min" },
-                  { label: "75 min", value: "75 min" },
-                  { label: "90+ min", value: "90+ min" },
+                  { label: "45 min", value: "45" },
+                  { label: "60 min", value: "60" },
+                  { label: "75 min", value: "75" },
+                  { label: "90+ min", value: "90" },
                 ]}
-                selectedValue={value}
-                onChange={onChange}
+                selectedValue={String(value)}
+                onChange={(val) => {
+                  if (typeof val === "string") {
+                    onChange(Number(val));
+                  }
+                }}
                 segments={4}
               />
             )}
           />
+
           <Controller
             control={control}
             name="rest_days"
             render={({ field: { onChange, value } }) => (
-              <DaysName
-                value={value ? value.split(",") : []}
-                onChange={(v) => onChange(v.join(","))}
-              />
+              <DaysName value={value} onChange={onChange} />
             )}
           />
         </View>

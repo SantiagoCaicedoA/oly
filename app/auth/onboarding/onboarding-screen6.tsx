@@ -15,7 +15,7 @@ interface OnboardingScreen6Props {
 }
 
 interface OnboardingScreen6Values {
-  training_preferences: boolean[];
+  training_preferences: string;
 }
 
 export default function OnboardingScreen6({
@@ -24,6 +24,27 @@ export default function OnboardingScreen6({
 }: OnboardingScreen6Props) {
   const { colors } = useTheme();
   const dispatch = useDispatch();
+  const TRAINING_PREFERENCES = [
+    {
+      title: "High Intensity",
+      description:
+        "Frequent heavy singles and doubles to prioritize neural output.",
+    },
+    {
+      title: "Balanced",
+      description: "Structured progression with balanced volume and intensity.",
+    },
+    {
+      title: "Higher Volume",
+      description:
+        "Higher repetition work to build technical and work capacity.",
+    },
+    {
+      title: "Adaptive",
+      description:
+        "Automatically adjusts based on readiness and recent performance.",
+    },
+  ];
 
   const onSubmit = (data: OnboardingScreen6Values) => {
     dispatch(saveOnboardingData(data));
@@ -34,7 +55,7 @@ export default function OnboardingScreen6({
 
   const { control, handleSubmit } = useForm<OnboardingScreen6Values>({
     defaultValues: {
-      training_preferences: [false, false, false, false],
+      training_preferences: "",
     },
   });
 
@@ -67,56 +88,21 @@ export default function OnboardingScreen6({
           <Controller
             control={control}
             name="training_preferences"
-            render={({ field: { value, onChange } }) => {
-              const safeValue = Array.isArray(value)
-                ? value
-                : [false, false, false, false];
-
-              return (
-                <EquipmentList
-                  heading="TRAINING PREFERENCES"
-                  showCheckbox
-                  singleSelect={true}
-                  items={[
-                    {
-                      title: "High Intensity",
-                      description:
-                        "Frequent heavy singles and doubles to prioritize neural output.",
-                      checked: safeValue[0] || false,
-                    },
-                    {
-                      title: "Balanced",
-                      description:
-                        "Structured progression with balanced volume and intensity.",
-                      checked: safeValue[1] || false,
-                    },
-                    {
-                      title: "Higher Volume",
-                      description:
-                        "Higher repetition work to build technical and work capacity.",
-                      checked: safeValue[2] || false,
-                    },
-                    {
-                      title: "Adaptive",
-                      description:
-                        "Automatically adjusts based on readiness and recent performance.",
-                      checked: safeValue[3] || false,
-                    },
-                  ]}
-                  onToggle={(index) => {
-                    const isCurrentlySelected = safeValue[index];
-
-                    if (isCurrentlySelected) {
-                      onChange([false, false, false, false]);
-                    } else {
-                      const updated = [false, false, false, false];
-                      updated[index] = true;
-                      onChange(updated);
-                    }
-                  }}
-                />
-              );
-            }}
+            render={({ field: { value, onChange } }) => (
+              <EquipmentList
+                heading="TRAINING PREFERENCES"
+                showCheckbox
+                singleSelect
+                items={TRAINING_PREFERENCES.map((item) => ({
+                  title: item.title,
+                  description: item.description,
+                  checked: value === item.title,
+                }))}
+                onToggle={(index) => {
+                  onChange(TRAINING_PREFERENCES[index].title);
+                }}
+              />
+            )}
           />
         </View>
       </ScrollView>

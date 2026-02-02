@@ -1,3 +1,5 @@
+import CoachNote from "@/components/coach-note";
+import TodaysTraining from "@/components/todays-training";
 import VolumeIntensity from "@/components/volume-intensity";
 import { useTheme } from "@/context/theme-context";
 import React from "react";
@@ -27,6 +29,8 @@ export default function Workout() {
         showsVerticalScrollIndicator={false}
       >
         <VolumeIntensity />
+        <CoachNote />
+        <TodaysTraining />
       </ScrollView>
     </SafeAreaView>
   );

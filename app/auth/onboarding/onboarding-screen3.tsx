@@ -22,7 +22,7 @@ interface OnboardingScreen3Props {
 }
 
 interface OnboardingScreen3Values {
-  limitation: string;
+  limitation: boolean;
   affected_area: string[];
   selected_affected_area: string;
   impact: string;
@@ -91,7 +91,19 @@ export default function OnboardingScreen3({
   const dispatch = useDispatch();
 
   const onSubmit = (data: OnboardingScreen3Values) => {
-    dispatch(saveOnboardingData(data));
+    const sanitizedData =
+      data.limitation === false
+        ? {
+            ...data,
+            affected_area: [],
+            selected_affected_area: "",
+            impact: "",
+            when_to_show: [],
+          }
+        : data;
+
+    dispatch(saveOnboardingData(sanitizedData));
+
     if (onComplete) {
       onComplete();
     }
@@ -104,7 +116,7 @@ export default function OnboardingScreen3({
     formState: { errors },
   } = useForm<OnboardingScreen3Values>({
     defaultValues: {
-      limitation: "yes",
+      limitation: true,
       affected_area: ["Lower back"],
       selected_affected_area: "Lower back",
       impact: "Moderate",
@@ -140,6 +152,18 @@ export default function OnboardingScreen3({
     }
     return WHEN_TO_SHOW_OPTIONS[selectedAffectedAreaValue] || [];
   }, [selectedAffectedAreaValue]);
+  useEffect(() => {
+    if (!limitationValue) {
+      setValue("affected_area", []);
+      setValue("selected_affected_area", "");
+      setValue("impact", "");
+      setValue("when_to_show", []);
+    } else {
+      setValue("affected_area", ["Lower back"]);
+      setValue("selected_affected_area", "Lower back");
+      setValue("impact", "Moderate");
+    }
+  }, [limitationValue, setValue]);
 
   useEffect(() => {
     if (affectedAreaValue && affectedAreaValue.length > 0) {
@@ -216,17 +240,17 @@ export default function OnboardingScreen3({
               <SegmentedSelector
                 title="Training Limitations"
                 options={[
-                  { label: "Yes", value: "yes" },
-                  { label: "No", value: "no" },
+                  { label: "Yes", value: "true" },
+                  { label: "No", value: "false" },
                 ]}
-                selectedValue={value}
-                onChange={onChange}
+                selectedValue={String(value)}
+                onChange={(v) => onChange(v === "true")}
                 segments={2}
               />
             )}
           />
 
-          {limitationValue === "yes" && (
+          {limitationValue === true && (
             <>
               <Controller
                 control={control}
