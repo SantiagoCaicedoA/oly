@@ -1,6 +1,7 @@
 import CoachNote from "@/components/coach-note";
 import TodaysTraining from "@/components/todays-training";
 import VolumeIntensity from "@/components/volume-intensity";
+import CustomButton from "@/constants/custom-button";
 import { useTheme } from "@/context/theme-context";
 import React from "react";
 import { ScrollView, StyleSheet } from "react-native";
@@ -31,6 +32,8 @@ export default function Workout() {
         <VolumeIntensity />
         <CoachNote />
         <TodaysTraining />
+
+        <CustomButton title="ADD EXERCISE" />
       </ScrollView>
     </SafeAreaView>
   );

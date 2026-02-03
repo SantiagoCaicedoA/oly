@@ -56,7 +56,7 @@ export default function Effort() {
     <View style={styles.container}>
       <View style={styles.rowContainer}>
         <View style={styles.row}>
-          <Image source={Images.like} style={styles.icon} />
+          <Image source={Images.efforticon} style={styles.icon} />
           <Text style={styles.detail}>EFFORT</Text>
         </View>
         <View style={{ flexDirection: "row", gap: scale(3) }}>

@@ -52,7 +52,7 @@ export default function Context() {
     <View style={styles.container}>
       <View style={styles.rowContainer}>
         <View style={styles.row}>
-          <Image source={Images.like} style={styles.icon} />
+          <Image source={Images.contexticon} style={styles.icon} />
           <Text style={styles.detail}>CONTEXT</Text>
         </View>
         <View style={{ gap: scale(3) }}>

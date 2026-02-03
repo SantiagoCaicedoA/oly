@@ -173,15 +173,20 @@ export default function PostExpanded() {
             <Text style={styles.count}>3</Text>
           </View>
           <View style={{ gap: scale(5), marginTop: scale(15) }}>
-            <DetailLift icon={Images.like} label="LOAD" value={120} unit="kg" />
+            <DetailLift
+              icon={Images.loadicon}
+              label="LOAD"
+              value={120}
+              unit="kg"
+            />
             <Context />
             <DetailLift
-              icon={Images.like}
+              icon={Images.intenticon}
               label="intent"
               value={"Technical Inconsistency"}
             />
             <Effort />
-            <DetailLift icon={Images.like} label="rpe" value={8.5} />
+            <DetailLift icon={Images.rpeicon} label="rpe" value={8.5} />
           </View>
           <View style={styles.insightContainer}>
             <Text style={styles.insight}>Coach's Insight</Text>

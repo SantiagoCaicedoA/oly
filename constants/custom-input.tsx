@@ -84,6 +84,7 @@ const CustomInput = forwardRef<TextInput, CustomInputProps>(
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             {...props}
+            multiline
           />
         </View>
 
