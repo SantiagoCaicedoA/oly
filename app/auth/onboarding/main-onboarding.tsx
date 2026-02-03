@@ -1,6 +1,6 @@
 import ProgressBar from "@/components/progress-bar";
 import { useTheme } from "@/context/theme-context";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { scale } from "react-native-size-matters";
@@ -15,6 +15,10 @@ import OnboardingScreen7 from "./onboarding-screen7";
 export default function MainOnboarding() {
   const { colors } = useTheme();
   const [currentStep, setCurrentStep] = useState(1);
+  const { name, email } = useLocalSearchParams<{
+    name?: string;
+    email?: string;
+  }>();
 
   const styles = StyleSheet.create({
     container: {
@@ -43,7 +47,14 @@ export default function MainOnboarding() {
   const renderScreen = () => {
     switch (currentStep) {
       case 1:
-        return <OnboardingScreen1 onComplete={goToNextStep} />;
+        return (
+          <OnboardingScreen1
+            onComplete={goToNextStep}
+            name={name}
+            email={email}
+          />
+        );
+
       case 2:
         return (
           <OnboardingScreen2 onBack={goToPrevStep} onComplete={goToNextStep} />

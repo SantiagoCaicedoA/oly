@@ -1,10 +1,10 @@
-export interface Driver {
-  id: string;
+export interface Athlete {
+  _id: string;
   name: string;
   email: string;
   phoneNumber: number | null;
-  truckNumber: string;
-  role: "driver";
+
+  //role: "athlete";
   createdAt?: string;
   updatedAt?: string;
 }
@@ -15,7 +15,25 @@ export interface TokenData {
 }
 
 export interface AuthState {
-  user: Driver | null;
+  user: Athlete | null;
   token: string | null;
   isLoggedIn: boolean;
+}
+export interface LoginValues {
+  email: string;
+  password: string;
+}
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+export interface SignUpValues {
+  name: string;
+  email: string;
+  password: string;
+}
+export interface SignUpPayload {
+  name: string;
+  email: string;
+  password: string;
 }

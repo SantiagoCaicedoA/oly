@@ -13,30 +13,74 @@ interface OnboardingScreen7Props {
   onComplete?: () => void;
 }
 interface OnboardingScreen7Values {
-  pulling_positioning: boolean[];
-  receiving_bar: boolean[];
-  squat_leg_strength: boolean[];
-  overhead_stability: boolean[];
+  pulling_positioning: string[];
+  receiving_bar: string[];
+  squat_leg_strength: string[];
+  overhead_stability: string[];
 }
+
 export default function OnboardingScreen7({
   onBack,
   onComplete,
 }: OnboardingScreen7Props) {
   const { colors } = useTheme();
   const dispatch = useDispatch();
+  const PERFORMANCE_GAPS = {
+    pulling_positioning: {
+      heading: "PULLING & POSITIONING",
+      items: [
+        "Limited leg drive",
+        "Difficulty maintaining bar proximity",
+        "Early arm bend",
+        "Slow pull from the floor",
+      ],
+    },
+    receiving_bar: {
+      heading: "RECEIVING THE BAR",
+      items: [
+        "Slow turnover",
+        "Limited leg endurance",
+        "Instability in the catch",
+      ],
+    },
+    squat_leg_strength: {
+      heading: "SQUAT AND LEG STRENGTH",
+      items: [
+        "Difficulty standing up cleans",
+        "Poor leg endurance",
+        "Limited squat mobility",
+      ],
+    },
+    overhead_stability: {
+      heading: "OVERHEAD STABILITY",
+      items: [
+        "Limited lockout strength",
+        "Jerk drive timing",
+        "Overhead timing",
+        "Limited overhead mobility",
+      ],
+    },
+  };
+
   const onSubmit = (data: OnboardingScreen7Values) => {
-    dispatch(saveOnboardingData(data));
-    if (onComplete) {
-      onComplete();
-    }
+    const performance_gaps = [
+      ...data.pulling_positioning,
+      ...data.receiving_bar,
+      ...data.squat_leg_strength,
+      ...data.overhead_stability,
+    ];
+
+    dispatch(saveOnboardingData({ performance_gaps }));
+
+    if (onComplete) onComplete();
   };
 
   const { control, handleSubmit } = useForm<OnboardingScreen7Values>({
     defaultValues: {
-      pulling_positioning: [false, false, false, false],
-      receiving_bar: [false, false, false],
-      squat_leg_strength: [false, false, false],
-      overhead_stability: [false, false, false, false],
+      pulling_positioning: [],
+      receiving_bar: [],
+      squat_leg_strength: [],
+      overhead_stability: [],
     },
   });
 
@@ -70,41 +114,42 @@ export default function OnboardingScreen7({
           name="pulling_positioning"
           render={({ field: { value, onChange } }) => (
             <EquipmentList
-              heading="PULLING & POSITIONING"
+              heading={PERFORMANCE_GAPS.pulling_positioning.heading}
               showCheckbox
-              items={[
-                { description: "Limited leg drive", checked: value[0] },
-                {
-                  description: "Difficulty maintaining bar proximity",
-                  checked: value[1],
-                },
-                { description: "Early arm bend", checked: value[2] },
-                { description: "Slow pull from the floor", checked: value[3] },
-              ]}
+              items={PERFORMANCE_GAPS.pulling_positioning.items.map((gap) => ({
+                description: gap,
+                checked: value.includes(gap),
+              }))}
               onToggle={(index) => {
-                const updated = [...value];
-                updated[index] = !updated[index];
-                onChange(updated);
+                const gap = PERFORMANCE_GAPS.pulling_positioning.items[index];
+                onChange(
+                  value.includes(gap)
+                    ? value.filter((g) => g !== gap)
+                    : [...value, gap],
+                );
               }}
             />
           )}
         />
+
         <Controller
           control={control}
           name="receiving_bar"
           render={({ field: { value, onChange } }) => (
             <EquipmentList
-              heading="RECEIVING THE BAR"
+              heading={PERFORMANCE_GAPS.receiving_bar.heading}
               showCheckbox
-              items={[
-                { description: "Slow turnover", checked: value[0] },
-                { description: "Limited leg endurance", checked: value[1] },
-                { description: "Instability in the catch", checked: value[2] },
-              ]}
+              items={PERFORMANCE_GAPS.receiving_bar.items.map((gap) => ({
+                description: gap,
+                checked: value.includes(gap),
+              }))}
               onToggle={(index) => {
-                const updated = [...value];
-                updated[index] = !updated[index];
-                onChange(updated);
+                const gap = PERFORMANCE_GAPS.receiving_bar.items[index];
+                onChange(
+                  value.includes(gap)
+                    ? value.filter((g) => g !== gap)
+                    : [...value, gap],
+                );
               }}
             />
           )}
@@ -115,20 +160,19 @@ export default function OnboardingScreen7({
           name="squat_leg_strength"
           render={({ field: { value, onChange } }) => (
             <EquipmentList
-              heading="SQUAT AND LEG STRENGTH"
+              heading={PERFORMANCE_GAPS.squat_leg_strength.heading}
               showCheckbox
-              items={[
-                {
-                  description: "Difficulty standing up cleans",
-                  checked: value[0],
-                },
-                { description: "Poor leg endurance", checked: value[1] },
-                { description: "Limited squat mobility", checked: value[2] },
-              ]}
+              items={PERFORMANCE_GAPS.squat_leg_strength.items.map((gap) => ({
+                description: gap,
+                checked: value.includes(gap),
+              }))}
               onToggle={(index) => {
-                const updated = [...value];
-                updated[index] = !updated[index];
-                onChange(updated);
+                const gap = PERFORMANCE_GAPS.squat_leg_strength.items[index];
+                onChange(
+                  value.includes(gap)
+                    ? value.filter((g) => g !== gap)
+                    : [...value, gap],
+                );
               }}
             />
           )}
@@ -139,18 +183,19 @@ export default function OnboardingScreen7({
           name="overhead_stability"
           render={({ field: { value, onChange } }) => (
             <EquipmentList
-              heading="OVERHEAD STABILITY"
+              heading={PERFORMANCE_GAPS.overhead_stability.heading}
               showCheckbox
-              items={[
-                { description: "Limited lockout strength", checked: value[0] },
-                { description: "Jerk drive timing", checked: value[1] },
-                { description: "Overhead timing", checked: value[2] },
-                { description: "Limited overhead mobility", checked: value[3] },
-              ]}
+              items={PERFORMANCE_GAPS.overhead_stability.items.map((gap) => ({
+                description: gap,
+                checked: value.includes(gap),
+              }))}
               onToggle={(index) => {
-                const updated = [...value];
-                updated[index] = !updated[index];
-                onChange(updated);
+                const gap = PERFORMANCE_GAPS.overhead_stability.items[index];
+                onChange(
+                  value.includes(gap)
+                    ? value.filter((g) => g !== gap)
+                    : [...value, gap],
+                );
               }}
             />
           )}

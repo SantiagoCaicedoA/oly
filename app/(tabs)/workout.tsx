@@ -1,25 +1,37 @@
+import CoachNote from "@/components/coach-note";
+import TodaysTraining from "@/components/todays-training";
+import VolumeIntensity from "@/components/volume-intensity";
+import { useTheme } from "@/context/theme-context";
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { scale } from "react-native-size-matters";
 
 export default function Workout() {
-  return (
-    <View
-      style={{
-        height: "100%",
+  const { colors } = useTheme();
 
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <View
-        style={{
-          backgroundColor: "blue",
-          height: "100%",
-          width: 20,
-        }}
-      ></View>
-    </View>
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scrollContent: {
+      paddingVertical: scale(15),
+      paddingHorizontal: scale(14),
+      gap: scale(16),
+    },
+  });
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <VolumeIntensity />
+        <CoachNote />
+        <TodaysTraining />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({});

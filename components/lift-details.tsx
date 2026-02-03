@@ -2,7 +2,14 @@ import { Images } from "@/assets";
 import { useTheme } from "@/context/theme-context";
 import { Typography } from "@/utils/custom-styles";
 import React from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { scale } from "react-native-size-matters";
 
 export type LiftItem = {
@@ -15,6 +22,7 @@ type LiftDetailsCardProps = {
   items: LiftItem[];
   checkedValues: boolean[];
   onToggle: (index: number) => void;
+  onValueChange: (index: number, value: number) => void;
 };
 
 export default function LiftDetailsCard({
@@ -22,6 +30,7 @@ export default function LiftDetailsCard({
   items,
   checkedValues,
   onToggle,
+  onValueChange,
 }: LiftDetailsCardProps) {
   const { colors } = useTheme();
 
@@ -57,17 +66,23 @@ export default function LiftDetailsCard({
       fontSize: Typography.fontSize.md,
       fontWeight: Typography.fontWeight.bold,
       letterSpacing: Typography.letterSpacing.normal,
-      color: colors.text,
     },
-    value: {
+    valueContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    input: {
       fontSize: Typography.fontSize.md,
       fontWeight: Typography.fontWeight.bold,
-      color: colors.text,
+      minWidth: scale(50),
+      textAlign: "right",
+      paddingHorizontal: scale(8),
+      paddingVertical: scale(4),
     },
     kg: {
-      color: colors.textSecondary,
       fontSize: Typography.fontSize.sm,
       fontWeight: Typography.fontWeight.normal,
+      marginLeft: scale(4),
     },
     divider: {
       height: 0.5,
@@ -88,6 +103,8 @@ export default function LiftDetailsCard({
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
           const isChecked = checkedValues[index];
+          const textColor = isChecked ? colors.text : colors.textSecondary;
+
           return (
             <View key={`${item.label}-${index}`}>
               <View style={styles.row}>
@@ -99,12 +116,24 @@ export default function LiftDetailsCard({
                     />
                   </TouchableOpacity>
 
-                  <Text style={styles.name}>{item.label}</Text>
+                  <Text style={[styles.name, { color: textColor }]}>
+                    {item.label}
+                  </Text>
                 </View>
 
-                <Text style={styles.value}>
-                  {item.value} <Text style={styles.kg}>kg</Text>
-                </Text>
+                <View style={styles.valueContainer}>
+                  <TextInput
+                    style={[styles.input, { color: textColor }]}
+                    value={item.value.toString()}
+                    onChangeText={(text) => {
+                      const numValue = parseInt(text) || 0;
+                      onValueChange(index, numValue);
+                    }}
+                    keyboardType="numeric"
+                    maxLength={4}
+                  />
+                  <Text style={[styles.kg, { color: textColor }]}>kg</Text>
+                </View>
               </View>
 
               {!isLast && <View style={styles.divider} />}

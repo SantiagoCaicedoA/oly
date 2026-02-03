@@ -38,6 +38,7 @@ function AppContent() {
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="auth" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="athlete" options={{ headerShown: false }} />
         </Stack>
         <StatusBar style="auto" />
       </NavigationThemeProvider>

@@ -8,7 +8,7 @@ import { useTheme } from "@/context/theme-context";
 import { saveOnboardingData } from "@/store/reducer/onboardingSlice";
 import { router } from "expo-router";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { scale } from "react-native-size-matters";
@@ -26,12 +26,17 @@ interface OnboardingScreen1Values {
 }
 interface OnboardingScreen1Props {
   onComplete?: () => void;
+  name?: string;
+  email?: string;
 }
 export default function OnboardingScreen1({
   onComplete,
+  name,
+  email,
 }: OnboardingScreen1Props) {
   const { colors } = useTheme();
   const dispatch = useDispatch();
+
   const onSubmit = (data: OnboardingScreen1Values) => {
     dispatch(saveOnboardingData(data));
 
@@ -60,6 +65,12 @@ export default function OnboardingScreen1({
       measurement_system: "Metric",
     },
   });
+  useEffect(() => {
+    if (name) {
+      setValue("name", name);
+    }
+  }, [name, setValue]);
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -78,7 +89,6 @@ export default function OnboardingScreen1({
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
     >
-      {/* <ProgressBar totalSteps={7} currentStep={1} /> */}
       <Header
         mainText="Athlete profile"
         subText="Used to set up your training profile"

@@ -4,7 +4,6 @@ import SegmentedSelector from "@/components/segmented-selector";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
 import { useToast } from "@/context/toast-context";
-import { saveOnboardingData } from "@/store/reducer/onboardingSlice";
 import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -22,17 +21,21 @@ import {
 } from "react-native";
 import { scale } from "react-native-size-matters";
 import { useDispatch } from "react-redux";
+
 interface OnboardingScreen2Props {
   onBack?: () => void;
   onComplete?: () => void;
 }
+
 interface OnboardingScreen2Values {
   accuracy: "Tested" | "Estimated" | "Unsure";
   olympic_lifts: boolean[];
   squats: boolean[];
+  press: boolean[];
+  variations: boolean[];
 }
 
-type LiftCategory = "olympic" | "squat";
+type LiftCategory = "olympic" | "squat" | "press" | "variation";
 
 interface LiftIdentifier {
   category: LiftCategory;
@@ -41,15 +44,28 @@ interface LiftIdentifier {
 }
 
 const OLYMPIC_LIFTS = [
-  "Snatch",
-  "Power Snatch",
-  "Clean & Jerk",
-  "Clean",
-  "Power Clean",
-  "Jerk",
+  { label: "Snatch", value: 0 },
+  { label: "Clean & Jerk", value: 0 },
 ];
 
-const SQUAT_LIFTS = ["Back Squat", "Front Squat"];
+const SQUAT_LIFTS = [
+  { label: "Back Squat", value: 0 },
+  { label: "Front Squat", value: 0 },
+  { label: "Overhead Squat", value: 0 },
+];
+
+const PRESS_LIFTS = [
+  { label: "Strict Press", value: 0 },
+  { label: "Push Press", value: 0 },
+  { label: "Power Jerk", value: 0 },
+  { label: "Jerk", value: 0 },
+];
+
+const VARIATION_LIFTS = [
+  { label: "Power Snatch", value: 0 },
+  { label: "Clean", value: 0 },
+  { label: "Power Clean", value: 0 },
+];
 
 export default function OnboardingScreen2({
   onComplete,
@@ -62,13 +78,31 @@ export default function OnboardingScreen2({
   const [liftVideos, setLiftVideos] = useState<Record<string, string>>({});
   const [currentLift, setCurrentLift] = useState<LiftIdentifier | null>(null);
   const dispatch = useDispatch();
+  const [liftValues, setLiftValues] = useState({
+    olympic: OLYMPIC_LIFTS.map((lift) => lift.value),
+    squat: SQUAT_LIFTS.map((lift) => lift.value),
+    press: PRESS_LIFTS.map((lift) => lift.value),
+    variation: VARIATION_LIFTS.map((lift) => lift.value),
+  });
 
+  const handleValueChange = (
+    category: LiftCategory,
+    index: number,
+    value: number,
+  ) => {
+    setLiftValues((prev) => ({
+      ...prev,
+      [category]: prev[category].map((v, i) => (i === index ? value : v)),
+    }));
+  };
   const { control, handleSubmit, watch, setValue } =
     useForm<OnboardingScreen2Values>({
       defaultValues: {
         accuracy: "Tested",
-        olympic_lifts: [false, false, false, false, false, false],
-        squats: [false, false],
+        olympic_lifts: [false, false],
+        squats: [false, false, false],
+        press: [false, false, false, false],
+        variations: [false, false, false],
       },
     });
 
@@ -132,8 +166,22 @@ export default function OnboardingScreen2({
         return updated;
       });
 
-      const fieldName =
-        currentLift.category === "olympic" ? "olympic_lifts" : "squats";
+      let fieldName: keyof OnboardingScreen2Values;
+      switch (currentLift.category) {
+        case "olympic":
+          fieldName = "olympic_lifts";
+          break;
+        case "squat":
+          fieldName = "squats";
+          break;
+        case "press":
+          fieldName = "press";
+          break;
+        case "variation":
+          fieldName = "variations";
+          break;
+      }
+
       const currentValues = watch(fieldName);
       const updated = [...currentValues];
       updated[currentLift.index] = false;
@@ -183,8 +231,21 @@ export default function OnboardingScreen2({
     onChange(updated);
 
     if (!isChecked) {
-      const label =
-        category === "olympic" ? OLYMPIC_LIFTS[index] : SQUAT_LIFTS[index];
+      let label: string;
+      switch (category) {
+        case "olympic":
+          label = OLYMPIC_LIFTS[index].label;
+          break;
+        case "squat":
+          label = SQUAT_LIFTS[index].label;
+          break;
+        case "press":
+          label = PRESS_LIFTS[index].label;
+          break;
+        case "variation":
+          label = VARIATION_LIFTS[index].label;
+          break;
+      }
       showVideoOptions({ category, index, label });
     }
   };
@@ -192,8 +253,16 @@ export default function OnboardingScreen2({
   const onSubmit = (data: OnboardingScreen2Values) => {
     const hasOlympicSelection = data.olympic_lifts.some((lift) => lift);
     const hasSquatSelection = data.squats.some((squat) => squat);
-
-    if (!hasOlympicSelection && !hasSquatSelection) {
+    const hasPressSelection = data.press.some((press) => press);
+    const hasVariationSelection = data.variations.some(
+      (variation) => variation,
+    );
+    if (
+      !hasOlympicSelection &&
+      !hasSquatSelection &&
+      !hasPressSelection &&
+      !hasVariationSelection
+    ) {
       showError("Please choose one lift before proceeding");
       return;
     }
@@ -202,13 +271,25 @@ export default function OnboardingScreen2({
 
     data.olympic_lifts.forEach((isSelected, index) => {
       if (isSelected && !liftVideos[`olympic_${index}`]) {
-        missingVideos.push(OLYMPIC_LIFTS[index]);
+        missingVideos.push(OLYMPIC_LIFTS[index].label);
       }
     });
 
     data.squats.forEach((isSelected, index) => {
       if (isSelected && !liftVideos[`squat_${index}`]) {
-        missingVideos.push(SQUAT_LIFTS[index]);
+        missingVideos.push(SQUAT_LIFTS[index].label);
+      }
+    });
+
+    data.press.forEach((isSelected, index) => {
+      if (isSelected && !liftVideos[`press_${index}`]) {
+        missingVideos.push(PRESS_LIFTS[index].label);
+      }
+    });
+
+    data.variations.forEach((isSelected, index) => {
+      if (isSelected && !liftVideos[`variation_${index}`]) {
+        missingVideos.push(VARIATION_LIFTS[index].label);
       }
     });
 
@@ -217,17 +298,48 @@ export default function OnboardingScreen2({
       return;
     }
 
-    dispatch(
-      saveOnboardingData({
-        ...data,
-        liftVideos,
-      }),
-    );
+    const missingWeights: string[] = [];
+
+    data.olympic_lifts.forEach((isSelected, index) => {
+      if (isSelected && liftValues.olympic[index] === 0) {
+        missingWeights.push(OLYMPIC_LIFTS[index].label);
+      }
+    });
+
+    data.squats.forEach((isSelected, index) => {
+      if (isSelected && liftValues.squat[index] === 0) {
+        missingWeights.push(SQUAT_LIFTS[index].label);
+      }
+    });
+
+    data.press.forEach((isSelected, index) => {
+      if (isSelected && liftValues.press[index] === 0) {
+        missingWeights.push(PRESS_LIFTS[index].label);
+      }
+    });
+
+    data.variations.forEach((isSelected, index) => {
+      if (isSelected && liftValues.variation[index] === 0) {
+        missingWeights.push(VARIATION_LIFTS[index].label);
+      }
+    });
+
+    if (missingWeights.length > 0) {
+      showError(`Please add weight for: ${missingWeights.join(", ")}`);
+      return;
+    }
+    // dispatch(
+    //   saveOnboardingData({
+    //     ...data,
+    //     liftVideos,
+    //   }),
+    // );
 
     if (onComplete) {
       onComplete();
     }
   };
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -245,7 +357,7 @@ export default function OnboardingScreen2({
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: "rgba(0, 0, 0, 0.5)",
+
       justifyContent: "center",
       alignItems: "center",
       zIndex: 999,
@@ -316,15 +428,11 @@ export default function OnboardingScreen2({
           name="olympic_lifts"
           render={({ field: { value, onChange } }) => (
             <LiftDetailsCard
-              title="Olympic Lifts"
-              items={[
-                { label: "Snatch", value: 123 },
-                { label: "Power Snatch", value: 118 },
-                { label: "Clean & Jerk", value: 155 },
-                { label: "Clean", value: 160 },
-                { label: "Power Clean", value: 155 },
-                { label: "Jerk", value: 168 },
-              ]}
+              title="Classic"
+              items={OLYMPIC_LIFTS.map((lift, i) => ({
+                ...lift,
+                value: liftValues.olympic[i],
+              }))}
               checkedValues={value}
               onToggle={(index) =>
                 handleLiftToggle(
@@ -334,6 +442,9 @@ export default function OnboardingScreen2({
                   onChange,
                   value,
                 )
+              }
+              onValueChange={(index, val) =>
+                handleValueChange("olympic", index, val)
               }
             />
           )}
@@ -345,18 +456,66 @@ export default function OnboardingScreen2({
           render={({ field: { value, onChange } }) => (
             <LiftDetailsCard
               title="Squats"
-              items={[
-                { label: "Back Squat", value: 210 },
-                { label: "Front Squat", value: 190 },
-              ]}
+              items={SQUAT_LIFTS.map((lift, i) => ({
+                ...lift,
+                value: liftValues.squat[i],
+              }))}
               checkedValues={value}
               onToggle={(index) =>
                 handleLiftToggle("squat", index, value[index], onChange, value)
               }
+              onValueChange={(index, val) =>
+                handleValueChange("squat", index, val)
+              }
             />
           )}
         />
-
+        <Controller
+          control={control}
+          name="press"
+          render={({ field: { value, onChange } }) => (
+            <LiftDetailsCard
+              title="Press"
+              items={PRESS_LIFTS.map((lift, i) => ({
+                ...lift,
+                value: liftValues.press[i],
+              }))}
+              checkedValues={value}
+              onToggle={(index) =>
+                handleLiftToggle("press", index, value[index], onChange, value)
+              }
+              onValueChange={(index, val) =>
+                handleValueChange("press", index, val)
+              }
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="variations"
+          render={({ field: { value, onChange } }) => (
+            <LiftDetailsCard
+              title="Variation"
+              items={VARIATION_LIFTS.map((lift, i) => ({
+                ...lift,
+                value: liftValues.variation[i],
+              }))}
+              checkedValues={value}
+              onToggle={(index) =>
+                handleLiftToggle(
+                  "variation",
+                  index,
+                  value[index],
+                  onChange,
+                  value,
+                )
+              }
+              onValueChange={(index, val) =>
+                handleValueChange("variation", index, val)
+              }
+            />
+          )}
+        />
         <Controller
           control={control}
           name="accuracy"
@@ -383,7 +542,7 @@ export default function OnboardingScreen2({
 
       {isUploading && (
         <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color={colors.primary || "#fff"} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       )}
 

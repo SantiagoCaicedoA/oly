@@ -1,0 +1,10 @@
+import { Stack } from "expo-router";
+import React from "react";
+export default function AthleteLayout() {
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="post-expanded" />
+      <Stack.Screen name="daily-check-in" />
+    </Stack>
+  );
+}
