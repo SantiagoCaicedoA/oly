@@ -25,4 +25,6 @@ export const Images = {
   publicicon: require("./images/publicicon.png"),
   privateicon: require("./images/privateicon.png"),
   uploadicon: require("./images/uploadicon.png"),
+  alarmicon: require("./images/alarmicon.png"),
+  arrowup: require("./images/arrowup.png"),
 };

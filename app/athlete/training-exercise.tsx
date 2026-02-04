@@ -67,6 +67,35 @@ export default function TrainingExercise() {
       letterSpacing: Typography.letterSpacing.normal,
       textAlign: "center",
     },
+    footer: {
+      borderTopColor: colors.text,
+      borderTopWidth: scale(0.6),
+      flexDirection: "row",
+      paddingHorizontal: scale(12),
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    icon: {
+      width: scale(30),
+      height: scale(12),
+      resizeMode: "contain",
+    },
+    timerContainer: {
+      borderColor: colors.text,
+      borderWidth: scale(0.5),
+      borderRadius: scale(15),
+      alignItems: "center",
+      flexDirection: "row",
+      justifyContent: "space-evenly",
+      paddingVertical: scale(12),
+      paddingHorizontal: scale(15),
+    },
+    divider: {
+      height: scale(15),
+
+      borderColor: colors.text,
+      borderWidth: scale(0.3),
+    },
   });
 
   return (
@@ -100,7 +129,24 @@ export default function TrainingExercise() {
             <SetDetail />
             <CustomButton title="ADD SET" onPress={handleAddSet} />
           </ScrollView>
-
+          <View style={styles.footer}>
+            <TouchableOpacity>
+              <Image source={Images.arrowBack} style={styles.icon} />
+              <Text>BACK</Text>
+            </TouchableOpacity>
+            <View style={styles.timerContainer}>
+              <Image source={Images.alarmicon} style={styles.icon} />
+              <Text>START</Text>
+              <View style={styles.divider}></View>
+              <TouchableOpacity>
+                <Image source={Images.arrowBack} style={styles.icon} />
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity>
+              <Image source={Images.arrowforward} style={styles.icon} />
+              <Text>NEXT</Text>
+            </TouchableOpacity>
+          </View>
           <ActionSheet ref={bottomSheetRef} />
         </SafeAreaView>
       </BottomSheetModalProvider>

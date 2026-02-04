@@ -6,11 +6,19 @@ import CustomInput from "@/constants/custom-input";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
 import { saveOnboardingData } from "@/store/reducer/onboardingSlice";
+import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-
 import React, { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { ScrollView, StyleSheet, View } from "react-native";
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { scale } from "react-native-size-matters";
 import { useDispatch } from "react-redux";
 interface OnboardingScreen1Values {
@@ -23,6 +31,7 @@ interface OnboardingScreen1Values {
   sex: string;
   height: string;
   measurement_system: "Metric" | "Imperial";
+  bio: string;
 }
 interface OnboardingScreen1Props {
   onComplete?: () => void;
@@ -36,6 +45,36 @@ export default function OnboardingScreen1({
 }: OnboardingScreen1Props) {
   const { colors } = useTheme();
   const dispatch = useDispatch();
+  const [profileImage, setProfileImage] = React.useState<string>("");
+  const handleTakePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") return;
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setProfileImage(result.assets[0].uri);
+    }
+  };
+  const handleChooseFromGallery = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") return;
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setProfileImage(result.assets[0].uri);
+    }
+  };
 
   const onSubmit = (data: OnboardingScreen1Values) => {
     dispatch(saveOnboardingData(data));
@@ -63,6 +102,7 @@ export default function OnboardingScreen1({
       sex: "male",
       height: "",
       measurement_system: "Metric",
+      bio: "",
     },
   });
   useEffect(() => {
@@ -82,6 +122,55 @@ export default function OnboardingScreen1({
       gap: scale(7),
       marginBottom: scale(50),
     },
+    profileImageContainer: {
+      alignItems: "center",
+      marginVertical: scale(20),
+    },
+    profileImagePreview: {
+      width: scale(120),
+      height: scale(120),
+      borderRadius: scale(60),
+      borderWidth: 2,
+      borderColor: colors.primary,
+      marginBottom: scale(12),
+    },
+    profileImagePlaceholder: {
+      width: scale(120),
+      height: scale(120),
+      borderRadius: scale(60),
+      borderWidth: 2,
+      borderStyle: "dashed",
+      borderColor: colors.textSecondary,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: scale(12),
+    },
+
+    imageButtonsRow: {
+      flexDirection: "row",
+      gap: scale(10),
+      width: "100%",
+    },
+    imageButtonSecondary: {
+      backgroundColor: colors.lightBlue,
+      borderColor: colors.primary,
+      flex: 1,
+      borderWidth: scale(1),
+    },
+    imageButton: {
+      backgroundColor: colors.lightBlue,
+      borderColor: colors.primary,
+      borderWidth: scale(1),
+      paddingVertical: scale(10),
+      paddingHorizontal: scale(20),
+      borderRadius: scale(8),
+      flex: 1,
+      alignItems: "center",
+    },
+    imageButtonText: {
+      color: "#fff",
+      fontWeight: "600",
+    },
   });
   return (
     <ScrollView
@@ -93,7 +182,49 @@ export default function OnboardingScreen1({
         mainText="Athlete profile"
         subText="Used to set up your training profile"
       />
+      <View style={styles.profileImageContainer}>
+        {profileImage ? (
+          <Image
+            source={{ uri: profileImage }}
+            style={styles.profileImagePreview}
+          />
+        ) : (
+          <View style={styles.profileImagePlaceholder}>
+            <Ionicons name="camera" size={50} color={colors.textSecondary} />
+          </View>
+        )}
+
+        <View style={styles.imageButtonsRow}>
+          <TouchableOpacity
+            style={styles.imageButton}
+            onPress={handleChooseFromGallery}
+          >
+            <Text style={styles.imageButtonText}>Choose Photo</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.imageButton, styles.imageButtonSecondary]}
+            onPress={handleTakePhoto}
+          >
+            <Text style={styles.imageButtonText}>Take Photo</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <View style={styles.formGroup}>
+        <Controller
+          control={control}
+          name="bio"
+          render={({ field: { onChange, value } }) => (
+            <CustomInput
+              placeholder="Write a short bio..."
+              label="ABOUT YOU"
+              onChangeText={onChange}
+              value={value}
+              error={errors.bio?.message}
+            />
+          )}
+        />
         <Controller
           control={control}
           name="name"
