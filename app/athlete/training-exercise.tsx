@@ -4,6 +4,7 @@ import ExerciseSection from "@/components/exercise-section";
 import LiftGraph from "@/components/lift-graph";
 import SetDetail from "@/components/set-detail";
 import TalkToCoach from "@/components/talk-to-coach";
+import TimerBottomSheet from "@/components/timer-bottom-sheet";
 import CustomButton from "@/constants/custom-button";
 import { useTheme } from "@/context/theme-context";
 import { Typography } from "@/utils/custom-styles";
@@ -12,7 +13,7 @@ import {
   BottomSheetModalProvider,
 } from "@gorhom/bottom-sheet";
 import { router } from "expo-router";
-import React, { useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Image,
   ScrollView,
@@ -28,13 +29,44 @@ import { scale } from "react-native-size-matters";
 export default function TrainingExercise() {
   const { colors } = useTheme();
   const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const timerSheetRef = useRef<BottomSheetModal>(null);
+  const [timerDuration, setTimerDuration] = useState<number>(0);
+  const [timeRemaining, setTimeRemaining] = useState<number>(0);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [isTimerActive, setIsTimerActive] = useState(false);
 
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (isTimerRunning && timeRemaining > 0) {
+      interval = setInterval(() => {
+        setTimeRemaining((prev) => {
+          if (prev <= 1) {
+            setIsTimerRunning(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    return () => clearInterval(interval);
+  }, [isTimerRunning, timeRemaining]);
+
+  const formatTime = (totalSeconds: number) => {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
   const handleBackPress = () => {
     router.back();
   };
 
   const handleAddSet = () => {
     bottomSheetRef.current?.present();
+  };
+  const handleStartTimer = () => {
+    timerSheetRef.current?.present();
   };
 
   const styles = StyleSheet.create({
@@ -53,6 +85,7 @@ export default function TrainingExercise() {
       justifyContent: "center",
       paddingVertical: scale(10),
       position: "relative",
+      backgroundColor: colors.headerBackground,
     },
     backButton: {
       position: "absolute",
@@ -71,13 +104,15 @@ export default function TrainingExercise() {
       borderTopColor: colors.text,
       borderTopWidth: scale(0.6),
       flexDirection: "row",
-      paddingHorizontal: scale(12),
+      paddingHorizontal: scale(25),
       alignItems: "center",
       justifyContent: "space-between",
+      backgroundColor: colors.headerBackground,
+      paddingVertical: scale(20),
     },
     icon: {
       width: scale(30),
-      height: scale(12),
+      height: scale(20),
       resizeMode: "contain",
     },
     timerContainer: {
@@ -89,12 +124,30 @@ export default function TrainingExercise() {
       justifyContent: "space-evenly",
       paddingVertical: scale(12),
       paddingHorizontal: scale(15),
+      gap: scale(12),
     },
     divider: {
       height: scale(15),
 
       borderColor: colors.text,
       borderWidth: scale(0.3),
+    },
+    footerText: {
+      fontSize: Typography.fontSize.base,
+      fontWeight: Typography.fontWeight.light,
+      color: colors.text,
+      letterSpacing: Typography.letterSpacing.normal,
+    },
+    footerButtonContainer: {
+      gap: scale(15),
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    startText: {
+      fontSize: Typography.fontSize.sm,
+      fontWeight: Typography.fontWeight.normal,
+      color: colors.text,
+      letterSpacing: Typography.letterSpacing.normal,
     },
   });
 
@@ -129,26 +182,61 @@ export default function TrainingExercise() {
             <SetDetail />
             <CustomButton title="ADD SET" onPress={handleAddSet} />
           </ScrollView>
-          <View style={styles.footer}>
-            <TouchableOpacity>
-              <Image source={Images.arrowBack} style={styles.icon} />
-              <Text>BACK</Text>
-            </TouchableOpacity>
-            <View style={styles.timerContainer}>
-              <Image source={Images.alarmicon} style={styles.icon} />
-              <Text>START</Text>
-              <View style={styles.divider}></View>
-              <TouchableOpacity>
-                <Image source={Images.arrowBack} style={styles.icon} />
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity>
-              <Image source={Images.arrowforward} style={styles.icon} />
-              <Text>NEXT</Text>
+
+          <ActionSheet ref={bottomSheetRef} />
+          <TimerBottomSheet
+            ref={timerSheetRef}
+            isTimerActive={isTimerActive}
+            isTimerRunning={isTimerRunning}
+            onStartTimer={(seconds: number) => {
+              setTimerDuration(seconds);
+              setTimeRemaining(seconds);
+              setIsTimerRunning(true);
+              setIsTimerActive(true);
+              timerSheetRef.current?.dismiss();
+            }}
+            onPauseTimer={() => {
+              setIsTimerRunning(false);
+              timerSheetRef.current?.dismiss();
+            }}
+            onResumeTimer={() => {
+              setIsTimerRunning(true);
+              timerSheetRef.current?.dismiss();
+            }}
+          />
+        </SafeAreaView>
+        <View style={styles.footer}>
+          <TouchableOpacity style={styles.footerButtonContainer}>
+            <Image source={Images.arrowBack} style={styles.icon} />
+            <Text style={styles.footerText}>BACK</Text>
+          </TouchableOpacity>
+          <View style={styles.timerContainer}>
+            <Image
+              source={
+                isTimerRunning
+                  ? Images.starttimmer
+                  : timeRemaining > 0
+                    ? Images.pause
+                    : Images.alarmicon
+              }
+              style={styles.icon}
+            />
+
+            <Text style={styles.startText}>
+              {isTimerRunning || timeRemaining > 0
+                ? formatTime(timeRemaining)
+                : "START"}
+            </Text>
+            <View style={styles.divider}></View>
+            <TouchableOpacity onPress={handleStartTimer}>
+              <Image source={Images.arrowup} style={styles.icon} />
             </TouchableOpacity>
           </View>
-          <ActionSheet ref={bottomSheetRef} />
-        </SafeAreaView>
+          <TouchableOpacity style={styles.footerButtonContainer}>
+            <Image source={Images.arrowforward} style={styles.icon} />
+            <Text style={styles.footerText}>NEXT</Text>
+          </TouchableOpacity>
+        </View>
       </BottomSheetModalProvider>
     </GestureHandlerRootView>
   );

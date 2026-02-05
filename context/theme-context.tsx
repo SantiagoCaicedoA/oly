@@ -15,6 +15,7 @@ export const COLORS = {
     warning: "#FF9800",
     info: "#2196F3",
     lightBlue: "#0a274c",
+    headerBackground: "#0d1924",
   },
   dark: {
     background: "#15202a",
@@ -28,6 +29,7 @@ export const COLORS = {
     warning: "#FF9800",
     info: "#2196F3",
     lightBlue: "#0a274c",
+    headerBackground: "#0d1924",
   },
 } as const;
 

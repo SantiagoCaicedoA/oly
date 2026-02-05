@@ -10,7 +10,16 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { router } from "expo-router";
 import React from "react";
 import { Controller, useForm } from "react-hook-form";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
 import { scale } from "react-native-size-matters";
 export default function Login() {
   const { colors } = useTheme();
@@ -92,50 +101,57 @@ export default function Login() {
   });
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.signUp}>LOGIN</Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <View style={styles.container}>
+          <Text style={styles.signUp}>LOGIN</Text>
 
-      <View style={styles.fieldContainer}>
-        <Controller
-          control={control}
-          name="email"
-          render={({ field: { onChange, value } }) => (
-            <CustomInput
-              label="EMAIL"
-              placeholder="alex@gmail.com"
-              autoCapitalize="none"
-              value={value}
-              onChangeText={onChange}
-              error={errors.email?.message}
+          <View style={styles.fieldContainer}>
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { onChange, value } }) => (
+                <CustomInput
+                  label="EMAIL"
+                  placeholder="alex@gmail.com"
+                  autoCapitalize="none"
+                  value={value}
+                  onChangeText={onChange}
+                  error={errors.email?.message}
+                />
+              )}
             />
-          )}
-        />
 
-        <Controller
-          control={control}
-          name="password"
-          render={({ field: { onChange, value } }) => (
-            <CustomInput
-              label="PASSWORD"
-              placeholder="Enter your password"
-              autoCapitalize="none"
-              secureTextEntry
-              value={value}
-              onChangeText={onChange}
-              error={errors.password?.message}
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { onChange, value } }) => (
+                <CustomInput
+                  label="PASSWORD"
+                  placeholder="Enter your password"
+                  autoCapitalize="none"
+                  secureTextEntry
+                  value={value}
+                  onChangeText={onChange}
+                  error={errors.password?.message}
+                />
+              )}
             />
-          )}
-        />
-      </View>
+          </View>
 
-      <CustomButton title="LOGIN" onPress={handleSubmit(onSubmit)} />
+          <CustomButton title="LOGIN" onPress={handleSubmit(onSubmit)} />
 
-      <View style={styles.rowContainer}>
-        <Text style={styles.text}>Don’t have an account?</Text>
-        <TouchableOpacity onPress={handleSignUpPress}>
-          <Text style={styles.login}>SIGN UP</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+          <View style={styles.rowContainer}>
+            <Text style={styles.text}>Don’t have an account?</Text>
+            <TouchableOpacity onPress={handleSignUpPress}>
+              <Text style={styles.login}>SIGN UP</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }

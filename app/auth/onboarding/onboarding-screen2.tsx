@@ -4,6 +4,7 @@ import SegmentedSelector from "@/components/segmented-selector";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
 import { useToast } from "@/context/toast-context";
+import { useUploadAthleteVideoMutation } from "@/store/api";
 import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -84,7 +85,8 @@ export default function OnboardingScreen2({
     press: PRESS_LIFTS.map((lift) => lift.value),
     variation: VARIATION_LIFTS.map((lift) => lift.value),
   });
-
+  const [uploadAthleteVideo, { isLoading: isUploadingToApi }] =
+    useUploadAthleteVideoMutation();
   const handleValueChange = (
     category: LiftCategory,
     index: number,
@@ -151,10 +153,32 @@ export default function OnboardingScreen2({
     }
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
+    if (currentLift) {
+      const key = getLiftKey(currentLift);
+      const videoUri = liftVideos[key];
+
+      if (videoUri) {
+        try {
+          const formData = new FormData();
+          formData.append("video", {
+            uri: videoUri,
+            type: "video/mp4",
+            name: `${currentLift.label.replace(/\s+/g, "_")}.mp4`,
+          } as any);
+
+          const result = await uploadAthleteVideo(formData).unwrap();
+
+          showSuccess("Video uploaded successfully!");
+        } catch (error) {
+          console.error("Failed to upload video:", error);
+          showError("Failed to upload video");
+        }
+      }
+    }
+
     setShowSuccessModal(false);
     setCurrentLift(null);
-    showSuccess("Video saved!");
   };
 
   const handleRemoveVideo = () => {
@@ -328,12 +352,6 @@ export default function OnboardingScreen2({
       showError(`Please add weight for: ${missingWeights.join(", ")}`);
       return;
     }
-    // dispatch(
-    //   saveOnboardingData({
-    //     ...data,
-    //     liftVideos,
-    //   }),
-    // );
 
     if (onComplete) {
       onComplete();
@@ -408,6 +426,9 @@ export default function OnboardingScreen2({
       color: "#fff",
       fontSize: scale(14),
       fontWeight: "600",
+    },
+    disabledButton: {
+      opacity: 0.5,
     },
   });
 
@@ -561,17 +582,40 @@ export default function OnboardingScreen2({
 
             <View style={styles.modalButtonsRow}>
               <TouchableOpacity
-                style={[styles.modalButton, styles.removeButton]}
+                style={[
+                  styles.modalButton,
+                  styles.removeButton,
+                  isUploadingToApi && styles.disabledButton,
+                ]}
                 onPress={handleRemoveVideo}
+                disabled={isUploadingToApi}
               >
                 <Text style={styles.buttonText}>Remove Video</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.modalButton, styles.saveButton]}
+                style={[
+                  styles.modalButton,
+                  styles.saveButton,
+                  isUploadingToApi && styles.disabledButton,
+                ]}
                 onPress={handleContinue}
+                disabled={isUploadingToApi}
               >
-                <Text style={styles.buttonText}>Continue</Text>
+                {isUploadingToApi ? (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: scale(8),
+                    }}
+                  >
+                    <ActivityIndicator size="small" color="#fff" />
+                    <Text style={styles.buttonText}>Saving...</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.buttonText}>Continue</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>

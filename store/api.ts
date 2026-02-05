@@ -178,8 +178,29 @@ export const api = createApi({
       }),
       invalidatesTags: ["Athlete"],
     }),
+    uploadProfileImage: builder.mutation<any, FormData>({
+      query: (formData) => ({
+        url: API_ROUTES.AUTH.ONBOARDING_IMAGE_UPLOAD,
+        method: "POST",
+        body: formData,
+      }),
+      invalidatesTags: ["Athlete"],
+    }),
+    uploadAthleteVideo: builder.mutation<any, FormData>({
+      query: (formData) => ({
+        url: API_ROUTES.AUTH.ONBOARDING_VIDEO_UPLOAD,
+        method: "POST",
+        body: formData,
+      }),
+      invalidatesTags: ["Athlete"],
+    }),
   }),
 });
 
-export const { useSignupMutation, useLoginMutation, useSubmitProfileMutation } =
-  api;
+export const {
+  useSignupMutation,
+  useLoginMutation,
+  useSubmitProfileMutation,
+  useUploadProfileImageMutation,
+  useUploadAthleteVideoMutation,
+} = api;

@@ -5,6 +5,7 @@ import WeightInput from "@/components/weight-input";
 import CustomInput from "@/constants/custom-input";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
+import { useUploadProfileImageMutation } from "@/store/api";
 import { saveOnboardingData } from "@/store/reducer/onboardingSlice";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -12,6 +13,7 @@ import { router } from "expo-router";
 import React, { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
+  ActivityIndicator,
   Image,
   ScrollView,
   StyleSheet,
@@ -46,6 +48,8 @@ export default function OnboardingScreen1({
   const { colors } = useTheme();
   const dispatch = useDispatch();
   const [profileImage, setProfileImage] = React.useState<string>("");
+  const [uploadProfileImage, { isLoading: isUploading }] =
+    useUploadProfileImageMutation();
   const handleTakePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") return;
@@ -76,7 +80,24 @@ export default function OnboardingScreen1({
     }
   };
 
-  const onSubmit = (data: OnboardingScreen1Values) => {
+  const onSubmit = async (data: OnboardingScreen1Values) => {
+    if (profileImage) {
+      try {
+        const formData = new FormData();
+        formData.append("image", {
+          uri: profileImage,
+          type: "image/jpeg",
+          name: "profile.jpg",
+        } as any);
+
+        const result = await uploadProfileImage(formData).unwrap();
+      } catch (error) {
+        console.error("Failed to upload image:", error);
+
+        return;
+      }
+    }
+
     dispatch(saveOnboardingData(data));
 
     if (onComplete) {
@@ -170,6 +191,17 @@ export default function OnboardingScreen1({
     imageButtonText: {
       color: "#fff",
       fontWeight: "600",
+    },
+    loaderContainer: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 999,
     },
   });
   return (
@@ -344,7 +376,15 @@ export default function OnboardingScreen1({
         />
       </View>
 
-      <ActionButtonsRow onPrimaryPress={handleSubmit(onSubmit)} />
+      <ActionButtonsRow
+        onPrimaryPress={handleSubmit(onSubmit)}
+        primaryTitle={isUploading ? "Saving..." : "Save"}
+      />
+      {isUploading && (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      )}
     </ScrollView>
   );
 }

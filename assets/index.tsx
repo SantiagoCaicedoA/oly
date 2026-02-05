@@ -27,4 +27,8 @@ export const Images = {
   uploadicon: require("./images/uploadicon.png"),
   alarmicon: require("./images/alarmicon.png"),
   arrowup: require("./images/arrowup.png"),
+  play: require("./images/play.png"),
+  sound: require("./images/sound.png"),
+  starttimmer: require("./images/starttimmer.png"),
+  pause: require("./images/pause.png"),
 };

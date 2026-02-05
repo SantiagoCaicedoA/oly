@@ -11,6 +11,7 @@ export interface ThemeColors {
   primary: string;
   surface: string;
   lightBlue: string;
+  headerBackground: string;
 }
 
 export interface ThemeContextType {
