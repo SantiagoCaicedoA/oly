@@ -82,7 +82,7 @@ export default function SetDetail() {
       </View>
 
       <View style={styles.weightContainer}>
-        <Text style={styles.weightText}>RPE 8</Text>
+        <Text style={styles.weightText}>80 %</Text>
       </View>
       <TouchableOpacity
         style={styles.checkbox}

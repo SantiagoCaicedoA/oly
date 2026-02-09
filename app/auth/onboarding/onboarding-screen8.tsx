@@ -104,7 +104,7 @@ export default function OnboardingScreen8() {
         [
           {
             text: "OK",
-            onPress: () => router.push("/(tabs)/home"),
+            onPress: () => router.replace("/(tabs)/home"),
           },
         ],
         { cancelable: false },
@@ -154,6 +154,17 @@ export default function OnboardingScreen8() {
     loadingContainer: {
       marginVertical: scale(20),
     },
+    loaderContainer: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(0, 0, 0, 0.35)",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 999,
+    },
   });
 
   return (
@@ -163,18 +174,15 @@ export default function OnboardingScreen8() {
         subText="You'll be able to update the past personal data in your profile settings"
       />
 
-      {isLoading && (
-        <ActivityIndicator
-          size="large"
-          color={colors.primary || "#3B82F6"}
-          style={styles.loadingContainer}
-        />
-      )}
-
       <ActionButtonsRow
         onPrimaryPress={onSubmit}
-        // primaryButtonDisabled={isLoading}
+        primaryTitle={isLoading ? "SAVING..." : "SAVE"}
       />
+      {isLoading && (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      )}
     </View>
   );
 }

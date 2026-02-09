@@ -12,6 +12,7 @@ export interface ThemeColors {
   surface: string;
   lightBlue: string;
   headerBackground: string;
+  semiLightBlue: string
 }
 
 export interface ThemeContextType {

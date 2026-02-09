@@ -2,6 +2,7 @@ import { Images } from "@/assets";
 import PostCard from "@/components/post-card";
 import { useTheme } from "@/context/theme-context";
 import { Typography } from "@/utils/custom-styles";
+import { Stack } from "expo-router";
 import React from "react";
 import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -46,30 +47,37 @@ export default function Home() {
   });
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerSection}>
-          <Image source={Images.profile} style={styles.icon} />
-          <Image source={Images.search} style={styles.icon} />
+    <>
+      <Stack.Screen
+        options={{
+          gestureEnabled: false,
+        }}
+      />
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <View style={styles.headerSection}>
+            <Image source={Images.profile} style={styles.icon} />
+            <Image source={Images.search} style={styles.icon} />
+          </View>
+
+          <Text style={styles.home}>HOME</Text>
+          <View style={styles.headerSection}>
+            <Image source={Images.notificationicon} style={styles.icon} />
+            <Image source={Images.comment} style={styles.icon} />
+          </View>
         </View>
 
-        <Text style={styles.home}>HOME</Text>
-        <View style={styles.headerSection}>
-          <Image source={Images.notificationicon} style={styles.icon} />
-          <Image source={Images.comment} style={styles.icon} />
-        </View>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <PostCard />
-        <PostCard />
-        <PostCard />
-        <PostCard />
-        <PostCard />
-      </ScrollView>
-    </SafeAreaView>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <PostCard />
+          <PostCard />
+          <PostCard />
+          <PostCard />
+          <PostCard />
+        </ScrollView>
+      </SafeAreaView>
+    </>
   );
 }

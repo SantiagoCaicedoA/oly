@@ -12,6 +12,7 @@ import { router } from "expo-router";
 import React from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
+  ActivityIndicator,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -118,6 +119,17 @@ export default function SignUp() {
       letterSpacing: Typography.letterSpacing.normal,
       color: colors.text,
     },
+    loaderContainer: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 999,
+    },
   });
 
   return (
@@ -168,7 +180,7 @@ export default function SignUp() {
                   label="PASSWORD"
                   placeholder="Enter your password"
                   autoCapitalize="none"
-                  secureTextEntry
+                  isPassword
                   value={value}
                   onChangeText={onChange}
                   error={errors.password?.message}
@@ -177,7 +189,11 @@ export default function SignUp() {
             />
           </View>
 
-          <CustomButton title="SIGN UP" onPress={handleSubmit(onSubmit)} />
+          <CustomButton
+            title={isLoading ? "SIGNING UP" : "SIGN UP"}
+            onPress={handleSubmit(onSubmit)}
+            disabled={isLoading}
+          />
 
           <View style={styles.rowContainer}>
             <Text style={styles.text}>Already have an account?</Text>
@@ -187,6 +203,11 @@ export default function SignUp() {
           </View>
         </View>
       </TouchableWithoutFeedback>
+      {isLoading && (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 }

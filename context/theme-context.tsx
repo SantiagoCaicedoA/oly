@@ -16,6 +16,7 @@ export const COLORS = {
     info: "#2196F3",
     lightBlue: "#0a274c",
     headerBackground: "#0d1924",
+    semiLightBlue: "#0a346c",
   },
   dark: {
     background: "#15202a",
@@ -30,6 +31,7 @@ export const COLORS = {
     info: "#2196F3",
     lightBlue: "#0a274c",
     headerBackground: "#0d1924",
+    semiLightBlue: "#0a346c",
   },
 } as const;
 

@@ -168,6 +168,7 @@ export default function OnboardingScreen2({
           } as any);
 
           const result = await uploadAthleteVideo(formData).unwrap();
+          console.log("mmmm", result);
 
           showSuccess("Video uploaded successfully!");
         } catch (error) {

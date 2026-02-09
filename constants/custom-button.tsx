@@ -7,9 +7,14 @@ import { scale } from "react-native-size-matters";
 type CustomButtonProps = {
   title: string;
   onPress?: () => void;
+  disabled?: boolean;
 };
 
-export default function CustomButton({ title, onPress }: CustomButtonProps) {
+export default function CustomButton({
+  title,
+  onPress,
+  disabled,
+}: CustomButtonProps) {
   const { colors } = useTheme();
 
   const styles = StyleSheet.create({
@@ -30,7 +35,11 @@ export default function CustomButton({ title, onPress }: CustomButtonProps) {
   });
 
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
+    <TouchableOpacity
+      style={[styles.container, disabled && { opacity: 0.5 }]}
+      onPress={onPress}
+      disabled={disabled}
+    >
       <Text style={styles.title}>{title}</Text>
     </TouchableOpacity>
   );

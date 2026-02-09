@@ -18,6 +18,7 @@ interface WeightInputProps {
   onUnitChange: (unit: string) => void;
   error?: string;
   units?: string[];
+  allowManualInput?: boolean;
 }
 
 export default function WeightInput({
@@ -28,6 +29,7 @@ export default function WeightInput({
   onUnitChange,
   error,
   units = ["KG", "LB"],
+  allowManualInput,
 }: WeightInputProps) {
   const { colors } = useTheme();
   const [isFocused, setIsFocused] = useState(false);
@@ -104,6 +106,7 @@ export default function WeightInput({
           keyboardType="numeric"
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
+          editable={allowManualInput ?? false}
         />
         <View style={styles.unitButtons}>
           {units.map((unitOption) => (

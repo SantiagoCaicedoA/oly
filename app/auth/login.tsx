@@ -11,6 +11,7 @@ import { router } from "expo-router";
 import React from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
+  ActivityIndicator,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -44,6 +45,7 @@ export default function Login() {
 
     try {
       const result = await login(payload).unwrap();
+      console.log("ooo", result);
 
       showSuccess("Success", "Login success");
       router.replace("/(tabs)/home");
@@ -98,6 +100,17 @@ export default function Login() {
       letterSpacing: Typography.letterSpacing.normal,
       color: colors.text,
     },
+    loaderContainer: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 999,
+    },
   });
 
   return (
@@ -133,16 +146,20 @@ export default function Login() {
                   label="PASSWORD"
                   placeholder="Enter your password"
                   autoCapitalize="none"
-                  secureTextEntry
                   value={value}
                   onChangeText={onChange}
+                  isPassword
                   error={errors.password?.message}
                 />
               )}
             />
           </View>
 
-          <CustomButton title="LOGIN" onPress={handleSubmit(onSubmit)} />
+          <CustomButton
+            title={isLoading ? "LOGGING IN" : "LOGIN"}
+            onPress={handleSubmit(onSubmit)}
+            disabled={isLoading}
+          />
 
           <View style={styles.rowContainer}>
             <Text style={styles.text}>Don’t have an account?</Text>
@@ -152,6 +169,11 @@ export default function Login() {
           </View>
         </View>
       </TouchableWithoutFeedback>
+      {isLoading && (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 }

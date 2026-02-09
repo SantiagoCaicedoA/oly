@@ -6,8 +6,8 @@ import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import React, { forwardRef, useMemo, useState } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
-import RateLift from "./rate-lift";
-import ResetPresets from "./reset-preset";
+import LiftAnalysis from "./lift-analysis";
+import MissAndPain from "./miss-and-pain";
 import WeightAndRpe from "./weight-and-rpe";
 
 const ActionSheet = forwardRef<BottomSheetModal>((props, ref) => {
@@ -20,11 +20,28 @@ const ActionSheet = forwardRef<BottomSheetModal>((props, ref) => {
   const [wasMiss, setWasMiss] = useState(false);
   const [failLocation, setFailLocation] = useState("");
   const [missedWhere, setMissedWhere] = useState("");
+  const [barSpeed, setBarSpeed] = useState("Poor");
+  const [positionQuality, setPositionQuality] = useState("Poor");
+  const [primaryLimitingFactor, setPrimaryLimitingFactor] = useState<
+    string | null
+  >(null);
+  const [painLevel, setPainLevel] = useState<string>("None");
+  const painLevelTextMap: Record<string, string> = {
+    None: "Normal soreness",
+    Minor: "Sore but manageable",
+    Moderate: "Affecting my technique",
+    Sharp: "Can't lift safely",
+  };
+
+  const [wasPain, setWasPain] = useState(false);
+
+  const [wherePain, setWherePain] = useState("");
+
   const styles = StyleSheet.create({
     contentContainer: {
       flex: 1,
       backgroundColor: colors.background,
-      padding: scale(20),
+      padding: scale(10),
       marginBottom: scale(12),
     },
     header: {
@@ -83,6 +100,7 @@ const ActionSheet = forwardRef<BottomSheetModal>((props, ref) => {
     weightRowContainer: {
       flexDirection: "row",
       gap: scale(8),
+      marginTop: scale(9),
     },
     weight: {
       fontSize: Typography.fontSize.md,
@@ -104,6 +122,37 @@ const ActionSheet = forwardRef<BottomSheetModal>((props, ref) => {
       paddingVertical: scale(15),
       paddingHorizontal: scale(14),
       gap: scale(16),
+    },
+    keyContainer: {
+      backgroundColor: colors.semiLightBlue,
+      borderColor: colors.primary,
+      borderWidth: scale(1),
+      borderRadius: scale(15),
+      paddingHorizontal: scale(13),
+      paddingVertical: scale(10),
+    },
+    dotContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: scale(5),
+    },
+    keyCues: {
+      fontSize: Typography.fontSize.md,
+      fontWeight: Typography.fontWeight.medium,
+      letterSpacing: Typography.letterSpacing.normal,
+      color: colors.text,
+    },
+    dot: {
+      backgroundColor: colors.primary,
+      width: scale(5),
+      height: scale(5),
+      borderRadius: scale(5),
+    },
+    point: {
+      fontSize: Typography.fontSize.base,
+      fontWeight: Typography.fontWeight.normal,
+      letterSpacing: Typography.letterSpacing.normal,
+      color: colors.text,
     },
   });
 
@@ -144,15 +193,29 @@ const ActionSheet = forwardRef<BottomSheetModal>((props, ref) => {
         <View style={styles.prescriptionContainer}>
           <Text style={styles.coachText}>COACHES PRESCRIPTION</Text>
           <Text style={styles.prescriptionText}>
-            This rep should feel easy. Make sure up this point, your lifts look
-            close to perfection.
+            This should feel CONTROLLED. Focus on:
           </Text>
+          <View style={styles.keyContainer}>
+            <Text style={styles.keyCues}>KEY CUES</Text>
+            <View style={{ padding: scale(6), gap: scale(5) }}>
+              <View style={styles.dotContainer}>
+                <Text style={styles.dot}>•</Text>
+                <Text style={styles.point}>
+                  Chest up through the transition
+                </Text>
+              </View>
+              <View style={styles.dotContainer}>
+                <Text style={styles.dot}>•</Text>
+                <Text style={styles.point}>Fast elbows in the catch</Text>
+              </View>
+            </View>
+          </View>
           <View style={styles.weightRowContainer}>
             <Text style={styles.weight}>
               105 <Text style={styles.unit}>kg</Text>
             </Text>
             <Text style={styles.weight}>
-              7-8 <Text style={styles.unit}>RPE</Text>
+              80 <Text style={styles.unit}>% of 1 RPM</Text>
             </Text>
           </View>
         </View>
@@ -163,19 +226,29 @@ const ActionSheet = forwardRef<BottomSheetModal>((props, ref) => {
             reps={reps}
             onRepsChange={setReps}
           />
-          <RateLift
-            rpeValue={rpe}
-            onRpeChange={setRpe}
-            limitingFactor={limitingFactor}
-            onLimitingFactorChange={setLimitingFactor}
+          <LiftAnalysis
+            barSpeed={barSpeed}
+            onBarSpeedChange={setBarSpeed}
+            positionQuality={positionQuality}
+            onPositionQualityChange={setPositionQuality}
+            primaryLimitingFactor={primaryLimitingFactor}
+            onPrimaryLimitingFactorChange={setPrimaryLimitingFactor}
           />
-          <ResetPresets
+
+          <MissAndPain
             wasMiss={wasMiss}
             onWasMissChange={setWasMiss}
             failLocation={failLocation}
             onFailLocationChange={setFailLocation}
             missedWhere={missedWhere}
             onMissedWhereChange={setMissedWhere}
+            painLevel={painLevel}
+            onPainLevelChange={setPainLevel}
+            painLevelTextMap={painLevelTextMap}
+            wherePain={wherePain}
+            onWherePainChange={setWherePain}
+            wasPain={wasPain}
+            onWasPainChange={setWasPain}
           />
           <CustomButton title="SAVE" />
         </View>

@@ -218,6 +218,7 @@ export default function CreateNewPost() {
               placeholder="Missed behind, felt slow off the floor, shoulder tight but we're still grinding baby"
               value={value}
               onChangeText={onChange}
+              multiline
             />
           )}
         />

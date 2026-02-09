@@ -15,6 +15,8 @@ import { Controller, useForm } from "react-hook-form";
 import {
   ActivityIndicator,
   Image,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -25,6 +27,7 @@ import { scale } from "react-native-size-matters";
 import { useDispatch } from "react-redux";
 interface OnboardingScreen1Values {
   name: string;
+  user_name: string;
   country: string;
   age: string;
   weight: string;
@@ -32,6 +35,7 @@ interface OnboardingScreen1Values {
   experience: string;
   sex: string;
   height: string;
+  height_unit: "cm" | "ft";
   measurement_system: "Metric" | "Imperial";
   bio: string;
 }
@@ -91,6 +95,7 @@ export default function OnboardingScreen1({
         } as any);
 
         const result = await uploadProfileImage(formData).unwrap();
+        console.log("lllll", result);
       } catch (error) {
         console.error("Failed to upload image:", error);
 
@@ -124,6 +129,8 @@ export default function OnboardingScreen1({
       height: "",
       measurement_system: "Metric",
       bio: "",
+      height_unit: "cm",
+      user_name: "",
     },
   });
   useEffect(() => {
@@ -205,186 +212,214 @@ export default function OnboardingScreen1({
     },
   });
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <Header
-        mainText="Athlete profile"
-        subText="Used to set up your training profile"
-      />
-      <View style={styles.profileImageContainer}>
-        {profileImage ? (
-          <Image
-            source={{ uri: profileImage }}
-            style={styles.profileImagePreview}
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Header
+          mainText="Athlete profile"
+          subText="Used to set up your training profile"
+        />
+        <View style={styles.profileImageContainer}>
+          {profileImage ? (
+            <Image
+              source={{ uri: profileImage }}
+              style={styles.profileImagePreview}
+            />
+          ) : (
+            <View style={styles.profileImagePlaceholder}>
+              <Ionicons name="camera" size={50} color={colors.textSecondary} />
+            </View>
+          )}
+
+          <View style={styles.imageButtonsRow}>
+            <TouchableOpacity
+              style={styles.imageButton}
+              onPress={handleChooseFromGallery}
+            >
+              <Text style={styles.imageButtonText}>Choose Photo</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.imageButton, styles.imageButtonSecondary]}
+              onPress={handleTakePhoto}
+            >
+              <Text style={styles.imageButtonText}>Take Photo</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.formGroup}>
+          <Controller
+            control={control}
+            name="bio"
+            render={({ field: { onChange, value } }) => (
+              <CustomInput
+                placeholder="Write a short bio..."
+                label="ABOUT YOU"
+                onChangeText={onChange}
+                value={value}
+                error={errors.bio?.message}
+                multiline
+              />
+            )}
           />
-        ) : (
-          <View style={styles.profileImagePlaceholder}>
-            <Ionicons name="camera" size={50} color={colors.textSecondary} />
+          <Controller
+            control={control}
+            name="user_name"
+            render={({ field: { onChange, value } }) => (
+              <CustomInput
+                placeholder="Your name"
+                label="USER NAME"
+                onChangeText={onChange}
+                value={value}
+                error={errors.user_name?.message}
+                autoCapitalize="none"
+              />
+            )}
+          />
+          <Controller
+            control={control}
+            name="name"
+            render={({ field: { onChange, value } }) => (
+              <CustomInput
+                placeholder="Your name"
+                label="FULL NAME"
+                onChangeText={onChange}
+                value={value}
+                error={errors.name?.message}
+              />
+            )}
+          />
+          <Controller
+            control={control}
+            name="country"
+            render={({ field: { onChange, value } }) => (
+              <CustomInput
+                placeholder="Select your country"
+                label="YOUR COUNTRY"
+                onChangeText={onChange}
+                value={value}
+                error={errors.country?.message}
+              />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="age"
+            render={({ field: { onChange, value } }) => (
+              <CustomInput
+                label="AGE"
+                placeholder="Years"
+                onChangeText={onChange}
+                value={value}
+                keyboardType="numeric"
+                error={errors.country?.message}
+              />
+            )}
+          />
+          <Controller
+            control={control}
+            name="measurement_system"
+            render={({ field: { onChange, value } }) => (
+              <WeightInput
+                label="UNITS"
+                value={value}
+                onChangeText={onChange}
+                unit={watch("measurement_system")}
+                onUnitChange={(unit: string) =>
+                  setValue("measurement_system", unit as "Metric" | "Imperial")
+                }
+                error={errors.measurement_system?.message}
+                units={["Metric", "Imperial"]}
+              />
+            )}
+          />
+          <Controller
+            control={control}
+            name="weight"
+            render={({ field: { onChange, value } }) => (
+              <WeightInput
+                label="BODY WEIGHT"
+                value={value}
+                onChangeText={onChange}
+                unit={watch("weightUnit")}
+                onUnitChange={(unit: string) =>
+                  setValue("weightUnit", unit as "KG" | "LB")
+                }
+                error={errors.weight?.message}
+                units={["KG", "LB"]}
+                allowManualInput={true}
+              />
+            )}
+          />
+          <Controller
+            control={control}
+            name="height"
+            render={({ field: { onChange, value } }) => (
+              <WeightInput
+                label="HEIGHT"
+                value={value}
+                onChangeText={onChange}
+                unit={watch("height_unit")}
+                onUnitChange={(unit: string) =>
+                  setValue("height_unit", unit as "cm" | "ft")
+                }
+                error={errors.height?.message}
+                units={["cm", "ft"]}
+                allowManualInput={true}
+              />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="experience"
+            render={({ field: { onChange, value } }) => (
+              <CounterInput
+                label="EXPERIENCE"
+                value={value}
+                onChangeText={onChange}
+                //  suffix="YEARS"
+                error={errors.experience?.message}
+              />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="sex"
+            render={({ field: { onChange, value } }) => (
+              <SegmentedSelector
+                title="SEX"
+                selectedValue={value}
+                onChange={onChange}
+                options={[
+                  { label: "Female", value: "female" },
+                  { label: "Male", value: "male" },
+                  { label: "Other", value: "other" },
+                ]}
+              />
+            )}
+          />
+        </View>
+
+        <ActionButtonsRow
+          onPrimaryPress={handleSubmit(onSubmit)}
+          primaryTitle={isUploading ? "Saving..." : "Save"}
+        />
+        {isUploading && (
+          <View style={styles.loaderContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
         )}
-
-        <View style={styles.imageButtonsRow}>
-          <TouchableOpacity
-            style={styles.imageButton}
-            onPress={handleChooseFromGallery}
-          >
-            <Text style={styles.imageButtonText}>Choose Photo</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.imageButton, styles.imageButtonSecondary]}
-            onPress={handleTakePhoto}
-          >
-            <Text style={styles.imageButtonText}>Take Photo</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View style={styles.formGroup}>
-        <Controller
-          control={control}
-          name="bio"
-          render={({ field: { onChange, value } }) => (
-            <CustomInput
-              placeholder="Write a short bio..."
-              label="ABOUT YOU"
-              onChangeText={onChange}
-              value={value}
-              error={errors.bio?.message}
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="name"
-          render={({ field: { onChange, value } }) => (
-            <CustomInput
-              placeholder="Your name"
-              label="FULL NAME"
-              onChangeText={onChange}
-              value={value}
-              error={errors.name?.message}
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="country"
-          render={({ field: { onChange, value } }) => (
-            <CustomInput
-              placeholder="Select your country"
-              label="YOUR COUNTRY"
-              onChangeText={onChange}
-              value={value}
-              error={errors.country?.message}
-            />
-          )}
-        />
-
-        <Controller
-          control={control}
-          name="age"
-          render={({ field: { onChange, value } }) => (
-            <CustomInput
-              label="AGE"
-              placeholder="Years"
-              onChangeText={onChange}
-              value={value}
-              error={errors.country?.message}
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="measurement_system"
-          render={({ field: { onChange, value } }) => (
-            <WeightInput
-              label="UNITS"
-              value={value}
-              onChangeText={onChange}
-              unit={watch("measurement_system")}
-              onUnitChange={(unit: string) =>
-                setValue("measurement_system", unit as "Metric" | "Imperial")
-              }
-              error={errors.measurement_system?.message}
-              units={["Metric", "Imperial"]}
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="weight"
-          render={({ field: { onChange, value } }) => (
-            <WeightInput
-              label="BODY WEIGHT"
-              value={value}
-              onChangeText={onChange}
-              unit={watch("weightUnit")}
-              onUnitChange={(unit: string) =>
-                setValue("weightUnit", unit as "KG" | "LB")
-              }
-              error={errors.weight?.message}
-              units={["KG", "LB"]}
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="height"
-          render={({ field: { onChange, value } }) => (
-            <CustomInput
-              label="HEIGHT"
-              placeholder="0 cm"
-              onChangeText={onChange}
-              value={value}
-              error={errors.height?.message}
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="experience"
-          render={({ field: { onChange, value } }) => (
-            <CounterInput
-              label="EXPERIENCE"
-              value={value}
-              onChangeText={onChange}
-              //  suffix="YEARS"
-              error={errors.experience?.message}
-            />
-          )}
-        />
-
-        <Controller
-          control={control}
-          name="sex"
-          render={({ field: { onChange, value } }) => (
-            <SegmentedSelector
-              title="SEX"
-              selectedValue={value}
-              onChange={onChange}
-              options={[
-                { label: "Female", value: "female" },
-                { label: "Male", value: "male" },
-                { label: "Other", value: "other" },
-              ]}
-            />
-          )}
-        />
-      </View>
-
-      <ActionButtonsRow
-        onPrimaryPress={handleSubmit(onSubmit)}
-        primaryTitle={isUploading ? "Saving..." : "Save"}
-      />
-      {isUploading && (
-        <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      )}
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

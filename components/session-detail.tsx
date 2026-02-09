@@ -70,7 +70,7 @@ export default function SessionDetail({
     container: {
       borderRadius: scale(15),
       borderColor: colors.text,
-      borderWidth: scale(1),
+      borderWidth: scale(0.3),
       backgroundColor: colors.surface,
       overflow: "hidden",
     },
@@ -144,7 +144,7 @@ export default function SessionDetail({
       flex: 1,
       aspectRatio: 1,
       borderRadius: scale(12),
-      borderWidth: scale(2),
+      borderWidth: scale(1),
       borderColor: colors.primary,
       backgroundColor: colors.lightBlue,
       justifyContent: "center",
@@ -162,7 +162,7 @@ export default function SessionDetail({
       color: colors.text,
     },
     divider: {
-      height: scale(1),
+      height: scale(0.5),
       backgroundColor: colors.text,
     },
     speedText: {
@@ -315,19 +315,6 @@ export default function SessionDetail({
             </View>
           </View>
         )}
-        <View style={styles.divider} />
-        <View style={[styles.row]}>
-          <View style={styles.leftSection}>
-            <Image source={Images.rpeicon} style={styles.icon} />
-            <Text style={styles.label}>RPE</Text>
-          </View>
-          <TextInput
-            style={styles.input}
-            value={rpe}
-            onChangeText={onRpeChange}
-            keyboardType="numeric"
-          />
-        </View>
       </View>
     </>
   );

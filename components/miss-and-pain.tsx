@@ -3,27 +3,51 @@ import { Typography } from "@/utils/custom-styles";
 import React from "react";
 import { StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
+import AnalysisSegment from "./analysis-segment";
 
 const FAIL_OPTIONS = ["Pull", "Turnover", "Catch / overhead"];
 const MISSED_OPTIONS = ["In front", "Behind", "Left", "Right"];
-
-interface ResetPresetsProps {
+const WHERE_OPTIONS = [
+  "Shoulder",
+  "Elbow",
+  "Wrist",
+  "Back",
+  "Hip",
+  "Knee",
+  "Ankle",
+  "Other",
+];
+interface MissAndPainProps {
   wasMiss: boolean;
   onWasMissChange: (value: boolean) => void;
   failLocation: string;
   onFailLocationChange: (value: string) => void;
   missedWhere: string;
   onMissedWhereChange: (value: string) => void;
+  painLevel: string;
+  onPainLevelChange: (value: string) => void;
+  painLevelTextMap: Record<string, string>;
+  wasPain: boolean;
+  onWasPainChange: (value: boolean) => void;
+  wherePain: string;
+  onWherePainChange: (value: string) => void;
 }
 
-export default function ResetPresets({
+export default function MissAndPain({
   wasMiss,
   onWasMissChange,
   failLocation,
   onFailLocationChange,
   missedWhere,
   onMissedWhereChange,
-}: ResetPresetsProps) {
+  onPainLevelChange,
+  painLevelTextMap,
+  painLevel,
+  wasPain,
+  onWasPainChange,
+  wherePain,
+  onWherePainChange,
+}: MissAndPainProps) {
   const { colors } = useTheme();
 
   const styles = StyleSheet.create({
@@ -103,7 +127,7 @@ export default function ResetPresets({
   return (
     <>
       <View style={styles.header}>
-        <Text style={styles.title}>RESET PRESETS</Text>
+        <Text style={styles.title}>Miss & Pain</Text>
       </View>
 
       <View style={styles.container}>
@@ -171,6 +195,52 @@ export default function ResetPresets({
             </View>
           </>
         )}
+        <View style={styles.switchRow}>
+          <Text style={styles.switchQuestion}>ANY PAIN OR DISCOMFORT?</Text>
+          <View style={styles.switchContainer}>
+            <Text style={styles.switchAnswer}>{wasPain ? "Yes" : "No"}</Text>
+            <Switch
+              value={wasPain}
+              onValueChange={onWasPainChange}
+              trackColor={{ false: colors.textSecondary, true: colors.primary }}
+              thumbColor={colors.text}
+            />
+          </View>
+          {wasPain && (
+            <>
+              <AnalysisSegment
+                title="Pain Level"
+                value={painLevel}
+                options={["None", "Minor", "Moderate", "Sharp"]}
+                valueTextMap={painLevelTextMap}
+                onChange={onPainLevelChange}
+              />
+              <Text style={styles.sectionTitle}>WHERE?</Text>
+              <View style={styles.chipsContainer}>
+                {WHERE_OPTIONS.map((opt) => {
+                  const isSelected = wherePain === opt;
+                  return (
+                    <TouchableOpacity
+                      key={opt}
+                      style={[styles.chip, isSelected && styles.chipSelected]}
+                      onPress={() => onWherePainChange(opt)}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          isSelected && styles.chipTextSelected,
+                        ]}
+                      >
+                        {opt}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </>
+          )}
+        </View>
       </View>
     </>
   );
