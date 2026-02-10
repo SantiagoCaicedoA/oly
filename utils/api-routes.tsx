@@ -1,4 +1,4 @@
-export const API_BASE_URL = "http://192.168.100.240:8080";
+export const API_BASE_URL = "http://192.168.18.141:8000";
 export const AUTH_ROUTES = {
   SIGNUP: "/api/users",
   LOGIN: "/api/users/signin",

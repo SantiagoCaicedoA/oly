@@ -34,6 +34,20 @@ interface CreatePostFormValues {
   effortRating: number;
 }
 type PostVisibilityType = "public" | "private";
+const LIFT_NAME_OPTIONS = [
+  "Snatch",
+  "Clean & Jerk",
+  "Power Snatch",
+  "Clean",
+  "Power Clean",
+  "Back Squat",
+  "Front Squat",
+  "Overhead Squat",
+  "Strict Press",
+  "Push Press",
+  "Power jerk",
+  "Jerk",
+];
 export default function CreateNewPost() {
   const { colors } = useTheme();
   const [visibility, setVisibility] =
@@ -41,6 +55,8 @@ export default function CreateNewPost() {
   const [videoUri, setVideoUri] = useState<string | null>(null);
   const [thumbnailUri, setThumbnailUri] = useState<string | null>(null);
   const [loadingMedia, setLoadingMedia] = useState(false);
+  const [selectedOpt, setSelectedOpt] = useState<string>("");
+
   const { control, handleSubmit, watch, setValue } =
     useForm<CreatePostFormValues>({
       defaultValues: {
@@ -158,6 +174,37 @@ export default function CreateNewPost() {
       tintColor: "#fff",
       opacity: 0.8,
     },
+    liftTitle: {
+      fontSize: Typography.fontSize.md,
+      fontWeight: Typography.fontWeight.normal,
+      color: colors.textSecondary,
+      textTransform: "uppercase",
+    },
+    chipsContainer: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: scale(5),
+    },
+    chip: {
+      paddingHorizontal: scale(10),
+      paddingVertical: scale(5),
+      borderRadius: scale(24),
+      borderWidth: scale(1),
+      borderColor: colors.primary,
+      backgroundColor: colors.lightBlue,
+    },
+    chipSelected: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    chipText: {
+      fontSize: Typography.fontSize.base,
+      fontWeight: "500",
+      color: colors.text,
+    },
+    chipTextSelected: {
+      color: colors.text,
+    },
   });
 
   return (
@@ -207,6 +254,31 @@ export default function CreateNewPost() {
               </View>
             )}
           </TouchableOpacity>
+        </View>
+        <View style={{ gap: scale(5) }}>
+          <Text style={styles.liftTitle}>LIFT NAME</Text>
+          <View style={styles.chipsContainer}>
+            {LIFT_NAME_OPTIONS.map((opt) => (
+              <TouchableOpacity
+                key={opt}
+                style={[
+                  styles.chip,
+                  selectedOpt === opt && styles.chipSelected,
+                ]}
+                onPress={() => setSelectedOpt(opt)}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.chipText,
+                    selectedOpt === opt && styles.chipTextSelected,
+                  ]}
+                >
+                  {opt}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         <Controller

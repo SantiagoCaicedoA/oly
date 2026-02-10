@@ -31,4 +31,6 @@ export const Images = {
   sound: require("./images/sound.png"),
   starttimmer: require("./images/starttimmer.png"),
   pause: require("./images/pause.png"),
+  send: require("./images/send.png"),
+  chart: require("./images/chart.png"),
 };

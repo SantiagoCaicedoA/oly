@@ -1,16 +1,24 @@
 import { Images } from "@/assets";
 import { useTheme } from "@/context/theme-context";
 import { Typography } from "@/utils/custom-styles";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { router } from "expo-router";
-import React from "react";
+import React, { useRef } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
+import CommentBottomSheet from "./comment-bottom-sheet";
 
 export default function PostCard() {
   const { colors } = useTheme();
+  const bottomSheetRef = useRef<BottomSheetModal>(null);
+
   const handlePress = () => {
     router.push("/athlete");
   };
+  const handleCommentPress = () => {
+    bottomSheetRef.current?.present();
+  };
+
   const styles = StyleSheet.create({
     container: {
       backgroundColor: colors.background,
@@ -113,11 +121,18 @@ export default function PostCard() {
       </Text>
       <Image source={Images.man} style={styles.image} resizeMode="cover" />
       <View style={styles.iconContainer}>
-        <Image source={Images.like} style={styles.icon} />
+        <TouchableOpacity>
+          <Image source={Images.like} style={styles.icon} />
+        </TouchableOpacity>
+
         <Text style={styles.count}>12</Text>
-        <Image source={Images.comment} style={styles.icon} />
+        <TouchableOpacity onPress={handleCommentPress}>
+          <Image source={Images.comment} style={styles.icon} />
+        </TouchableOpacity>
+
         <Text style={styles.count}>3</Text>
       </View>
+      <CommentBottomSheet ref={bottomSheetRef} />
     </TouchableOpacity>
   );
 }

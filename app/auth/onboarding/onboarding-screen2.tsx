@@ -5,6 +5,7 @@ import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
 import { useToast } from "@/context/toast-context";
 import { useUploadAthleteVideoMutation } from "@/store/api";
+import { saveOnboardingData } from "@/store/reducer/onboardingSlice";
 import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -276,6 +277,8 @@ export default function OnboardingScreen2({
   };
 
   const onSubmit = (data: OnboardingScreen2Values) => {
+    console.log("999999", data);
+
     const hasOlympicSelection = data.olympic_lifts.some((lift) => lift);
     const hasSquatSelection = data.squats.some((squat) => squat);
     const hasPressSelection = data.press.some((press) => press);
@@ -353,7 +356,12 @@ export default function OnboardingScreen2({
       showError(`Please add weight for: ${missingWeights.join(", ")}`);
       return;
     }
-
+    dispatch(
+      saveOnboardingData({
+        ...data,
+        liftVideos,
+      }),
+    );
     if (onComplete) {
       onComplete();
     }
