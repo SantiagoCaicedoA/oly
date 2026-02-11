@@ -62,13 +62,15 @@ export default function TrainingExercise() {
     router.back();
   };
 
-  const handleAddSet = () => {
+  const handlePressExercise = () => {
     bottomSheetRef.current?.present();
   };
   const handleStartTimer = () => {
     timerSheetRef.current?.present();
   };
-
+  const handleAddSet = () => {
+    router.push("/athlete/add-exercise");
+  };
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -176,7 +178,7 @@ export default function TrainingExercise() {
             <ExerciseSection />
             <LiftGraph />
             <TalkToCoach />
-            <SetDetail />
+            <SetDetail onPress={handlePressExercise} />
             <SetDetail />
             <SetDetail />
             <SetDetail />

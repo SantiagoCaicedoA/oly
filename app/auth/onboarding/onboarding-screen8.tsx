@@ -3,8 +3,8 @@ import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
 import { useSubmitProfileMutation } from "@/store/api";
 
-import { selectUserId } from "@/store/reducer/authSlice";
 import { selectOnboardingData } from "@/store/reducer/onboardingSlice";
+import { RootState } from "@/store/store";
 import { router } from "expo-router";
 import React from "react";
 import { ActivityIndicator, Alert, StyleSheet, View } from "react-native";
@@ -14,9 +14,9 @@ import { useSelector } from "react-redux";
 export default function OnboardingScreen8() {
   const { colors } = useTheme();
   const allData = useSelector(selectOnboardingData);
-  const userId = useSelector(selectUserId);
-  const [submitProfile, { isLoading }] = useSubmitProfileMutation();
 
+  const [submitProfile, { isLoading }] = useSubmitProfileMutation();
+  const userId = useSelector((state: RootState) => state.auth.user?._id);
   const onSubmit = async () => {
     if (!userId) {
       Alert.alert("Error", "User ID not found. Please sign in again.", [
@@ -95,8 +95,6 @@ export default function OnboardingScreen8() {
       console.log("API Payload:", JSON.stringify(apiPayload, null, 2));
 
       const response = await submitProfile(apiPayload).unwrap();
-
-      console.log("API Response:", response);
 
       Alert.alert(
         "Success",

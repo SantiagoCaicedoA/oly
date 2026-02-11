@@ -64,6 +64,7 @@ export default function DailyCheckIn() {
       justifyContent: "center",
       paddingVertical: scale(10),
       position: "relative",
+      backgroundColor: colors.headerBackground,
     },
     backButton: {
       position: "absolute",

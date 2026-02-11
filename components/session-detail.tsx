@@ -242,7 +242,10 @@ export default function SessionDetail({
           </View>
           <Switch
             value={intentEnabled}
-            onValueChange={onIntentEnabledChange}
+            onValueChange={(value) => {
+              onIntentEnabledChange(value);
+              if (!value) onIntentValueChange("");
+            }}
             trackColor={{ false: colors.textSecondary, true: colors.primary }}
             thumbColor={colors.text}
           />
@@ -282,7 +285,10 @@ export default function SessionDetail({
           </View>
           <Switch
             value={effortEnabled}
-            onValueChange={onEffortEnabledChange}
+            onValueChange={(value) => {
+              onEffortEnabledChange(value);
+              if (!value) onEffortRatingChange(0);
+            }}
             trackColor={{ false: colors.textSecondary, true: colors.primary }}
             thumbColor={colors.text}
           />

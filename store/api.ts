@@ -28,13 +28,11 @@ const baseQueryWithAuth = fetchBaseQuery({
   baseUrl: API_BASE_URL,
   prepareHeaders: (headers, { getState }) => {
     const state = getState() as RootState;
-    const tokens = state.auth.tokens;
+    const token = state.auth.token;
     const userId = state.auth.user?._id;
 
-    if (tokens?.access_token) {
-      headers.set("authorization", `Bearer ${tokens.access_token}`);
-    } else if (state.auth.user?.accessToken) {
-      headers.set("authorization", `Bearer ${state.auth.user.accessToken}`);
+    if (token) {
+      headers.set("authorization", `Bearer ${token}`);
     }
 
     if (userId) {
@@ -58,13 +56,11 @@ const customBaseQuery: BaseQueryFn<
     const headers = new Headers();
 
     const state = api.getState() as RootState;
-    const tokens = state.auth.tokens;
+    const token = state.auth.token;
     const userId = state.auth.user?._id;
 
-    if (tokens?.access_token) {
-      headers.set("authorization", `Bearer ${tokens.access_token}`);
-    } else if (state.auth.user?.accessToken) {
-      headers.set("authorization", `Bearer ${state.auth.user.accessToken}`);
+    if (token) {
+      headers.set("authorization", `Bearer ${token}`);
     }
 
     if (userId) {
@@ -194,6 +190,28 @@ export const api = createApi({
       }),
       invalidatesTags: ["Athlete"],
     }),
+    createNewPost: builder.mutation<any, { formData: FormData }>({
+      query: ({ formData }) => ({
+        url: API_ROUTES.ATHLETE.CREATE_NEW_POST,
+        method: "POST",
+        body: formData,
+      }),
+      invalidatesTags: ["Athlete"],
+    }),
+    getPosts: builder.query<any, void>({
+      query: () => ({
+        url: API_ROUTES.ATHLETE.GET_POSTS,
+        method: "GET",
+      }),
+      providesTags: ["Athlete"],
+    }),
+    getPostById: builder.query<any, string>({
+      query: (postId) => ({
+        url: `${API_ROUTES.ATHLETE.GET_POST_BY_ID}/${postId}`,
+        method: "GET",
+      }),
+      providesTags: ["Athlete"],
+    }),
   }),
 });
 
@@ -203,4 +221,7 @@ export const {
   useSubmitProfileMutation,
   useUploadProfileImageMutation,
   useUploadAthleteVideoMutation,
+  useCreateNewPostMutation,
+  useGetPostsQuery,
+  useGetPostByIdQuery,
 } = api;

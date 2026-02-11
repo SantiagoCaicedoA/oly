@@ -7,6 +7,12 @@ export const AUTH_ROUTES = {
   ONBOARDING_VIDEO_UPLOAD: "/api/videos/upload",
 } as const;
 
+export const ATHLETE_ROUTES = {
+  CREATE_NEW_POST: "/api/posts",
+  GET_POSTS: "/api/posts",
+  GET_POST_BY_ID: "/api/posts",
+};
 export const API_ROUTES = {
   AUTH: AUTH_ROUTES,
+  ATHLETE: ATHLETE_ROUTES,
 } as const;

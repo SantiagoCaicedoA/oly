@@ -169,7 +169,6 @@ export default function OnboardingScreen2({
           } as any);
 
           const result = await uploadAthleteVideo(formData).unwrap();
-          console.log("mmmm", result);
 
           showSuccess("Video uploaded successfully!");
         } catch (error) {
@@ -277,8 +276,6 @@ export default function OnboardingScreen2({
   };
 
   const onSubmit = (data: OnboardingScreen2Values) => {
-    console.log("999999", data);
-
     const hasOlympicSelection = data.olympic_lifts.some((lift) => lift);
     const hasSquatSelection = data.squats.some((squat) => squat);
     const hasPressSelection = data.press.some((press) => press);

@@ -4,6 +4,7 @@ import SessionDetail from "@/components/session-detail";
 import CustomInput from "@/constants/custom-input";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
+import { useCreateNewPostMutation } from "@/store/api";
 import { Typography } from "@/utils/custom-styles";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
@@ -56,7 +57,7 @@ export default function CreateNewPost() {
   const [thumbnailUri, setThumbnailUri] = useState<string | null>(null);
   const [loadingMedia, setLoadingMedia] = useState(false);
   const [selectedOpt, setSelectedOpt] = useState<string>("");
-
+  const [createPost, { isLoading }] = useCreateNewPostMutation();
   const { control, handleSubmit, watch, setValue } =
     useForm<CreatePostFormValues>({
       defaultValues: {
@@ -76,7 +77,62 @@ export default function CreateNewPost() {
     router.back();
   };
 
-  const onSubmit = (data: CreatePostFormValues) => {};
+  const onSubmit = async (data: CreatePostFormValues) => {
+    if (!videoUri) {
+      alert("Please select a video");
+      return;
+    }
+
+    const formData = new FormData();
+
+    formData.append("video", {
+      uri: videoUri,
+      type: "video/mp4",
+      name: "post-video.mp4",
+    } as any);
+
+    const session_detail: any = {
+      lifted_kg: Number(data.loadLifted),
+      rpe: data.rpe,
+      context: data.contextEnabled,
+    };
+
+    if (data.effortEnabled) {
+      session_detail.isEffort = true;
+      session_detail.effort_value = data.effortRating;
+    }
+
+    if (data.intentEnabled) {
+      session_detail.isIntent = true;
+      session_detail.intent_opt = data.intentValue;
+    }
+
+    const payload = {
+      lift_name: selectedOpt,
+      opinion: data.opinion,
+      session_detail,
+      is_public: visibility === "public",
+      is_private: visibility === "private",
+    };
+
+    formData.append("data", JSON.stringify(payload));
+
+    try {
+      const result = await createPost({ formData }).unwrap();
+
+      alert("Post created successfully!");
+      router.push("/(tabs)/home");
+    } catch (error: any) {
+      console.error("Full error:", JSON.stringify(error, null, 2));
+      if (error?.data?.errors) {
+        console.error(
+          "Error details:",
+          JSON.stringify(error.data.errors, null, 2),
+        );
+      }
+      alert("Failed to create post");
+    }
+  };
   const pickVideo = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
@@ -126,6 +182,7 @@ export default function CreateNewPost() {
       justifyContent: "center",
       paddingVertical: scale(10),
       position: "relative",
+      backgroundColor: colors.headerBackground,
     },
     backButton: {
       position: "absolute",
@@ -204,6 +261,17 @@ export default function CreateNewPost() {
     },
     chipTextSelected: {
       color: colors.text,
+    },
+    loaderContainer: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(0, 0, 0, 0.35)",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 999,
     },
   });
 
@@ -343,25 +411,30 @@ export default function CreateNewPost() {
           <PostVisibility
             title="JUST ME"
             description="Saved privately"
-            checked={visibility === "public"}
-            onToggle={() => setVisibility("public")}
+            checked={visibility === "private"}
+            onToggle={() => setVisibility("private")}
             icon={Images.privateicon}
           />
 
           <PostVisibility
             title="PUBLIC"
             description="Shared th your friends"
-            checked={visibility === "private"}
-            onToggle={() => setVisibility("private")}
+            checked={visibility === "public"}
+            onToggle={() => setVisibility("public")}
             icon={Images.publicicon}
           />
         </View>
         <ActionButtonsRow
           onPrimaryPress={handleSubmit(onSubmit)}
-          primaryTitle="POST"
+          primaryTitle={isLoading ? "CREATING" : "POST"}
           secondaryTitle="SAVE DRAFT"
         />
       </ScrollView>
+      {isLoading && (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      )}
     </SafeAreaView>
   );
 }

@@ -3,8 +3,11 @@ import { Typography } from "@/utils/custom-styles";
 import React, { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
+type SetDetailProps = {
+  onPress?: () => void;
+};
 
-export default function SetDetail() {
+export default function SetDetail({ onPress }: SetDetailProps) {
   const { colors } = useTheme();
   const [isChecked, setIsChecked] = useState(false);
 
@@ -68,8 +71,7 @@ export default function SetDetail() {
   });
 
   return (
-    <View style={styles.container}>
-      <View></View>
+    <TouchableOpacity style={styles.container} onPress={onPress}>
       <View
         style={{ height: 20, backgroundColor: colors.primary, width: 3 }}
       ></View>
@@ -91,6 +93,6 @@ export default function SetDetail() {
       >
         {isChecked && <Text style={styles.checkmark}>✓</Text>}
       </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 }

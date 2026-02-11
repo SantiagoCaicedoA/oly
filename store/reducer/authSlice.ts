@@ -1,54 +1,54 @@
-import { Athlete, AuthState } from "@/types/api/auth";
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import type { RootState } from "../store";
+import { AuthState, TokenData } from '@/types/api/auth';
+import { User } from '@/types/store/auth';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { } from '../../types';
 
 const initialState: AuthState = {
   user: null,
   token: null,
   isLoggedIn: false,
+
 };
 
 const authSlice = createSlice({
-  name: "auth",
+  name: 'auth',
   initialState,
   reducers: {
-    setUser(state, action: PayloadAction<Athlete | null>) {
+    setUser(state, action: PayloadAction<User | null>) {
       state.user = action.payload;
       state.isLoggedIn = !!action.payload;
     },
 
-    setTokens(state, action: PayloadAction<string | null>) {
-      state.token = action.payload;
-    },
-
     loginSuccess(
       state,
-      action: PayloadAction<{ user: Athlete; token: string }>,
+      action: PayloadAction<{ user: User; tokens: TokenData }>
     ) {
       state.user = action.payload.user;
-      state.token = action.payload.token;
+      state.token = action.payload.tokens;
       state.isLoggedIn = true;
     },
-
     logout(state) {
       state.user = null;
       state.token = null;
       state.isLoggedIn = false;
-    },
 
+    },
     clearUser(state) {
       state.user = null;
       state.isLoggedIn = false;
+
     },
+
   },
 });
 
-export const { setUser, setTokens, loginSuccess, logout, clearUser } =
-  authSlice.actions;
+export const {
+  setUser,
 
-export const selectUser = (state: RootState) => state.auth.user;
-export const selectToken = (state: RootState) => state.auth.token;
-export const selectIsLoggedIn = (state: RootState) => state.auth.isLoggedIn;
-export const selectUserId = (state: RootState) => state.auth.user?._id || null;
+  loginSuccess,
+  logout,
+  clearUser,
+
+} = authSlice.actions;
 
 export default authSlice.reducer;

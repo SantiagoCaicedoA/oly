@@ -6,7 +6,9 @@ import CustomInput from "@/constants/custom-input";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
 import { useUploadProfileImageMutation } from "@/store/api";
+
 import { saveOnboardingData } from "@/store/reducer/onboardingSlice";
+import { RootState } from "@/store/store";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
@@ -24,7 +26,7 @@ import {
   View,
 } from "react-native";
 import { scale } from "react-native-size-matters";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 interface OnboardingScreen1Values {
   name: string;
   user_name: string;
@@ -54,6 +56,9 @@ export default function OnboardingScreen1({
   const [profileImage, setProfileImage] = React.useState<string>("");
   const [uploadProfileImage, { isLoading: isUploading }] =
     useUploadProfileImageMutation();
+  const user = useSelector((state: RootState) => state.auth.user);
+
+  console.log("user:", user);
   const handleTakePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") return;
@@ -85,6 +90,15 @@ export default function OnboardingScreen1({
   };
 
   const onSubmit = async (data: OnboardingScreen1Values) => {
+    // if (!userId) {
+    //   Alert.alert("Error", "User ID not found. Please sign in again.", [
+    //     {
+    //       text: "OK",
+    //       onPress: () => router.push("/auth/signin"),
+    //     },
+    //   ]);
+    //   return;
+    // }
     if (profileImage) {
       try {
         const formData = new FormData();
@@ -95,7 +109,6 @@ export default function OnboardingScreen1({
         } as any);
 
         const result = await uploadProfileImage(formData).unwrap();
-        console.log("lllll", result);
       } catch (error) {
         console.error("Failed to upload image:", error);
 

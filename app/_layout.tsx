@@ -13,10 +13,6 @@ import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 import { Provider } from "react-redux";
 
-export const unstable_settings = {
-  anchor: "(tabs)",
-};
-
 function AppContent() {
   const colorScheme = useColorScheme();
   const router = useRouter();
