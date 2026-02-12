@@ -3,10 +3,14 @@ import Context from "@/components/context";
 import DetailLift from "@/components/detail-lift";
 import Effort from "@/components/effort";
 import { useTheme } from "@/context/theme-context";
+import { useGetPostByIdQuery } from "@/store/api";
 import { Typography } from "@/utils/custom-styles";
-import { router } from "expo-router";
-import React from "react";
+import { getRelativeTime } from "@/utils/time";
+import { ResizeMode, Video } from "expo-av";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Image,
   ScrollView,
   StyleSheet,
@@ -18,9 +22,26 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { scale } from "react-native-size-matters";
 export default function PostExpanded() {
   const { colors } = useTheme();
+  const { post_id } = useLocalSearchParams();
+
+  const videoRef = useRef<Video>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const { data, isLoading, error } = useGetPostByIdQuery(post_id as string);
+  const post = data?.data;
+  const session = post?.session_detail;
 
   const handleBackPress = () => {
     router.back();
+  };
+  const handleVideoPress = async () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        await videoRef.current.pauseAsync();
+      } else {
+        await videoRef.current.playAsync();
+      }
+      setIsPlaying(!isPlaying);
+    }
   };
   const styles = StyleSheet.create({
     container: {
@@ -131,7 +152,21 @@ export default function PostExpanded() {
       height: scale(12),
       marginLeft: scale(15),
     },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+    },
   });
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
   return (
     <SafeAreaView style={styles.container}>
       <TouchableOpacity onPress={handleBackPress}>
@@ -142,7 +177,17 @@ export default function PostExpanded() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <Image source={Images.man} style={styles.image} resizeMode="cover" />
+        <TouchableOpacity onPress={handleVideoPress} activeOpacity={0.9}>
+          <Video
+            ref={videoRef}
+            source={{ uri: post?.video_url }}
+            style={styles.image}
+            resizeMode={ResizeMode.COVER}
+            shouldPlay={false}
+            isLooping
+            useNativeControls={false}
+          />
+        </TouchableOpacity>
         <View style={styles.detailContainer}>
           <View style={styles.header}>
             <Image source={Images.profile} style={styles.profile} />
@@ -155,17 +200,17 @@ export default function PostExpanded() {
                 }}
               >
                 <Text style={styles.name}>Athlete name</Text>
-                <Text style={styles.time}>6m</Text>
+                <Text style={styles.time}>
+                  {getRelativeTime(post?.createdAt)}
+                </Text>
               </View>
 
               <Text style={styles.userName}>@username</Text>
             </View>
           </View>
-          <Text style={styles.liftName}>Power Snatch + Snatch</Text>
-          <Text style={styles.caption}>
-            Third complex rep out of four at 103 kg. Focused on staying smooth
-            and consistent throughout the set.
-          </Text>
+          <Text style={styles.liftName}>{post?.lift_name}</Text>
+          {post?.opinion && <Text style={styles.caption}>{post.opinion}</Text>}
+
           <View style={styles.iconContainer}>
             <Image source={Images.like} style={styles.icon} />
             <Text style={styles.count}>12</Text>
@@ -173,20 +218,29 @@ export default function PostExpanded() {
             <Text style={styles.count}>3</Text>
           </View>
           <View style={{ gap: scale(5), marginTop: scale(15) }}>
-            <DetailLift
-              icon={Images.loadicon}
-              label="LOAD"
-              value={120}
-              unit="kg"
-            />
+            {session?.lifted_kg != null && (
+              <DetailLift
+                icon={Images.loadicon}
+                label="LOAD"
+                value={session.lifted_kg}
+                unit="kg"
+              />
+            )}
+
             <Context />
-            <DetailLift
-              icon={Images.intenticon}
-              label="intent"
-              value={"Technical Inconsistency"}
-            />
-            <Effort />
-            <DetailLift icon={Images.rpeicon} label="rpe" value={8.5} />
+            {session?.isIntent && (
+              <DetailLift
+                icon={Images.intenticon}
+                label="INTENT"
+                value={session.intent_opt}
+              />
+            )}
+
+            {session?.isEffort && (
+              <Effort effort_value={session.effort_value} />
+            )}
+
+            {/* <DetailLift icon={Images.rpeicon} label="rpe" value={8.5} /> */}
           </View>
           <View style={styles.insightContainer}>
             <Text style={styles.insight}>Coach's Insight</Text>

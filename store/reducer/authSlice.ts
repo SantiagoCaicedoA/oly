@@ -1,17 +1,16 @@
-import { AuthState, TokenData } from '@/types/api/auth';
-import { User } from '@/types/store/auth';
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { } from '../../types';
+import { AuthState, TokenData } from "@/types/api/auth";
+import { User } from "@/types/store/auth";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import {} from "../../types";
 
 const initialState: AuthState = {
   user: null,
   token: null,
   isLoggedIn: false,
-
 };
 
 const authSlice = createSlice({
-  name: 'auth',
+  name: "auth",
   initialState,
   reducers: {
     setUser(state, action: PayloadAction<User | null>) {
@@ -21,7 +20,7 @@ const authSlice = createSlice({
 
     loginSuccess(
       state,
-      action: PayloadAction<{ user: User; tokens: TokenData }>
+      action: PayloadAction<{ user: User; tokens: TokenData }>,
     ) {
       state.user = action.payload.user;
       state.token = action.payload.tokens;
@@ -31,14 +30,11 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.isLoggedIn = false;
-
     },
     clearUser(state) {
       state.user = null;
       state.isLoggedIn = false;
-
     },
-
   },
 });
 
@@ -48,7 +44,6 @@ export const {
   loginSuccess,
   logout,
   clearUser,
-
 } = authSlice.actions;
 
 export default authSlice.reducer;

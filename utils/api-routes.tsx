@@ -11,6 +11,7 @@ export const ATHLETE_ROUTES = {
   CREATE_NEW_POST: "/api/posts",
   GET_POSTS: "/api/posts",
   GET_POST_BY_ID: "/api/posts",
+  AI_TRAINING: "/api/training/generate",
 };
 export const API_ROUTES = {
   AUTH: AUTH_ROUTES,

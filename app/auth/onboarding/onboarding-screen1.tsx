@@ -58,7 +58,6 @@ export default function OnboardingScreen1({
     useUploadProfileImageMutation();
   const user = useSelector((state: RootState) => state.auth.user);
 
-  console.log("user:", user);
   const handleTakePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") return;
@@ -90,15 +89,6 @@ export default function OnboardingScreen1({
   };
 
   const onSubmit = async (data: OnboardingScreen1Values) => {
-    // if (!userId) {
-    //   Alert.alert("Error", "User ID not found. Please sign in again.", [
-    //     {
-    //       text: "OK",
-    //       onPress: () => router.push("/auth/signin"),
-    //     },
-    //   ]);
-    //   return;
-    // }
     if (profileImage) {
       try {
         const formData = new FormData();

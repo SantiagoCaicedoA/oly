@@ -5,6 +5,7 @@ import CustomInput from "@/constants/custom-input";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
 import { useCreateNewPostMutation } from "@/store/api";
+import { RootState } from "@/store/store";
 import { Typography } from "@/utils/custom-styles";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
@@ -22,6 +23,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { scale } from "react-native-size-matters";
+import { useSelector } from "react-redux";
 
 interface CreatePostFormValues {
   opinion: string;
@@ -57,6 +59,8 @@ export default function CreateNewPost() {
   const [thumbnailUri, setThumbnailUri] = useState<string | null>(null);
   const [loadingMedia, setLoadingMedia] = useState(false);
   const [selectedOpt, setSelectedOpt] = useState<string>("");
+  const user = useSelector((state: RootState) => state.auth.user);
+
   const [createPost, { isLoading }] = useCreateNewPostMutation();
   const { control, handleSubmit, watch, setValue } =
     useForm<CreatePostFormValues>({
@@ -74,7 +78,7 @@ export default function CreateNewPost() {
     });
 
   const handleBackPress = () => {
-    router.back();
+    router.push("/(tabs)/home");
   };
 
   const onSubmit = async (data: CreatePostFormValues) => {
@@ -426,7 +430,7 @@ export default function CreateNewPost() {
         </View>
         <ActionButtonsRow
           onPrimaryPress={handleSubmit(onSubmit)}
-          primaryTitle={isLoading ? "CREATING" : "POST"}
+          primaryTitle={isLoading ? "CREATING..." : "POST"}
           secondaryTitle="SAVE DRAFT"
         />
       </ScrollView>

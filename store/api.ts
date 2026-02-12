@@ -18,7 +18,7 @@ import {
   OnboardingApiPayload,
   OnboardingApiResponse,
 } from "@/types/api/onboarding";
-import { logout, setTokens } from "./reducer/authSlice";
+import { logout } from "./reducer/authSlice";
 
 interface RootState {
   auth: AuthState;
@@ -104,7 +104,7 @@ const customBaseQueryWithReauth: BaseQueryFn<
     (result.error.status === 401 || result.error.status === 403)
   ) {
     const state = api.getState() as RootState;
-    const refreshToken = state.auth.tokens?.refresh_token;
+    const refreshToken = state.auth.token;
 
     if (!refreshToken) {
       api.dispatch(logout());
@@ -128,7 +128,7 @@ const customBaseQueryWithReauth: BaseQueryFn<
 
       const newTokens = (await refreshResponse.json()) as TokenData;
 
-      api.dispatch(setTokens(newTokens));
+      // api.dispatch(setTokens(newTokens));
 
       const retryResult = await customBaseQuery(args, api, extraOptions);
       return retryResult;
@@ -212,6 +212,14 @@ export const api = createApi({
       }),
       providesTags: ["Athlete"],
     }),
+    submitAI: builder.mutation<OnboardingApiResponse, OnboardingApiPayload>({
+      query: (payload) => ({
+        url: API_ROUTES.ATHLETE.AI_TRAINING,
+        method: "POST",
+        body: payload,
+      }),
+      invalidatesTags: ["Athlete"],
+    }),
   }),
 });
 
@@ -224,4 +232,5 @@ export const {
   useCreateNewPostMutation,
   useGetPostsQuery,
   useGetPostByIdQuery,
+  useSubmitAIMutation,
 } = api;

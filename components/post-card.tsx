@@ -1,9 +1,9 @@
 import { Images } from "@/assets";
 import { useTheme } from "@/context/theme-context";
 import { Typography } from "@/utils/custom-styles";
+import { getRelativeTime } from "@/utils/time";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { ResizeMode, Video } from "expo-av";
-import { router } from "expo-router";
 import React, { useRef, useState } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
@@ -18,16 +18,19 @@ interface PostCardProps {
     session_detail: any;
     createdAt: string;
   };
+  onPress?: (post_id: string) => void;
 }
 
-export default function PostCard({ post }: PostCardProps) {
+export default function PostCard({ post, onPress }: PostCardProps) {
   const { colors } = useTheme();
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const videoRef = useRef<Video>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
   const handlePress = () => {
-    router.push("/athlete");
+    if (onPress) {
+      onPress(post._id);
+    }
   };
 
   const handleCommentPress = () => {
@@ -133,14 +136,13 @@ export default function PostCard({ post }: PostCardProps) {
             }}
           >
             <Text style={styles.name}>Athlete name</Text>
-            <Text style={styles.time}>6m</Text>
+            <Text style={styles.time}>{getRelativeTime(post.createdAt)}</Text>
           </View>
           <Text style={styles.userName}>@username</Text>
         </View>
         <Image source={Images.arrowforward} style={styles.arrowForward} />
       </View>
-
-      <Text style={styles.caption}>{post.opinion}</Text>
+      {post.opinion && <Text style={styles.caption}>{post.opinion}</Text>}
 
       <TouchableOpacity onPress={handleVideoPress} activeOpacity={0.9}>
         <Video

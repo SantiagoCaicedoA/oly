@@ -33,6 +33,7 @@ export default function OnboardingScreen8() {
         display_name: allData.name,
         country: allData.country,
         age: parseInt(allData.age),
+        user_name: allData.user_name,
         sex: allData.sex,
         experience_years: parseInt(allData.experience),
         height_cm: parseFloat(allData.height),
@@ -92,7 +93,7 @@ export default function OnboardingScreen8() {
         performance_gaps: allData.performance_gaps,
       };
 
-      console.log("API Payload:", JSON.stringify(apiPayload, null, 2));
+      // console.log("API Payload:", JSON.stringify(apiPayload, null, 2));
 
       const response = await submitProfile(apiPayload).unwrap();
 

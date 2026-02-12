@@ -15,7 +15,7 @@ export interface ThemeColors {
   semiLightBlue: string;
   green: string;
   yellow: string;
-  lightYellow: string,
+  lightYellow: string;
 }
 
 export interface ThemeContextType {

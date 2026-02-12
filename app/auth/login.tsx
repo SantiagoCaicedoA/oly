@@ -3,6 +3,7 @@ import CustomInput from "@/constants/custom-input";
 import { useTheme } from "@/context/theme-context";
 import { useToast } from "@/context/toast-context";
 import { useLoginMutation } from "@/store/api";
+import { loginSuccess } from "@/store/reducer/authSlice";
 import { LoginPayload, LoginValues } from "@/types/api/auth";
 import { Typography } from "@/utils/custom-styles";
 import { loginSchema } from "@/utils/validation-schemas";
@@ -22,8 +23,10 @@ import {
   View,
 } from "react-native";
 import { scale } from "react-native-size-matters";
+import { useDispatch } from "react-redux";
 export default function Login() {
   const { colors } = useTheme();
+  const dispatch = useDispatch();
   const { showSuccess, showError } = useToast();
   const [login, { isLoading }] = useLoginMutation();
   const {
@@ -45,9 +48,14 @@ export default function Login() {
 
     try {
       const result = await login(payload).unwrap();
-      console.log("ooo", result);
 
       showSuccess("Success", "Login success");
+      dispatch(
+        loginSuccess({
+          user: result.data,
+          tokens: result.data.token || result.token,
+        }),
+      );
       router.replace("/(tabs)/home");
     } catch (err: any) {
       const errorMessage =
