@@ -1,4 +1,5 @@
 import CoachNote from "@/components/coach-note";
+import ScreenWrapper from "@/components/screen-wrapper";
 import TodaysTraining from "@/components/todays-training";
 import VolumeIntensity from "@/components/volume-intensity";
 import CustomButton from "@/constants/custom-button";
@@ -25,16 +26,18 @@ export default function Workout() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <VolumeIntensity />
-        <CoachNote />
-        <TodaysTraining />
+      <ScreenWrapper>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <VolumeIntensity />
+          <CoachNote />
+          <TodaysTraining />
 
-        <CustomButton title="ADD EXERCISE" />
-      </ScrollView>
+          <CustomButton title="ADD EXERCISE" />
+        </ScrollView>
+      </ScreenWrapper>
     </SafeAreaView>
   );
 }

@@ -1,6 +1,7 @@
 import { Images } from "@/assets";
 import ExerciseChart from "@/components/exercise-chart";
 import LiftSections from "@/components/lift-sections";
+import MutualFriends from "@/components/mutual-friends";
 import UserProfileInfo from "@/components/user-profile-info";
 import { useTheme } from "@/context/theme-context";
 import { Typography } from "@/utils/custom-styles";
@@ -72,6 +73,7 @@ export default function MyProfile() {
         showsVerticalScrollIndicator={false}
       >
         <UserProfileInfo />
+        <MutualFriends />
         <ExerciseChart />
         <LiftSections
           title="LIFT"

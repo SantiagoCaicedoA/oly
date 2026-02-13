@@ -9,6 +9,7 @@ export default function AthleteLayout() {
       <Stack.Screen name="create-new-post" />
       <Stack.Screen name="my-profile" />
       <Stack.Screen name="add-exercise" />
+      <Stack.Screen name="archieve" />
     </Stack>
   );
 }

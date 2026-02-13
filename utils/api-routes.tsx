@@ -1,10 +1,10 @@
-export const API_BASE_URL = "http://192.168.18.141:8000";
+export const API_BASE_URL = "http://192.168.18.147:8000";
 export const AUTH_ROUTES = {
   SIGNUP: "/api/users",
   LOGIN: "/api/users/signin",
   ONBOARDING: "/api/profile",
   ONBOARDING_IMAGE_UPLOAD: "/api/profile/upload-image",
-  ONBOARDING_VIDEO_UPLOAD: "/api/videos/upload",
+  ONBOARDING_VIDEO_UPLOAD: "/api/profile/upload-video",
 } as const;
 
 export const ATHLETE_ROUTES = {

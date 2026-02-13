@@ -2,7 +2,7 @@ import { Images } from "@/assets";
 import { useTheme } from "@/context/theme-context";
 import { Typography } from "@/utils/custom-styles";
 import React from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
 
 export default function UserProfileInfo() {
@@ -11,6 +11,7 @@ export default function UserProfileInfo() {
     container: {
       flexDirection: "row",
       gap: scale(15),
+      alignItems: "center",
     },
     imageContainer: {
       width: scale(40),
@@ -18,8 +19,8 @@ export default function UserProfileInfo() {
       borderRadius: scale(40),
     },
     image: {
-      width: scale(60),
-      height: scale(60),
+      width: scale(100),
+      height: scale(100),
     },
     name: {
       fontSize: Typography.fontSize.lg,
@@ -83,6 +84,34 @@ export default function UserProfileInfo() {
       flexDirection: "row",
       gap: scale(15),
     },
+    followButton: {
+      paddingVertical: scale(5),
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.primary,
+      borderRadius: scale(19),
+      flex: 1,
+    },
+    messageButton: {
+      paddingVertical: scale(5),
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.lightBlue,
+      borderRadius: scale(19),
+      borderWidth: scale(1),
+      borderColor: colors.primary,
+      flex: 1,
+    },
+    buttonContainer: {
+      flexDirection: "row",
+      gap: scale(8),
+    },
+    buttonText: {
+      fontSize: Typography.fontSize.md,
+      fontWeight: Typography.fontWeight.normal,
+      letterSpacing: Typography.letterSpacing.normal,
+      color: colors.text,
+    },
   });
 
   return (
@@ -116,7 +145,14 @@ export default function UserProfileInfo() {
           </View>
         </View>
       </View>
-
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.followButton}>
+          <Text style={styles.buttonText}>Follow</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.messageButton}>
+          <Text style={styles.buttonText}>Message</Text>
+        </TouchableOpacity>
+      </View>
       <Text style={styles.bio}>
         Olympic gold medalist in weightlifting. Passionate about fitness and
         inspiring others.

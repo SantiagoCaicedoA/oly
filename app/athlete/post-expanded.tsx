@@ -50,7 +50,7 @@ export default function PostExpanded() {
     },
     scrollContent: {
       paddingVertical: scale(15),
-      paddingHorizontal: scale(14),
+      // paddingHorizontal: scale(14),
     },
     image: {
       width: "100%",
@@ -98,9 +98,10 @@ export default function PostExpanded() {
     },
     detailContainer: {
       marginTop: scale(20),
-      borderTopWidth: scale(0.3),
-      borderColor: colors.text,
+      borderWidth: scale(0.3),
+      borderTopColor: colors.text,
       borderRadius: scale(12),
+      paddingHorizontal: scale(14),
     },
     liftName: {
       fontSize: Typography.fontSize["2xl"],
@@ -177,7 +178,11 @@ export default function PostExpanded() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <TouchableOpacity onPress={handleVideoPress} activeOpacity={0.9}>
+        <TouchableOpacity
+          onPress={handleVideoPress}
+          activeOpacity={0.9}
+          style={{ paddingHorizontal: scale(14) }}
+        >
           <Video
             ref={videoRef}
             source={{ uri: post?.video_url }}

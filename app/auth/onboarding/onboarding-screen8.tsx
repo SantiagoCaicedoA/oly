@@ -93,10 +93,10 @@ export default function OnboardingScreen8() {
         performance_gaps: allData.performance_gaps,
       };
 
-      // console.log("API Payload:", JSON.stringify(apiPayload, null, 2));
+      // console.log("APIkjh Payload:", JSON.stringify(apiPayload, null, 2));
 
       const response = await submitProfile(apiPayload).unwrap();
-
+      // console.log("API Payload:", JSON.stringify(response, null, 2));
       Alert.alert(
         "Success",
         "Your profile has been created successfully!",

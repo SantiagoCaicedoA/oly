@@ -1,5 +1,6 @@
 import { Images } from "@/assets";
 import PostCard from "@/components/post-card";
+import ScreenWrapper from "@/components/screen-wrapper";
 import CustomButton from "@/constants/custom-button";
 import { useTheme } from "@/context/theme-context";
 import { useGetPostsQuery } from "@/store/api";
@@ -160,40 +161,42 @@ export default function Home() {
     <>
       <Stack.Screen options={{ gestureEnabled: false }} />
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <View style={styles.headerSection}>
-            <Image source={Images.profile} style={styles.icon} />
-            <Image source={Images.search} style={styles.icon} />
+        <ScreenWrapper>
+          <View style={styles.header}>
+            <View style={styles.headerSection}>
+              <Image source={Images.profile} style={styles.icon} />
+              <Image source={Images.search} style={styles.icon} />
+            </View>
+            <Text style={styles.home}>HOME</Text>
+            <View style={styles.headerSection}>
+              <Image source={Images.notificationicon} style={styles.icon} />
+              <Image source={Images.comment} style={styles.icon} />
+            </View>
           </View>
-          <Text style={styles.home}>HOME</Text>
-          <View style={styles.headerSection}>
-            <Image source={Images.notificationicon} style={styles.icon} />
-            <Image source={Images.comment} style={styles.icon} />
-          </View>
-        </View>
 
-        <FlatList
-          data={data?.data || []}
-          keyExtractor={(item) => item._id}
-          renderItem={({ item }) => (
-            <PostCard post={item} onPress={handlePostPress} />
-          )}
-          contentContainerStyle={[
-            styles.listContent,
-            posts.length === 0 && { flex: 1 },
-          ]}
-          ListEmptyComponent={renderEmptyComponent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={isFetching && !isLoading}
-              onRefresh={refetch}
-              colors={[colors.primary]}
-              tintColor={colors.primary}
-              size={56}
-            />
-          }
-        />
+          <FlatList
+            data={data?.data || []}
+            keyExtractor={(item) => item._id}
+            renderItem={({ item }) => (
+              <PostCard post={item} onPress={handlePostPress} />
+            )}
+            contentContainerStyle={[
+              styles.listContent,
+              posts.length === 0 && { flex: 1 },
+            ]}
+            ListEmptyComponent={renderEmptyComponent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={isFetching && !isLoading}
+                onRefresh={refetch}
+                colors={[colors.primary]}
+                tintColor={colors.primary}
+                size={56}
+              />
+            }
+          />
+        </ScreenWrapper>
       </SafeAreaView>
     </>
   );
