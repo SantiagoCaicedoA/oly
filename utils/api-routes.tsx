@@ -1,4 +1,6 @@
-export const API_BASE_URL = "http://192.168.18.147:8000";
+import Constants from "expo-constants";
+export const API_BASE_URL =
+  Constants.expoConfig?.extra?.apiUrl || "http://localhost:8000";
 export const AUTH_ROUTES = {
   SIGNUP: "/api/users",
   LOGIN: "/api/users/signin",

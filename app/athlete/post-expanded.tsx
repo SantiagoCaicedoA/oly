@@ -185,7 +185,7 @@ export default function PostExpanded() {
         >
           <Video
             ref={videoRef}
-            source={{ uri: post?.video_url }}
+            source={{ uri: post?.video_url ?? "" }}
             style={styles.image}
             resizeMode={ResizeMode.COVER}
             shouldPlay={false}
@@ -204,13 +204,13 @@ export default function PostExpanded() {
                   alignItems: "center",
                 }}
               >
-                <Text style={styles.name}>Athlete name</Text>
+                <Text style={styles.name}>{post?.name}</Text>
                 <Text style={styles.time}>
                   {getRelativeTime(post?.createdAt)}
                 </Text>
               </View>
 
-              <Text style={styles.userName}>@username</Text>
+              <Text style={styles.userName}>{post?.username}</Text>
             </View>
           </View>
           <Text style={styles.liftName}>{post?.lift_name}</Text>
@@ -244,8 +244,6 @@ export default function PostExpanded() {
             {session?.isEffort && (
               <Effort effort_value={session.effort_value} />
             )}
-
-            {/* <DetailLift icon={Images.rpeicon} label="rpe" value={8.5} /> */}
           </View>
           <View style={styles.insightContainer}>
             <Text style={styles.insight}>Coach's Insight</Text>

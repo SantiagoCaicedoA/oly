@@ -1,33 +1,32 @@
 import Header from "@/components/header";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
-import { useSubmitProfileMutation } from "@/store/api";
+import {
+  useSubmitDataToAIMutation,
+  useSubmitProfileMutation,
+} from "@/store/api";
 
 import { selectOnboardingData } from "@/store/reducer/onboardingSlice";
+import { setTrainingData } from "@/store/reducer/trainingSlice";
 import { RootState } from "@/store/store";
 import { router } from "expo-router";
 import React from "react";
 import { ActivityIndicator, Alert, StyleSheet, View } from "react-native";
 import { scale } from "react-native-size-matters";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 export default function OnboardingScreen8() {
   const { colors } = useTheme();
   const allData = useSelector(selectOnboardingData);
 
   const [submitProfile, { isLoading }] = useSubmitProfileMutation();
-  const userId = useSelector((state: RootState) => state.auth.user?._id);
-  const onSubmit = async () => {
-    if (!userId) {
-      Alert.alert("Error", "User ID not found. Please sign in again.", [
-        {
-          text: "OK",
-          onPress: () => router.push("/auth/signin"),
-        },
-      ]);
-      return;
-    }
+  const [submitAI, { isLoading: loading }] = useSubmitDataToAIMutation();
+  const isAnyLoading = isLoading || loading;
 
+  const dispatch = useDispatch();
+  const token = useSelector((state: RootState) => state.auth.token);
+
+  const onSubmit = async () => {
     try {
       const apiPayload = {
         display_name: allData.name,
@@ -96,7 +95,20 @@ export default function OnboardingScreen8() {
       // console.log("APIkjh Payload:", JSON.stringify(apiPayload, null, 2));
 
       const response = await submitProfile(apiPayload).unwrap();
-      // console.log("API Payload:", JSON.stringify(response, null, 2));
+      // console.log("API response:", JSON.stringify(response, null, 2));
+      try {
+        const aiPayload = {
+          request: "Generate today's workout for this athlete",
+          response_format: "workout_tab",
+        };
+
+        const aiResponse = await submitAI(aiPayload).unwrap();
+        // console.log("AI Response:", JSON.stringify(aiResponse, null, 2));
+
+        dispatch(setTrainingData(aiResponse));
+      } catch (aiError) {
+        console.error("AI API Error:", aiError);
+      }
       Alert.alert(
         "Success",
         "Your profile has been created successfully!",
@@ -175,9 +187,9 @@ export default function OnboardingScreen8() {
 
       <ActionButtonsRow
         onPrimaryPress={onSubmit}
-        primaryTitle={isLoading ? "SAVING..." : "SAVE"}
+        primaryTitle={isAnyLoading ? "SAVING..." : "SAVE"}
       />
-      {isLoading && (
+      {isAnyLoading && (
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>

@@ -23,7 +23,8 @@ import { useSelector } from "react-redux";
 
 export default function Home() {
   const { colors } = useTheme();
-  const { data, isLoading, isError, refetch, isFetching } = useGetPostsQuery();
+  const { data, isLoading, isError, refetch, isFetching, error } =
+    useGetPostsQuery();
   const posts = data?.data ?? [];
   const user = useSelector((state: RootState) => state.auth.user);
 

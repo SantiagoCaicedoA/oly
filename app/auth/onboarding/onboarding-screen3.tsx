@@ -2,6 +2,7 @@ import Header from "@/components/header";
 import SegmentedSelector from "@/components/segmented-selector";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
+import { useToast } from "@/context/toast-context";
 import { saveOnboardingData } from "@/store/reducer/onboardingSlice";
 import { Typography } from "@/utils/custom-styles";
 import React, { useEffect, useMemo } from "react";
@@ -89,8 +90,16 @@ export default function OnboardingScreen3({
 }: OnboardingScreen3Props) {
   const { colors } = useTheme();
   const dispatch = useDispatch();
-
+  const { showError } = useToast();
   const onSubmit = (data: OnboardingScreen3Values) => {
+    if (
+      data.limitation &&
+      data.affected_area.length > 0 &&
+      !data.selected_affected_area
+    ) {
+      showError("Please select an affected area");
+      return;
+    }
     const sanitizedData =
       data.limitation === false
         ? {

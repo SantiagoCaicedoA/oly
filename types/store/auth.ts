@@ -1,44 +1,18 @@
 export interface User {
-  user_id: string;
+  _id: string;
+  name: string;
   email: string;
-  firstname: string;
-  lastname: string;
-  title: string;
-  dob: string;
-  gender: string;
-  telephone_no: string;
-  telephone_type: string;
-  user_type: string;
-  createdat: string;
-  updatedat: string;
-  // Legacy fields for compatibility
-  uid?: string;
-  displayName?: string | null;
-  photoURL?: string | null;
-  emailVerified?: boolean;
-  isAnonymous?: boolean;
-  phoneNumber?: string | null;
+  //role: "athlete";
+  createdAt?: string;
+  updatedAt?: string;
+
   accessToken?: string;
   metadata?: {
     createdAt?: string;
     lastLoginAt?: string;
   };
-  providerData?: Array<{
-    displayName?: string | null;
-    email?: string | null;
-    phoneNumber?: string | null;
-    photoURL?: string | null;
-    providerId: string;
-    uid: string;
-  }>;
-  theme?: "light" | "dark";
-  calendars?: Calendar[];
-}
 
-export interface Calendar {
-  id: string;
-  name: string;
-  [key: string]: any;
+  theme?: "light" | "dark";
 }
 
 export interface TokenData {
@@ -52,8 +26,4 @@ export interface AuthState {
   user: User | null;
   tokens: TokenData | null;
   isLoggedIn: boolean;
-  calendars: Calendar[];
-  selectedCalendarId: string | null;
-  tempCredentials: { email: string; password: string } | null;
-  userEmailToVerify: string | null;
 }

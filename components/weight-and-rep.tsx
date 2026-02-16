@@ -4,19 +4,19 @@ import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
 
-interface WeightAndRpeProps {
+interface WeightAndRepProps {
   weight: number;
   onWeightChange: (value: number) => void;
   reps: number;
   onRepsChange: (value: number) => void;
 }
 
-export default function WeightAndRpe({
+export default function WeightAndRep({
   weight,
   onWeightChange,
   reps,
   onRepsChange,
-}: WeightAndRpeProps) {
+}: WeightAndRepProps) {
   const { colors } = useTheme();
 
   const handleIncrement = (type: "weight" | "reps") => {

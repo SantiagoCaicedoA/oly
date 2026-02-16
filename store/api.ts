@@ -11,12 +11,22 @@ import { API_BASE_URL, API_ROUTES } from "@/utils/api-routes";
 import {
   AuthState,
   LoginValues,
+  SignupResponse,
   SignUpValues,
   TokenData,
 } from "@/types/api/auth";
 import {
+  CreateNewPostResponse,
+  GetPostByIdResponse,
+  GetPostsResponse,
+  SubmitAIPayload,
+  SubmitAIResponse,
+} from "@/types/api/dashboard";
+import {
   OnboardingApiPayload,
   OnboardingApiResponse,
+  UploadAthleteVideoResponse,
+  UploadProfileImageResponse,
 } from "@/types/api/onboarding";
 import { logout } from "./reducer/authSlice";
 
@@ -29,14 +39,9 @@ const baseQueryWithAuth = fetchBaseQuery({
   prepareHeaders: (headers, { getState }) => {
     const state = getState() as RootState;
     const token = state.auth.token;
-    const userId = state.auth.user?._id;
 
     if (token) {
       headers.set("authorization", `Bearer ${token}`);
-    }
-
-    if (userId) {
-      headers.set("x-user-id", userId);
     }
 
     return headers;
@@ -57,14 +62,10 @@ const customBaseQuery: BaseQueryFn<
 
     const state = api.getState() as RootState;
     const token = state.auth.token;
-    const userId = state.auth.user?._id;
+    const user = state.auth.token;
 
     if (token) {
       headers.set("authorization", `Bearer ${token}`);
-    }
-
-    if (userId) {
-      headers.set("x-user-id", userId);
     }
 
     const baseUrl = API_BASE_URL;
@@ -146,7 +147,7 @@ export const api = createApi({
   baseQuery: customBaseQueryWithReauth,
   tagTypes: ["Athlete", "Auth"],
   endpoints: (builder) => ({
-    signup: builder.mutation<any, SignUpValues>({
+    signup: builder.mutation<SignupResponse, SignUpValues>({
       query: (body) => ({
         url: API_ROUTES.AUTH.SIGNUP,
         method: "POST",
@@ -174,7 +175,7 @@ export const api = createApi({
       }),
       invalidatesTags: ["Athlete"],
     }),
-    uploadProfileImage: builder.mutation<any, FormData>({
+    uploadProfileImage: builder.mutation<UploadProfileImageResponse, FormData>({
       query: (formData) => ({
         url: API_ROUTES.AUTH.ONBOARDING_IMAGE_UPLOAD,
         method: "POST",
@@ -182,7 +183,7 @@ export const api = createApi({
       }),
       invalidatesTags: ["Athlete"],
     }),
-    uploadAthleteVideo: builder.mutation<any, FormData>({
+    uploadAthleteVideo: builder.mutation<UploadAthleteVideoResponse, FormData>({
       query: (formData) => ({
         url: API_ROUTES.AUTH.ONBOARDING_VIDEO_UPLOAD,
         method: "POST",
@@ -190,7 +191,10 @@ export const api = createApi({
       }),
       invalidatesTags: ["Athlete"],
     }),
-    createNewPost: builder.mutation<any, { formData: FormData }>({
+    createNewPost: builder.mutation<
+      CreateNewPostResponse,
+      { formData: FormData }
+    >({
       query: ({ formData }) => ({
         url: API_ROUTES.ATHLETE.CREATE_NEW_POST,
         method: "POST",
@@ -198,21 +202,21 @@ export const api = createApi({
       }),
       invalidatesTags: ["Athlete"],
     }),
-    getPosts: builder.query<any, void>({
+    getPosts: builder.query<GetPostsResponse, void>({
       query: () => ({
         url: API_ROUTES.ATHLETE.GET_POSTS,
         method: "GET",
       }),
       providesTags: ["Athlete"],
     }),
-    getPostById: builder.query<any, string>({
+    getPostById: builder.query<GetPostByIdResponse, string>({
       query: (postId) => ({
         url: `${API_ROUTES.ATHLETE.GET_POST_BY_ID}/${postId}`,
         method: "GET",
       }),
       providesTags: ["Athlete"],
     }),
-    submitAI: builder.mutation<OnboardingApiResponse, OnboardingApiPayload>({
+    submitDataToAI: builder.mutation<SubmitAIResponse, SubmitAIPayload>({
       query: (payload) => ({
         url: API_ROUTES.ATHLETE.AI_TRAINING,
         method: "POST",
@@ -232,5 +236,5 @@ export const {
   useCreateNewPostMutation,
   useGetPostsQuery,
   useGetPostByIdQuery,
-  useSubmitAIMutation,
+  useSubmitDataToAIMutation,
 } = api;

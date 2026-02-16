@@ -55,7 +55,7 @@ export default function SignUp() {
       dispatch(
         loginSuccess({
           user: result.data,
-          tokens: result.data.token || result.token,
+          token: result.token,
         }),
       );
 

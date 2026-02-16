@@ -5,11 +5,15 @@ import WeightInput from "@/components/weight-input";
 import CustomInput from "@/constants/custom-input";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
+import { useToast } from "@/context/toast-context";
 import { useUploadProfileImageMutation } from "@/store/api";
 
 import { saveOnboardingData } from "@/store/reducer/onboardingSlice";
 import { RootState } from "@/store/store";
+import { getFirstError } from "@/utils/get-error";
+import { onboardingScreen1Schema } from "@/utils/validation-schemas";
 import { Ionicons } from "@expo/vector-icons";
+import { yupResolver } from "@hookform/resolvers/yup";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import React, { useEffect } from "react";
@@ -53,10 +57,11 @@ export default function OnboardingScreen1({
 }: OnboardingScreen1Props) {
   const { colors } = useTheme();
   const dispatch = useDispatch();
+  const { showSuccess, showError } = useToast();
   const [profileImage, setProfileImage] = React.useState<string>("");
   const [uploadProfileImage, { isLoading: isUploading }] =
     useUploadProfileImageMutation();
-  const user = useSelector((state: RootState) => state.auth.user);
+  const user = useSelector((state: RootState) => state.auth.token);
 
   const handleTakePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -121,6 +126,7 @@ export default function OnboardingScreen1({
     setValue,
     formState: { errors },
   } = useForm<OnboardingScreen1Values>({
+    resolver: yupResolver(onboardingScreen1Schema),
     defaultValues: {
       name: "",
       country: "",
@@ -136,6 +142,12 @@ export default function OnboardingScreen1({
       user_name: "",
     },
   });
+  useEffect(() => {
+    const firstError = getFirstError(errors);
+    if (firstError) {
+      showError(firstError);
+    }
+  }, [errors]);
   useEffect(() => {
     if (name) {
       setValue("name", name);
@@ -323,7 +335,7 @@ export default function OnboardingScreen1({
                 onChangeText={onChange}
                 value={value}
                 keyboardType="numeric"
-                error={errors.country?.message}
+                error={errors.age?.message}
               />
             )}
           />

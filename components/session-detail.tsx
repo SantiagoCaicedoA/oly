@@ -16,19 +16,18 @@ import { scale } from "react-native-size-matters";
 interface SessionDetailProps {
   loadLifted: string;
   onLoadLiftedChange: (value: string) => void;
-  rpe: string;
-  onRpeChange: (value: string) => void;
-  contextEnabled: boolean;
+
+  contextEnabled?: boolean;
   onContextEnabledChange: (value: boolean) => void;
-  contextValue: string;
+  contextValue?: string;
   onContextValueChange: (value: string) => void;
-  intentEnabled: boolean;
+  intentEnabled?: boolean;
   onIntentEnabledChange: (value: boolean) => void;
-  intentValue: string;
+  intentValue?: string;
   onIntentValueChange: (value: string) => void;
-  effortEnabled: boolean;
+  effortEnabled?: boolean;
   onEffortEnabledChange: (value: boolean) => void;
-  effortRating: number;
+  effortRating?: number;
   onEffortRatingChange: (value: number) => void;
 }
 const INTENT_OPTIONS = [
@@ -41,8 +40,7 @@ const INTENT_OPTIONS = [
 export default function SessionDetail({
   loadLifted,
   onLoadLiftedChange,
-  rpe,
-  onRpeChange,
+
   contextEnabled,
   onContextEnabledChange,
   contextValue,

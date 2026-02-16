@@ -27,7 +27,7 @@ const liftTypeOptions = [
   { label: "Variation", value: "variation" },
 ];
 
-export default function Archieve() {
+export default function Archive() {
   const { colors } = useTheme();
   const [selectedValue, setSelectedValue] = useState<string | string[]>("all");
   const [selectedOpt, setSelectedOpt] = useState<string>("");
@@ -102,7 +102,7 @@ export default function Archieve() {
           />
         </TouchableOpacity>
 
-        <Text style={styles.headerText}>Archieve</Text>
+        <Text style={styles.headerText}>Archive</Text>
       </View>
 
       <ScrollView

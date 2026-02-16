@@ -20,10 +20,10 @@ const authSlice = createSlice({
 
     loginSuccess(
       state,
-      action: PayloadAction<{ user: User; tokens: TokenData }>,
+      action: PayloadAction<{ user: User; token: TokenData }>,
     ) {
       state.user = action.payload.user;
-      state.token = action.payload.tokens;
+      state.token = action.payload.token;
       state.isLoggedIn = true;
     },
     logout(state) {

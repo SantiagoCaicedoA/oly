@@ -53,7 +53,7 @@ export default function Login() {
       dispatch(
         loginSuccess({
           user: result.data,
-          tokens: result.data.token || result.token,
+          token: result.token,
         }),
       );
       router.replace("/(tabs)/home");

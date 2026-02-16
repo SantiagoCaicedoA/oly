@@ -17,6 +17,8 @@ interface PostCardProps {
     lift_name: string;
     session_detail: any;
     createdAt: string;
+    username: string;
+    name: string;
   };
   onPress?: (post_id: string) => void;
 }
@@ -135,10 +137,10 @@ export default function PostCard({ post, onPress }: PostCardProps) {
               alignItems: "center",
             }}
           >
-            <Text style={styles.name}>Athlete name</Text>
+            <Text style={styles.name}>{post.name}</Text>
             <Text style={styles.time}>{getRelativeTime(post.createdAt)}</Text>
           </View>
-          <Text style={styles.userName}>@username</Text>
+          <Text style={styles.userName}>{post.username}</Text>
         </View>
         <Image source={Images.arrowforward} style={styles.arrowForward} />
       </View>

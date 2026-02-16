@@ -4,13 +4,17 @@ import SessionDetail from "@/components/session-detail";
 import CustomInput from "@/constants/custom-input";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
+import { useToast } from "@/context/toast-context";
 import { useCreateNewPostMutation } from "@/store/api";
 import { RootState } from "@/store/store";
 import { Typography } from "@/utils/custom-styles";
+import { getFirstError } from "@/utils/get-error";
+import { createPostSchema } from "@/utils/validation-schemas";
+import { yupResolver } from "@hookform/resolvers/yup";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import * as VideoThumbnails from "expo-video-thumbnails";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   ActivityIndicator,
@@ -24,18 +28,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { scale } from "react-native-size-matters";
 import { useSelector } from "react-redux";
+import { InferType } from "yup";
 
-interface CreatePostFormValues {
-  opinion: string;
-  loadLifted: string;
-  rpe: string;
-  contextEnabled: boolean;
-  contextValue: string;
-  intentEnabled: boolean;
-  intentValue: string;
-  effortEnabled: boolean;
-  effortRating: number;
-}
+type CreatePostFormValues = InferType<typeof createPostSchema>;
 type PostVisibilityType = "public" | "private";
 const LIFT_NAME_OPTIONS = [
   "Snatch",
@@ -61,22 +56,36 @@ export default function CreateNewPost() {
   const [selectedOpt, setSelectedOpt] = useState<string>("");
   const user = useSelector((state: RootState) => state.auth.user);
 
+  const { showSuccess, showError } = useToast();
   const [createPost, { isLoading }] = useCreateNewPostMutation();
-  const { control, handleSubmit, watch, setValue } =
-    useForm<CreatePostFormValues>({
-      defaultValues: {
-        opinion: "",
-        loadLifted: "0",
-        rpe: "8.5",
-        contextEnabled: false,
-        contextValue: "",
-        intentEnabled: false,
-        intentValue: "",
-        effortEnabled: false,
-        effortRating: 0,
-      },
-    });
 
+  const {
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<CreatePostFormValues>({
+    resolver: yupResolver(createPostSchema),
+    defaultValues: {
+      video: "",
+      liftName: "",
+      opinion: "",
+      loadLifted: "0",
+      contextEnabled: false,
+      contextValue: "",
+      intentEnabled: false,
+      intentValue: "",
+      effortEnabled: false,
+      effortRating: 0,
+    },
+  });
+  useEffect(() => {
+    const firstError = getFirstError(errors);
+    if (firstError) {
+      showError(firstError);
+    }
+  }, [errors]);
   const handleBackPress = () => {
     router.push("/(tabs)/home");
   };
@@ -97,7 +106,7 @@ export default function CreateNewPost() {
 
     const session_detail: any = {
       lifted_kg: Number(data.loadLifted),
-      rpe: data.rpe,
+
       context: data.contextEnabled,
     };
 
@@ -115,8 +124,11 @@ export default function CreateNewPost() {
       lift_name: selectedOpt,
       opinion: data.opinion,
       session_detail,
+
       is_public: visibility === "public",
       is_private: visibility === "private",
+      username: user?.username,
+      name: user?.name,
     };
 
     formData.append("data", JSON.stringify(payload));
@@ -156,6 +168,7 @@ export default function CreateNewPost() {
 
       const uri = result.assets[0].uri;
       setVideoUri(uri);
+      setValue("video", uri);
 
       try {
         const { uri: thumb } = await VideoThumbnails.getThumbnailAsync(uri, {
@@ -337,7 +350,10 @@ export default function CreateNewPost() {
                   styles.chip,
                   selectedOpt === opt && styles.chipSelected,
                 ]}
-                onPress={() => setSelectedOpt(opt)}
+                onPress={() => {
+                  setSelectedOpt(opt);
+                  setValue("liftName", opt);
+                }}
                 activeOpacity={0.7}
               >
                 <Text
@@ -371,10 +387,6 @@ export default function CreateNewPost() {
           loadLifted={watch("loadLifted")}
           onLoadLiftedChange={(value: string) =>
             setValue("loadLifted", value, { shouldDirty: true })
-          }
-          rpe={watch("rpe")}
-          onRpeChange={(value: string) =>
-            setValue("rpe", value, { shouldDirty: true })
           }
           contextEnabled={watch("contextEnabled")}
           onContextEnabledChange={(value: boolean) =>
@@ -431,7 +443,7 @@ export default function CreateNewPost() {
         <ActionButtonsRow
           onPrimaryPress={handleSubmit(onSubmit)}
           primaryTitle={isLoading ? "CREATING..." : "POST"}
-          secondaryTitle="SAVE DRAFT"
+          secondaryTitle="CANCEL"
         />
       </ScrollView>
       {isLoading && (

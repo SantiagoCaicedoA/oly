@@ -8,14 +8,14 @@ import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
 import LiftAnalysis from "./lift-analysis";
 import MissAndPain from "./miss-and-pain";
-import WeightAndRpe from "./weight-and-rpe";
+import WeightAndRep from "./weight-and-rep";
 
 const ActionSheet = forwardRef<BottomSheetModal>((props, ref) => {
   const { colors } = useTheme();
   const [weight, setWeight] = useState(105);
   const [reps, setReps] = useState(3);
   const snapPoints = useMemo(() => ["50%", "90%"], []);
-  const [rpe, setRpe] = useState(5);
+
   const [limitingFactor, setLimitingFactor] = useState("");
   const [wasMiss, setWasMiss] = useState(false);
   const [failLocation, setFailLocation] = useState("");
@@ -220,7 +220,7 @@ const ActionSheet = forwardRef<BottomSheetModal>((props, ref) => {
           </View>
         </View>
         <View style={{ gap: scale(12) }}>
-          <WeightAndRpe
+          <WeightAndRep
             weight={weight}
             onWeightChange={setWeight}
             reps={reps}

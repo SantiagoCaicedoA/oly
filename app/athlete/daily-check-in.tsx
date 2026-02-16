@@ -151,7 +151,11 @@ export default function DailyCheckIn() {
           areaIntensities={areaIntensities}
           onAreaIntensityChange={handleAreaIntensityChange}
         />
-        <ActionButtonsRow primaryTitle="Start" secondaryTitle="Skip" />
+        <ActionButtonsRow
+          primaryTitle="Start"
+          secondaryTitle="Skip"
+          onPrimaryPress={() => router.push("athlete/training-exercise")}
+        />
       </ScrollView>
     </SafeAreaView>
   );

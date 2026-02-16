@@ -4,8 +4,11 @@ import { Typography } from "@/utils/custom-styles";
 import React from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
-
-export default function CoachNote() {
+interface CoachNoteProps {
+  coach_note: string;
+  key_cues: string[];
+}
+export default function CoachNote({ coach_note, key_cues }: CoachNoteProps) {
   const { colors } = useTheme();
 
   const styles = StyleSheet.create({
@@ -132,25 +135,16 @@ export default function CoachNote() {
             <Text style={styles.userName}>Coach</Text>
           </View>
         </View>
-        <Text style={styles.caption}>
-          Today is strictly about the second pull. Feel the bar stay close to
-          your shirt. No rushing the finish.
-        </Text>
+        <Text style={styles.caption}>{coach_note}</Text>
         <View style={styles.keyContainer}>
           <Text style={styles.keyCues}>KEY CUES</Text>
           <View style={{ padding: scale(6), gap: scale(5) }}>
-            <View style={styles.dotContainer}>
-              <Text style={styles.dot}>•</Text>
-              <Text style={styles.point}>Chest up through the transition</Text>
-            </View>
-            <View style={styles.dotContainer}>
-              <Text style={styles.dot}>•</Text>
-              <Text style={styles.point}>Fast elbows in the catch</Text>
-            </View>
-            <View style={styles.dotContainer}>
-              <Text style={styles.dot}>•</Text>
-              <Text style={styles.point}>Hold the receiving position (2s)</Text>
-            </View>
+            {key_cues.map((cue, index) => (
+              <View key={index} style={styles.dotContainer}>
+                <Text style={styles.dot}>•</Text>
+                <Text style={styles.point}>{cue}</Text>
+              </View>
+            ))}
           </View>
         </View>
         <View style={styles.rowContainer}>

@@ -1,7 +1,7 @@
 import { ThemeProvider } from "@/context/theme-context";
 import { ToastProvider } from "@/context/toast-context";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { store } from "@/store/store";
+import { persistor, store } from "@/store/store";
 import {
   DarkTheme,
   DefaultTheme,
@@ -10,8 +10,10 @@ import {
 import { useFonts } from "expo-font";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import React from "react";
 import "react-native-reanimated";
 import { Provider } from "react-redux";
+import { PersistGate } from "redux-persist/integration/react";
 
 function AppContent() {
   const colorScheme = useColorScheme();
@@ -45,9 +47,11 @@ function AppContent() {
 export default function RootLayout() {
   return (
     <Provider store={store}>
-      <ThemeProvider>
-        <AppContent />
-      </ThemeProvider>
+      <PersistGate loading={null} persistor={persistor}>
+        <ThemeProvider>
+          <AppContent />
+        </ThemeProvider>
+      </PersistGate>
     </Provider>
   );
 }
