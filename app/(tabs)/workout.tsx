@@ -4,7 +4,7 @@ import TodaysTraining from "@/components/todays-training";
 import VolumeIntensity from "@/components/volume-intensity";
 import CustomButton from "@/constants/custom-button";
 import { useTheme } from "@/context/theme-context";
-import { Exercise } from "@/store/reducer/trainingSlice";
+import { Days, Exercise } from "@/store/reducer/trainingSlice";
 import { RootState } from "@/store/store";
 import { router } from "expo-router";
 
@@ -16,14 +16,28 @@ import { useSelector } from "react-redux";
 
 export default function Workout() {
   const { colors } = useTheme();
-  const coachNote = useSelector((state: RootState) => state.training.coachNote);
-  const keyCues = useSelector((state: RootState) => state.training.keyCues);
-  const todaysTraining = useSelector(
-    (state: RootState) => state.training.todaysTraining,
-  );
 
+  const days = useSelector((state: RootState) => state.training.days);
+  const DAY_KEYS = [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+  ];
+  const dayKey = DAY_KEYS[new Date().getDay()] as keyof Days;
+  const todayData = days?.[dayKey];
+
+  const coachNote = todayData?.coach_note ?? "";
+  const keyCues = todayData?.key_cues ?? [];
+  const todaysTraining = todayData?.exercises ?? [];
   const handlePressItem = (item: Exercise) => {
-    router.push("/athlete/daily-check-in");
+    router.push({
+      pathname: "/athlete/training-exercise",
+      params: { exercise: JSON.stringify(item) },
+    });
   };
 
   const styles = StyleSheet.create({

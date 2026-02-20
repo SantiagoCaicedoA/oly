@@ -1,14 +1,10 @@
 import { useTheme } from "@/context/theme-context";
+import { Exercise } from "@/store/reducer/trainingSlice";
 import { Typography } from "@/utils/custom-styles";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { scale } from "react-native-size-matters";
 import TrainingDetail from "./training-detail";
-interface Exercise {
-  exercise_name: string;
-  time: string;
-  no_of_set: number;
-}
 
 interface TodaysTrainingProps {
   trainings: Exercise[];

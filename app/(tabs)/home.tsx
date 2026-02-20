@@ -3,11 +3,12 @@ import PostCard from "@/components/post-card";
 import ScreenWrapper from "@/components/screen-wrapper";
 import CustomButton from "@/constants/custom-button";
 import { useTheme } from "@/context/theme-context";
-import { useGetPostsQuery } from "@/store/api";
+import { useGetAiTrainingQuery, useGetPostsQuery } from "@/store/api";
+import { setTrainingData } from "@/store/reducer/trainingSlice";
 import { RootState } from "@/store/store";
 import { Typography } from "@/utils/custom-styles";
 import { router, Stack } from "expo-router";
-import React from "react";
+import React, { useEffect } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -19,15 +20,28 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { scale } from "react-native-size-matters";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 export default function Home() {
   const { colors } = useTheme();
-  const { data, isLoading, isError, refetch, isFetching, error } =
-    useGetPostsQuery();
-  const posts = data?.data ?? [];
+  const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
+  const {
+    data: postsData,
+    isLoading,
+    isError,
+    refetch,
+    isFetching,
+    error,
+  } = useGetPostsQuery();
+  const { data } = useGetAiTrainingQuery();
 
+  const posts = data?.data ?? [];
+  useEffect(() => {
+    if (data) {
+      dispatch(setTrainingData(data));
+    }
+  }, [data]);
   const handlePostPress = (post_id: string) => {
     router.push({
       pathname: "/athlete/post-expanded",
@@ -176,7 +190,7 @@ export default function Home() {
           </View>
 
           <FlatList
-            data={data?.data || []}
+            data={postsData?.data || []}
             keyExtractor={(item) => item._id}
             renderItem={({ item }) => (
               <PostCard post={item} onPress={handlePostPress} />
@@ -202,3 +216,28 @@ export default function Home() {
     </>
   );
 }
+
+// import { useGetAiTrainingQuery } from "@/store/api";
+// import { setTrainingData } from "@/store/reducer/trainingSlice";
+// import React, { useEffect } from "react";
+// import { StyleSheet, Text, View } from "react-native";
+// import { useDispatch } from "react-redux";
+
+// export default function home() {
+//   const dispatch = useDispatch();
+//   const { data } = useGetAiTrainingQuery();
+
+//   useEffect(() => {
+//     if (data) {
+//       dispatch(setTrainingData(data));
+//     }
+//   }, [data]);
+
+//   return (
+//     <View>
+//       <Text>home</Text>
+//     </View>
+//   );
+// }
+
+// const styles = StyleSheet.create({});

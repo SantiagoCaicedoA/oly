@@ -1,15 +1,28 @@
 import { useTheme } from "@/context/theme-context";
 import { Typography } from "@/utils/custom-styles";
-import React, { useState } from "react";
+import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
-type SetDetailProps = {
+interface SetDetailProps {
+  setNumber: number;
+  reps: number;
+  weight: number;
+  rpm: number;
+  isChecked?: boolean;
+  onToggleCheck?: () => void;
   onPress?: () => void;
-};
+}
 
-export default function SetDetail({ onPress }: SetDetailProps) {
+export default function SetDetail({
+  setNumber,
+  reps,
+  weight,
+  rpm,
+  isChecked = false,
+  onToggleCheck,
+  onPress,
+}: SetDetailProps) {
   const { colors } = useTheme();
-  const [isChecked, setIsChecked] = useState(false);
 
   const styles = StyleSheet.create({
     container: {
@@ -76,19 +89,19 @@ export default function SetDetail({ onPress }: SetDetailProps) {
         style={{ height: 20, backgroundColor: colors.primary, width: 3 }}
       ></View>
       <View style={styles.setContainer}>
-        <Text style={styles.setText}>SET 2</Text>
-        <Text style={styles.setText}>3 REPS</Text>
+        <Text style={styles.setText}>SET {setNumber}</Text>
+        <Text style={styles.setText}>{reps} REPS</Text>
       </View>
       <View style={styles.weightContainer}>
-        <Text style={styles.weightText}>115 kg</Text>
+        <Text style={styles.weightText}>{weight} kg</Text>
       </View>
 
       <View style={styles.weightContainer}>
-        <Text style={styles.weightText}>80 %</Text>
+        <Text style={styles.weightText}>{rpm} %</Text>
       </View>
       <TouchableOpacity
         style={styles.checkbox}
-        onPress={() => setIsChecked(!isChecked)}
+        onPress={onToggleCheck}
         activeOpacity={0.7}
       >
         {isChecked && <Text style={styles.checkmark}>✓</Text>}

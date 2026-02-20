@@ -7,7 +7,6 @@ import {
 } from "@/store/api";
 
 import { selectOnboardingData } from "@/store/reducer/onboardingSlice";
-import { setTrainingData } from "@/store/reducer/trainingSlice";
 import { RootState } from "@/store/store";
 import { router } from "expo-router";
 import React from "react";
@@ -92,23 +91,8 @@ export default function OnboardingScreen8() {
         performance_gaps: allData.performance_gaps,
       };
 
-      // console.log("APIkjh Payload:", JSON.stringify(apiPayload, null, 2));
-
       const response = await submitProfile(apiPayload).unwrap();
-      // console.log("API response:", JSON.stringify(response, null, 2));
-      try {
-        const aiPayload = {
-          request: "Generate today's workout for this athlete",
-          response_format: "workout_tab",
-        };
 
-        const aiResponse = await submitAI(aiPayload).unwrap();
-        // console.log("AI Response:", JSON.stringify(aiResponse, null, 2));
-
-        dispatch(setTrainingData(aiResponse));
-      } catch (aiError) {
-        console.error("AI API Error:", aiError);
-      }
       Alert.alert(
         "Success",
         "Your profile has been created successfully!",

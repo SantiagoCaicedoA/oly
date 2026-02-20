@@ -224,6 +224,13 @@ export const api = createApi({
       }),
       invalidatesTags: ["Athlete"],
     }),
+    getAiTraining: builder.query<any, void>({
+      query: () => ({
+        url: API_ROUTES.ATHLETE.GET_AI_TRAINING,
+        method: "GET"
+      }),
+      providesTags: ['Athlete']
+    })
   }),
 });
 
@@ -237,4 +244,5 @@ export const {
   useGetPostsQuery,
   useGetPostByIdQuery,
   useSubmitDataToAIMutation,
+  useGetAiTrainingQuery,
 } = api;

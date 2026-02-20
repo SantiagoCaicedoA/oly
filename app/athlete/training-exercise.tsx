@@ -7,12 +7,14 @@ import TalkToCoach from "@/components/talk-to-coach";
 import TimerBottomSheet from "@/components/timer-bottom-sheet";
 import CustomButton from "@/constants/custom-button";
 import { useTheme } from "@/context/theme-context";
+import { Days, ExerciseSet } from "@/store/reducer/trainingSlice";
+import { RootState } from "@/store/store";
 import { Typography } from "@/utils/custom-styles";
 import {
   BottomSheetModal,
   BottomSheetModalProvider,
 } from "@gorhom/bottom-sheet";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Image,
@@ -25,16 +27,33 @@ import {
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { scale } from "react-native-size-matters";
+import { useSelector } from "react-redux";
 
 export default function TrainingExercise() {
   const { colors } = useTheme();
+  const [checked, setChecked] = useState(false);
+  const days = useSelector((state: RootState) => state.training.days);
+  const { exercise } = useLocalSearchParams();
+  const exerciseData = exercise ? JSON.parse(exercise as string) : null;
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const timerSheetRef = useRef<BottomSheetModal>(null);
   const [timerDuration, setTimerDuration] = useState<number>(0);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [isTimerActive, setIsTimerActive] = useState(false);
+  const [selectedSet, setSelectedSet] = useState<ExerciseSet | null>(null);
 
+  const DAY_KEYS = [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+  ];
+  const dayKey = DAY_KEYS[new Date().getDay()] as keyof Days;
+  const todayData = days?.[dayKey];
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
@@ -62,7 +81,8 @@ export default function TrainingExercise() {
     router.back();
   };
 
-  const handlePressExercise = () => {
+  const handlePressExercise = (set: ExerciseSet) => {
+    setSelectedSet(set);
     bottomSheetRef.current?.present();
   };
   const handleStartTimer = () => {
@@ -168,7 +188,9 @@ export default function TrainingExercise() {
               />
             </TouchableOpacity>
 
-            <Text style={styles.headerText}>LIFT</Text>
+            <Text style={styles.headerText}>
+              {exerciseData?.exercise_name ?? "LIFT"}
+            </Text>
           </View>
 
           <ScrollView
@@ -178,14 +200,29 @@ export default function TrainingExercise() {
             <ExerciseSection />
             <LiftGraph />
             <TalkToCoach />
-            <SetDetail onPress={handlePressExercise} />
-            <SetDetail />
-            <SetDetail />
-            <SetDetail />
+
+            {exerciseData?.sets?.map((set: ExerciseSet) => (
+              <SetDetail
+                key={set.set_number}
+                setNumber={set.set_number}
+                reps={set.reps}
+                weight={set.weight}
+                rpm={set.rpm_percent}
+                isChecked={checked}
+                onPress={() => handlePressExercise(set)}
+              />
+            ))}
+
             <CustomButton title="ADD SET" onPress={handleAddSet} />
           </ScrollView>
 
-          <ActionSheet ref={bottomSheetRef} />
+          <ActionSheet
+            ref={bottomSheetRef}
+            set={selectedSet}
+            exercise={exerciseData}
+            coachPrescription={todayData?.coach_prescription}
+            keyCues={todayData?.key_cues_of_specific_lift}
+          />
           <TimerBottomSheet
             ref={timerSheetRef}
             isTimerActive={isTimerActive}
