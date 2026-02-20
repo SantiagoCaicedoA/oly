@@ -1,7 +1,7 @@
-import { AuthState, TokenData } from "@/types/api/auth";
-import { User } from "@/types/store/auth";
+
+import { Athlete, AuthState, TokenData } from "@/types/api/auth";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import {} from "../../types";
+
 
 const initialState: AuthState = {
   user: null,
@@ -13,14 +13,14 @@ const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    setUser(state, action: PayloadAction<User | null>) {
+    setUser(state, action: PayloadAction<Athlete | null>) {
       state.user = action.payload;
       state.isLoggedIn = !!action.payload;
     },
 
     loginSuccess(
       state,
-      action: PayloadAction<{ user: User; token: TokenData }>,
+      action: PayloadAction<{ user: Athlete; token: TokenData }>,
     ) {
       state.user = action.payload.user;
       state.token = action.payload.token;

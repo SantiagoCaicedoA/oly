@@ -3,8 +3,7 @@ import PostCard from "@/components/post-card";
 import ScreenWrapper from "@/components/screen-wrapper";
 import CustomButton from "@/constants/custom-button";
 import { useTheme } from "@/context/theme-context";
-import { useGetAiTrainingQuery, useGetPostsQuery } from "@/store/api";
-import { setTrainingData } from "@/store/reducer/trainingSlice";
+import { useLazyGetPostsQuery } from "@/store/api";
 import { RootState } from "@/store/store";
 import { Typography } from "@/utils/custom-styles";
 import { router, Stack } from "expo-router";
@@ -25,23 +24,17 @@ import { useDispatch, useSelector } from "react-redux";
 export default function Home() {
   const { colors } = useTheme();
   const dispatch = useDispatch();
-  const user = useSelector((state: RootState) => state.auth.user);
-  const {
-    data: postsData,
-    isLoading,
-    isError,
-    refetch,
-    isFetching,
-    error,
-  } = useGetPostsQuery();
-  const { data } = useGetAiTrainingQuery();
+  const token = useSelector((state: RootState) => state.auth.token);
 
-  const posts = data?.data ?? [];
+  const [fetchPosts, { data: postsData, isLoading, isError, isFetching }] =
+    useLazyGetPostsQuery();
   useEffect(() => {
-    if (data) {
-      dispatch(setTrainingData(data));
+    if (token) {
+      fetchPosts();
     }
-  }, [data]);
+  }, [token]);
+  const posts = postsData?.data ?? [];
+
   const handlePostPress = (post_id: string) => {
     router.push({
       pathname: "/athlete/post-expanded",
@@ -152,7 +145,7 @@ export default function Home() {
         Something went wrong. Please try again.
       </Text>
 
-      <CustomButton title="Retry" onPress={refetch} style={styles.button} />
+      <CustomButton title="Retry" onPress={fetchPosts} style={styles.button} />
     </View>
   );
   if (isLoading) {
@@ -204,7 +197,7 @@ export default function Home() {
             refreshControl={
               <RefreshControl
                 refreshing={isFetching && !isLoading}
-                onRefresh={refetch}
+                onRefresh={fetchPosts}
                 colors={[colors.primary]}
                 tintColor={colors.primary}
                 size={56}
@@ -216,28 +209,3 @@ export default function Home() {
     </>
   );
 }
-
-// import { useGetAiTrainingQuery } from "@/store/api";
-// import { setTrainingData } from "@/store/reducer/trainingSlice";
-// import React, { useEffect } from "react";
-// import { StyleSheet, Text, View } from "react-native";
-// import { useDispatch } from "react-redux";
-
-// export default function home() {
-//   const dispatch = useDispatch();
-//   const { data } = useGetAiTrainingQuery();
-
-//   useEffect(() => {
-//     if (data) {
-//       dispatch(setTrainingData(data));
-//     }
-//   }, [data]);
-
-//   return (
-//     <View>
-//       <Text>home</Text>
-//     </View>
-//   );
-// }
-
-// const styles = StyleSheet.create({});

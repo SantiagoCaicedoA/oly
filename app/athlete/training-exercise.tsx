@@ -198,7 +198,7 @@ export default function TrainingExercise() {
             showsVerticalScrollIndicator={false}
           >
             <ExerciseSection />
-            <LiftGraph />
+            <LiftGraph liftName={exerciseData?.exercise_name ?? "LIFT"} />
             <TalkToCoach />
 
             {exerciseData?.sets?.map((set: ExerciseSet) => (

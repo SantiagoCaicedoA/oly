@@ -232,7 +232,7 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
               </Text>
               <Text style={styles.weight}>
                 {set?.rpm_percent ?? 0}{" "}
-                <Text style={styles.unit}>% of 1 RPM</Text>
+                <Text style={styles.unit}>% of 1 RM</Text>
               </Text>
             </View>
           </View>

@@ -1,5 +1,6 @@
 import { Images } from "@/assets";
 import { useTheme } from "@/context/theme-context";
+import { Typography } from "@/utils/custom-styles";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { BlurView } from "expo-blur";
@@ -32,7 +33,7 @@ export default function TabLayout() {
                   paddingBottom: Platform.OS === "ios" ? scale(20) : scale(10),
                   paddingTop: scale(10),
                   elevation: 0,
-                  marginHorizontal: scale(15),
+                  marginHorizontal: scale(10),
                   marginBottom: scale(20),
                   borderRadius: scale(45),
                   overflow: "visible",
@@ -54,8 +55,8 @@ export default function TabLayout() {
               />
             ),
             tabBarLabelStyle: {
-              fontSize: scale(10),
-              fontWeight: "600",
+              fontSize: Typography.fontSize.xs,
+              fontWeight: Typography.fontWeight.bold,
               textTransform: "uppercase",
             },
             tabBarShowLabel: true,
@@ -110,8 +111,8 @@ export default function TabLayout() {
                   >
                     <View
                       style={{
-                        width: scale(50),
-                        height: scale(50),
+                        width: scale(45),
+                        height: scale(45),
                         borderRadius: scale(30),
                         backgroundColor: colors.primary,
                         justifyContent: "center",
@@ -128,8 +129,8 @@ export default function TabLayout() {
                   </TouchableOpacity>
                   <Text
                     style={{
-                      fontSize: scale(10),
-                      fontWeight: "600",
+                      fontSize: Typography.fontSize.xs,
+                      fontWeight: Typography.fontWeight.bold,
                       color: "#8e8e93",
                       marginTop: scale(4),
                       textTransform: "uppercase",

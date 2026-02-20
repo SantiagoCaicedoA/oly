@@ -29,6 +29,7 @@ export default function PostExpanded() {
   const { data, isLoading, error, isError } = useGetPostByIdQuery(
     post_id as string,
   );
+
   const post = data?.data;
   const session = post?.session_detail;
 

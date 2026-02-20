@@ -8,9 +8,10 @@ import {
 
 import { selectOnboardingData } from "@/store/reducer/onboardingSlice";
 import { RootState } from "@/store/store";
+import { Typography } from "@/utils/custom-styles";
 import { router } from "expo-router";
 import React from "react";
-import { ActivityIndicator, Alert, StyleSheet, View } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import { scale } from "react-native-size-matters";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -160,6 +161,12 @@ export default function OnboardingScreen8() {
       alignItems: "center",
       zIndex: 999,
     },
+    generatingText: {
+      fontSize: Typography.fontSize.md,
+      fontWeight: Typography.fontWeight.normal,
+      color: colors.textSecondary,
+      letterSpacing: Typography.letterSpacing.normal,
+    },
   });
 
   return (
@@ -174,9 +181,9 @@ export default function OnboardingScreen8() {
         primaryTitle={isAnyLoading ? "SAVING..." : "SAVE"}
       />
       {isAnyLoading && (
-        <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
+        <Text style={styles.generatingText}>
+          Generating your training plan...
+        </Text>
       )}
     </View>
   );

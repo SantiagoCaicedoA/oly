@@ -69,19 +69,10 @@ const trainingSlice = createSlice({
   name: "training",
   initialState,
   reducers: {
-    setTrainingData: (
-      state,
-      action: PayloadAction<{
-        data: {
-          week_start: string;
-          days: Days;
-          is_first_week: boolean;
-          profile_snapshot: ProfileSnapshot;
-        };
-      }>,
-    ) => {
-      const { week_start, days, is_first_week, profile_snapshot } =
-        action.payload.data;
+    setTrainingData: (state, action: PayloadAction<any>) => {
+      const apiData = action.payload?.data ?? action.payload;
+      if (!apiData) return;
+      const { week_start, days, is_first_week, profile_snapshot } = apiData;
       state.weekStart = week_start;
       state.days = days;
       state.isFirstWeek = is_first_week;

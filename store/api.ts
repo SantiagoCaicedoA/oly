@@ -107,6 +107,7 @@ const customBaseQueryWithReauth: BaseQueryFn<
     const state = api.getState() as RootState;
     const refreshToken = state.auth.token;
 
+
     if (!refreshToken) {
       api.dispatch(logout());
       return result;
@@ -241,8 +242,8 @@ export const {
   useUploadProfileImageMutation,
   useUploadAthleteVideoMutation,
   useCreateNewPostMutation,
-  useGetPostsQuery,
+  useLazyGetPostsQuery,
   useGetPostByIdQuery,
   useSubmitDataToAIMutation,
-  useGetAiTrainingQuery,
+  useLazyGetAiTrainingQuery,
 } = api;

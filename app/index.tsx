@@ -14,7 +14,6 @@ export default function Index() {
   useEffect(() => {
     if (isLoggedIn && token) {
       router.replace("/(tabs)/home");
-      //router.replace("/auth/login");
     } else {
       router.replace("/auth/login");
     }

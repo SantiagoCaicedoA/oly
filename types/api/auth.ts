@@ -3,8 +3,6 @@ export interface Athlete {
   name: string;
   email: string;
   username: string;
-  token: TokenData;
-  //role: "athlete";
   createdAt?: string;
   updatedAt?: string;
 }
@@ -16,22 +14,15 @@ export interface TokenData {
 
 export interface AuthState {
   user: Athlete | null;
-  token: TokenData;
+  token: TokenData | null;
   isLoggedIn: boolean;
 }
-export interface LoginValues {
-  email: string;
-  password: string;
-}
+
 export interface LoginPayload {
   email: string;
   password: string;
 }
-export interface SignUpValues {
-  name: string;
-  email: string;
-  password: string;
-}
+
 export interface SignUpPayload {
   name: string;
   email: string;
@@ -52,4 +43,25 @@ export interface SignupResponse {
   data: SignupResponseData;
   success: boolean;
   token: TokenData;
+}
+export interface LoginValues {
+  email: string;
+  password: string;
+}
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface SignUpValues {
+  name: string;
+  email: string;
+  password: string;
+}
+
+export interface SignUpPayload {
+  name: string;
+  email: string;
+  password: string;
 }

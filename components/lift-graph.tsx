@@ -4,8 +4,10 @@ import { Typography } from "@/utils/custom-styles";
 import React from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
-
-export default function LiftGraph() {
+interface LiftGraphProps {
+  liftName: string;
+}
+export default function LiftGraph({ liftName }: LiftGraphProps) {
   const { colors } = useTheme();
 
   const styles = StyleSheet.create({
@@ -45,9 +47,7 @@ export default function LiftGraph() {
   return (
     <>
       <View style={styles.headerContainer}>
-        <Text style={styles.heading}>
-          Pause Power Snatch + Hang Power Snatch (1+1)
-        </Text>
+        <Text style={styles.heading}>{liftName}</Text>
         <TouchableOpacity>
           <Image
             source={Images.optionicon}
