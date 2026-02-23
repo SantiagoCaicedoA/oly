@@ -21,6 +21,7 @@ import {
   GetPostsResponse,
   SubmitAIPayload,
   SubmitAIResponse,
+  UpdateTrainingPayload,
 } from "@/types/api/dashboard";
 import {
   OnboardingApiPayload,
@@ -231,6 +232,14 @@ export const api = createApi({
         method: "GET"
       }),
       providesTags: ['Athlete']
+    }),
+    updateTrainingData: builder.mutation<any, UpdateTrainingPayload>({
+      query: (payload) => ({
+        url: API_ROUTES.ATHLETE.UPDATE_TRAINING_DATA,
+        method: "PATCH",
+        body: payload
+      }),
+      invalidatesTags: ["Athlete"],
     })
   }),
 });
@@ -246,4 +255,5 @@ export const {
   useGetPostByIdQuery,
   useSubmitDataToAIMutation,
   useLazyGetAiTrainingQuery,
+  useUpdateTrainingDataMutation
 } = api;

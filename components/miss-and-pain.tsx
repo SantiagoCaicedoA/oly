@@ -83,7 +83,7 @@ export default function MissAndPain({
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: scale(15),
+      marginBottom: scale(20),
     },
     switchAnswer: {
       fontSize: Typography.fontSize.md,

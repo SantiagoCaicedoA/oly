@@ -143,3 +143,29 @@ export interface SubmitAIResponse {
     prompt_tokens: number;
   };
 }
+export interface SetPayload {
+  set_number: number;
+  weight: number;
+  reps: number;
+  rpm_percent: number;
+  bar_speed: string;
+  position_quality: string;
+  was_it_a_miss: boolean;
+  where_did_it_fail: string;
+  missed_where: string;
+  any_pain_or_discomfort: boolean;
+  pain_level: string;
+  pain_where: string[];
+}
+
+export interface ExercisePayload {
+  exercise_name: string;
+  time: string;
+  no_of_set: number;
+  sets: SetPayload[];
+}
+
+export interface UpdateTrainingPayload {
+  day: string;
+  exercises: ExercisePayload[];
+}

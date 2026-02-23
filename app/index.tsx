@@ -1,7 +1,6 @@
 import { useAppSelector } from "@/store/store";
 import { Redirect, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { StyleSheet } from "react-native";
 
 export default function Index() {
   const router = useRouter();
@@ -24,5 +23,3 @@ export default function Index() {
 
   return <Redirect href="/auth/login" />;
 }
-
-const styles = StyleSheet.create({});

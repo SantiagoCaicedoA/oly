@@ -36,7 +36,7 @@ export default function AnalysisSegment({
     },
     intensity: {
       fontSize: Typography.fontSize.base,
-      fontWeight: Typography.fontWeight.normal,
+      fontWeight: Typography.fontWeight.semibold,
       letterSpacing: Typography.letterSpacing.normal,
       color: colors.text,
     },

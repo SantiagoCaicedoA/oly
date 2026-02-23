@@ -13,8 +13,8 @@ export default function VolumeIntensity() {
       backgroundColor: colors.surface,
       borderWidth: scale(0.3),
       borderColor: colors.text,
-      padding: scale(12),
-      borderRadius: scale(6),
+      padding: scale(18),
+      borderRadius: scale(10),
       marginTop: scale(6),
     },
     graph: {

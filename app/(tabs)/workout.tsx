@@ -6,7 +6,12 @@ import WeekCalendar from "@/components/week-calendar";
 import CustomButton from "@/constants/custom-button";
 import { useTheme } from "@/context/theme-context";
 import { useLazyGetAiTrainingQuery } from "@/store/api";
-import { Days, Exercise, setTrainingData } from "@/store/reducer/trainingSlice";
+import {
+  Days,
+  Exercise,
+  setSelectedExercise,
+  setTrainingData,
+} from "@/store/reducer/trainingSlice";
 import { RootState } from "@/store/store";
 import { Typography } from "@/utils/custom-styles";
 import { router } from "expo-router";
@@ -57,10 +62,8 @@ export default function Workout() {
   const keyCues = todayData?.key_cues ?? [];
   const todaysTraining = todayData?.exercises ?? [];
   const handlePressItem = (item: Exercise) => {
-    router.push({
-      pathname: "/athlete/training-exercise",
-      params: { exercise: JSON.stringify(item) },
-    });
+    dispatch(setSelectedExercise(item));
+    router.push("/athlete/daily-check-in");
   };
 
   const styles = StyleSheet.create({

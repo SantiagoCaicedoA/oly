@@ -62,7 +62,7 @@ export default function LiftAnalysis({
       borderWidth: scale(0.3),
       borderColor: colors.text,
       paddingHorizontal: scale(15),
-      paddingVertical: scale(10),
+      paddingVertical: scale(22),
     },
     subHeading: {
       fontSize: Typography.fontSize.sm,
@@ -86,7 +86,7 @@ export default function LiftAnalysis({
     option: {
       paddingHorizontal: scale(12),
       paddingVertical: scale(9),
-      borderRadius: scale(15),
+      borderRadius: scale(18),
       backgroundColor: colors.lightBlue,
       borderWidth: scale(1),
       borderColor: colors.primary,

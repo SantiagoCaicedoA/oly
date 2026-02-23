@@ -1,12 +1,16 @@
 import { Images } from "@/assets";
 import CustomButton from "@/constants/custom-button";
 import { useTheme } from "@/context/theme-context";
+import { useUpdateTrainingDataMutation } from "@/store/api";
 import { Exercise, ExerciseSet } from "@/store/reducer/trainingSlice";
+import { RootState } from "@/store/store";
+import { UpdateTrainingPayload } from "@/types/api/dashboard";
 import { Typography } from "@/utils/custom-styles";
 import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import React, { forwardRef, useEffect, useMemo, useState } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
+import { useSelector } from "react-redux";
 import LiftAnalysis from "./lift-analysis";
 import MissAndPain from "./miss-and-pain";
 import WeightAndRep from "./weight-and-rep";
@@ -14,13 +18,21 @@ interface ActionSheetProps {
   set?: ExerciseSet | null;
   exercise?: Exercise | null;
   coachPrescription?: string;
-  keyCues?: string[];
+  key_cues?: string[];
 }
-
+const DAY_KEYS = [
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+];
 const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
   (props, ref) => {
     const { colors } = useTheme();
-    const { set, exercise, coachPrescription, keyCues } = props;
+    const { set, exercise, coachPrescription } = props;
     const [weight, setWeight] = useState(set?.weight ?? 0);
 
     const [reps, setReps] = useState(set?.reps ?? 0);
@@ -42,16 +54,67 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
       Moderate: "Affecting my technique",
       Sharp: "Can't lift safely",
     };
+    const days = useSelector((state: RootState) => state.training.days);
 
     const [wasPain, setWasPain] = useState(false);
-
     const [wherePain, setWherePain] = useState("");
+    const todayKey = DAY_KEYS[new Date().getDay()];
+    const [updateTraining] = useUpdateTrainingDataMutation();
     useEffect(() => {
       if (set) {
         setWeight(set.weight);
         setReps(set.reps);
+        setBarSpeed(set.bar_speed ?? "Poor");
+        setPositionQuality(set.position_quality ?? "Poor");
+        setWasMiss(set.was_it_a_miss ?? false);
+        setFailLocation(set.where_did_it_fail ?? "");
+        setMissedWhere(set.missed_where ?? "");
+        setWasPain(set.any_pain_or_discomfort ?? false);
+        setPainLevel(set.pain_level ?? "None");
+        setWherePain(set.pain_where?.[0] ?? "");
       }
     }, [set]);
+    const getCurrentTime = () => {
+      const now = new Date();
+      return `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+    };
+
+    const handlePress = async () => {
+      if (!exercise) return;
+      const payload: UpdateTrainingPayload = {
+        day: todayKey,
+        exercises: [
+          {
+            exercise_name: exercise.exercise_name,
+            time: getCurrentTime(),
+            no_of_set: exercise.no_of_set,
+            sets: [
+              {
+                set_number: set?.set_number ?? 1,
+                weight,
+                reps,
+                rpm_percent: set?.rpm_percent ?? 0,
+                bar_speed: barSpeed,
+                position_quality: positionQuality,
+                was_it_a_miss: wasMiss,
+                where_did_it_fail: failLocation,
+                missed_where: missedWhere,
+                any_pain_or_discomfort: wasPain,
+                pain_level: painLevel,
+                pain_where: wherePain ? [wherePain] : [],
+              },
+            ],
+          },
+        ],
+      };
+
+      try {
+        await updateTraining(payload).unwrap();
+        (ref as React.RefObject<BottomSheetModal>)?.current?.dismiss();
+      } catch (error) {
+        console.error("Update training error:", error);
+      }
+    };
     const styles = StyleSheet.create({
       contentContainer: {
         flex: 1,
@@ -195,7 +258,7 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
                 <Text style={styles.userName}>VIDEO UPLOADED </Text>
               </View>
 
-              <Text style={styles.name}>PAUSE POWER SNATCH..</Text>
+              <Text style={styles.name}>{exercise?.exercise_name}</Text>
             </View>
             <TouchableOpacity>
               <Image
@@ -208,21 +271,17 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
           <View style={styles.prescriptionContainer}>
             <Text style={styles.coachText}>COACHES PRESCRIPTION</Text>
             <Text style={styles.prescriptionText}>
-              {coachPrescription ?? ""}
+              {set?.coach_prescription ?? ""}
             </Text>
             <View style={styles.keyContainer}>
               <Text style={styles.keyCues}>KEY CUES</Text>
               <View style={{ padding: scale(6), gap: scale(5) }}>
-                {(keyCues ?? []).map((cue, index) => (
+                {(set?.key_cues ?? []).map((cue, index) => (
                   <View key={index} style={styles.dotContainer}>
                     <Text style={styles.dot}>•</Text>
                     <Text style={styles.point}>{cue}</Text>
                   </View>
                 ))}
-                <View style={styles.dotContainer}>
-                  <Text style={styles.dot}>•</Text>
-                  <Text style={styles.point}>Fast elbows in the catch</Text>
-                </View>
               </View>
             </View>
             <View style={styles.weightRowContainer}>
@@ -267,7 +326,7 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
               wasPain={wasPain}
               onWasPainChange={setWasPain}
             />
-            <CustomButton title="SAVE" />
+            <CustomButton title="SAVE" onPress={handlePress} />
           </View>
         </BottomSheetScrollView>
       </BottomSheetModal>

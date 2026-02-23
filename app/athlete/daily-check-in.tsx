@@ -2,8 +2,9 @@ import { Images } from "@/assets";
 import PhysicalState from "@/components/physical-state";
 import RecoveryMetrics from "@/components/slider";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
-
 import { useTheme } from "@/context/theme-context";
+import { Days } from "@/store/reducer/trainingSlice";
+import { RootState } from "@/store/store";
 import { Typography } from "@/utils/custom-styles";
 import { router } from "expo-router";
 import React, { useState } from "react";
@@ -17,16 +18,37 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { scale } from "react-native-size-matters";
+import { useSelector } from "react-redux";
 
 export default function DailyCheckIn() {
+  const DAY_KEYS = [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+  ];
   const { colors } = useTheme();
+  const exerciseData = useSelector(
+    (state: RootState) => state.training.selectedExercise,
+  );
+  const days = useSelector((state: RootState) => state.training.days);
+
+  const dayKey = DAY_KEYS[new Date().getDay()] as keyof Days;
+  const todayData = days?.[dayKey];
+  const dailyCheckIn = todayData?.daily_check_in;
   const [motivationValue, setMotivationValue] = useState("Neutral");
-
-  const [sleepQuality, setSleepQuality] = useState(8);
-
-  const [stressLevel, setStressLevel] = useState(3);
-  const [mentalReadiness, setMentalReadiness] = useState(6);
-
+  const [sleepQuality, setSleepQuality] = useState(
+    dailyCheckIn?.sleep_quality ?? 0,
+  );
+  const [stressLevel, setStressLevel] = useState(
+    dailyCheckIn?.stress_level ?? 0,
+  );
+  const [mentalReadiness, setMentalReadiness] = useState(
+    dailyCheckIn?.mental_readiness ?? 0,
+  );
   const [muscleSoreness, setMuscleSoreness] = useState(0);
   const [soreAreas, setSoreAreas] = useState(["LOWER BACK"]);
   const [specificArea, setSpecificArea] = useState("");
@@ -36,18 +58,18 @@ export default function DailyCheckIn() {
     "LOWER BACK": 8,
     SHOULDER: 5,
   });
-
   const handleAreaIntensityChange = (area: string, value: number) => {
     setAreaIntensities((prev) => ({
       ...prev,
       [area]: value,
     }));
   };
-
   const handleBackPress = () => {
     router.back();
   };
-
+  const handleStartPress = () => {
+    router.push("athlete/training-exercise");
+  };
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -154,7 +176,8 @@ export default function DailyCheckIn() {
         <ActionButtonsRow
           primaryTitle="Start"
           secondaryTitle="Skip"
-          onPrimaryPress={() => router.push("athlete/training-exercise")}
+          onPrimaryPress={handleStartPress}
+          onSecondaryPress={() => router.push("athlete/training-exercise")}
         />
       </ScrollView>
     </SafeAreaView>

@@ -168,6 +168,15 @@ export default function OnboardingScreen8() {
       letterSpacing: Typography.letterSpacing.normal,
     },
   });
+  if (isAnyLoading) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.generatingText}>
+          Generating your training plan...
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -180,11 +189,6 @@ export default function OnboardingScreen8() {
         onPrimaryPress={onSubmit}
         primaryTitle={isAnyLoading ? "SAVING..." : "SAVE"}
       />
-      {isAnyLoading && (
-        <Text style={styles.generatingText}>
-          Generating your training plan...
-        </Text>
-      )}
     </View>
   );
 }

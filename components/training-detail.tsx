@@ -19,8 +19,8 @@ export default function TrainingDetail({
   const { colors } = useTheme();
   const styles = StyleSheet.create({
     container: {
-      paddingHorizontal: scale(15),
-      paddingVertical: scale(10),
+      paddingHorizontal: scale(18),
+      paddingVertical: scale(20),
       backgroundColor: colors.surface,
       borderRadius: scale(12),
       borderWidth: scale(0.3),
@@ -32,8 +32,8 @@ export default function TrainingDetail({
       alignItems: "center",
     },
     arrowForward: {
-      width: scale(7),
-      height: scale(7),
+      width: scale(10),
+      height: scale(10),
     },
     name: {
       fontSize: Typography.fontSize.lg,
@@ -63,7 +63,11 @@ export default function TrainingDetail({
             </View>
           </View>
         </View>
-        <Image source={Images.arrowforward} style={styles.arrowForward} />
+        <Image
+          source={Images.arrowforward}
+          style={styles.arrowForward}
+          tintColor={colors.text}
+        />
       </View>
     </TouchableOpacity>
   );

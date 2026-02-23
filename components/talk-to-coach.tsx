@@ -4,8 +4,10 @@ import { Typography } from "@/utils/custom-styles";
 import React from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
-
-export default function TalkToCoach() {
+interface TalkToCoachProp {
+  coach_note?: string;
+}
+export default function TalkToCoach({ coach_note }: TalkToCoachProp) {
   const { colors } = useTheme();
   const styles = StyleSheet.create({
     container: {
@@ -13,7 +15,7 @@ export default function TalkToCoach() {
       borderRadius: scale(12),
       borderWidth: scale(0.3),
       borderColor: colors.textSecondary,
-      paddingVertical: scale(15),
+      paddingVertical: scale(22),
       paddingHorizontal: scale(10),
     },
     rowContainer: {
@@ -23,11 +25,12 @@ export default function TalkToCoach() {
     },
     talkButton: {
       backgroundColor: colors.primary,
-
-      paddingVertical: scale(5),
+      paddingVertical: scale(10),
       borderRadius: scale(20),
       alignItems: "center",
       justifyContent: "center",
+      maxWidth: scale(150),
+      marginTop: scale(10),
     },
     buttonText: {
       fontSize: Typography.fontSize.md,
@@ -65,11 +68,7 @@ export default function TalkToCoach() {
       <View style={styles.rowContainer}>
         <View style={styles.contextContainer}>
           <Text style={styles.note}>COACH'S NOTE</Text>
-          <Text style={styles.detail}>
-            Focus on maintaining a tight core throughout the movement. Explode
-            upwards from the hips, keeping the bar close to your body. Control
-            the descent to avoid injury.
-          </Text>
+          <Text style={styles.detail}>{coach_note}</Text>
           <TouchableOpacity style={styles.talkButton}>
             <Text style={styles.buttonText}>TALK TO COACH</Text>
           </TouchableOpacity>

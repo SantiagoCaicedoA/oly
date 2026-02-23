@@ -29,7 +29,7 @@ export default function SetDetail({
       borderColor: colors.primary,
       borderWidth: scale(1),
       borderRadius: scale(15),
-      padding: scale(12),
+      padding: scale(18),
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",

@@ -5,6 +5,16 @@ export interface ExerciseSet {
   weight: number;
   reps: number;
   rpm_percent: number;
+  bar_speed?: string;
+  position_quality?: string;
+  was_it_a_miss?: boolean;
+  where_did_it_fail?: string;
+  missed_where?: string;
+  any_pain_or_discomfort?: boolean;
+  pain_level?: string;
+  pain_where?: string[];
+  key_cues?: string[];
+  coach_prescription?: string;
 }
 
 export interface Exercise {
@@ -15,8 +25,15 @@ export interface Exercise {
   reps: number | null;
   weight_lifted: number | null;
   rpm_percent: number | null;
+  coach_note: string;
+  coach_prescription?: string;
+  key_cues_of_specific_lift?: string[];
 }
-
+export interface DailyCheckIn {
+  sleep_quality: number;
+  stress_level: number;
+  mental_readiness: number;
+}
 export interface DayData {
   type: "training" | "rest";
   coach_note?: string;
@@ -26,6 +43,7 @@ export interface DayData {
   key_cues_of_specific_lift: string[];
   weight_lifted: number | null;
   reps: number | null;
+  daily_check_in?: DailyCheckIn;
 }
 
 export interface Days {
@@ -49,6 +67,7 @@ interface TrainingState {
   days: Days | null;
   isFirstWeek: boolean;
   profileSnapshot: ProfileSnapshot | null;
+  selectedExercise: Exercise | null;
 
   sleepQuality: number;
   stressLevel: number;
@@ -63,6 +82,7 @@ const initialState: TrainingState = {
   sleepQuality: 0,
   stressLevel: 0,
   mentalReadiness: 0,
+  selectedExercise: null,
 };
 
 const trainingSlice = createSlice({
@@ -78,9 +98,13 @@ const trainingSlice = createSlice({
       state.isFirstWeek = is_first_week;
       state.profileSnapshot = profile_snapshot;
     },
+    setSelectedExercise: (state, action: PayloadAction<Exercise | null>) => {
+      state.selectedExercise = action.payload;
+    },
     clearTrainingData: () => initialState,
   },
 });
 
-export const { setTrainingData, clearTrainingData } = trainingSlice.actions;
+export const { setTrainingData, clearTrainingData, setSelectedExercise } =
+  trainingSlice.actions;
 export default trainingSlice.reducer;

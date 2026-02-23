@@ -14,7 +14,7 @@ import {
   BottomSheetModal,
   BottomSheetModalProvider,
 } from "@gorhom/bottom-sheet";
-import { router, useLocalSearchParams } from "expo-router";
+import { router } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Image,
@@ -33,8 +33,10 @@ export default function TrainingExercise() {
   const { colors } = useTheme();
   const [checked, setChecked] = useState(false);
   const days = useSelector((state: RootState) => state.training.days);
-  const { exercise } = useLocalSearchParams();
-  const exerciseData = exercise ? JSON.parse(exercise as string) : null;
+  const exerciseData = useSelector(
+    (state: RootState) => state.training.selectedExercise,
+  );
+
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const timerSheetRef = useRef<BottomSheetModal>(null);
   const [timerDuration, setTimerDuration] = useState<number>(0);
@@ -199,7 +201,7 @@ export default function TrainingExercise() {
           >
             <ExerciseSection />
             <LiftGraph liftName={exerciseData?.exercise_name ?? "LIFT"} />
-            <TalkToCoach />
+            <TalkToCoach coach_note={exerciseData?.coach_note} />
 
             {exerciseData?.sets?.map((set: ExerciseSet) => (
               <SetDetail
@@ -221,7 +223,6 @@ export default function TrainingExercise() {
             set={selectedSet}
             exercise={exerciseData}
             coachPrescription={todayData?.coach_prescription}
-            keyCues={todayData?.key_cues_of_specific_lift}
           />
           <TimerBottomSheet
             ref={timerSheetRef}
