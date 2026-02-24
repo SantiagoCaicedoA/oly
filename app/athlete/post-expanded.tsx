@@ -235,7 +235,7 @@ export default function PostExpanded() {
               />
             )}
 
-            <Context />
+            <Context showContext={session?.context ?? false} />
             {session?.isIntent && (
               <DetailLift
                 icon={Images.intenticon}

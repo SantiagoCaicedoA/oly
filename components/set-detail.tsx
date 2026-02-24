@@ -1,5 +1,6 @@
 import { useTheme } from "@/context/theme-context";
 import { Typography } from "@/utils/custom-styles";
+import { getBarColor } from "@/utils/get-color";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
@@ -11,6 +12,7 @@ interface SetDetailProps {
   isChecked?: boolean;
   onToggleCheck?: () => void;
   onPress?: () => void;
+  barColor?: string;
 }
 
 export default function SetDetail({
@@ -21,6 +23,7 @@ export default function SetDetail({
   isChecked = false,
   onToggleCheck,
   onPress,
+  barColor,
 }: SetDetailProps) {
   const { colors } = useTheme();
 
@@ -86,8 +89,12 @@ export default function SetDetail({
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
       <View
-        style={{ height: 20, backgroundColor: colors.primary, width: 3 }}
-      ></View>
+        style={{
+          height: scale(15),
+          backgroundColor: barColor || getBarColor(rpm),
+          width: scale(2),
+        }}
+      />
       <View style={styles.setContainer}>
         <Text style={styles.setText}>SET {setNumber}</Text>
         <Text style={styles.setText}>{reps} REPS</Text>

@@ -31,12 +31,11 @@ import { useSelector } from "react-redux";
 
 export default function TrainingExercise() {
   const { colors } = useTheme();
-  const [checked, setChecked] = useState(false);
+  const [checkedSetNumber, setCheckedSetNumber] = useState<number | null>(null);
   const days = useSelector((state: RootState) => state.training.days);
-  const exerciseData = useSelector(
-    (state: RootState) => state.training.selectedExercise,
+  const selectedExerciseName = useSelector(
+    (state: RootState) => state.training.selectedExerciseName,
   );
-
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const timerSheetRef = useRef<BottomSheetModal>(null);
   const [timerDuration, setTimerDuration] = useState<number>(0);
@@ -56,6 +55,22 @@ export default function TrainingExercise() {
   ];
   const dayKey = DAY_KEYS[new Date().getDay()] as keyof Days;
   const todayData = days?.[dayKey];
+  const exerciseData =
+    todayData?.exercises?.find(
+      (ex) => ex.exercise_name === selectedExerciseName,
+    ) ?? null;
+  useEffect(() => {
+    if (!selectedSet || !exerciseData) return;
+
+    const updatedSet = exerciseData.sets?.find(
+      (s) => s.set_number === selectedSet.set_number,
+    );
+
+    if (updatedSet) {
+      setSelectedSet({ ...updatedSet });
+    }
+  }, [exerciseData]);
+
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
@@ -85,8 +100,10 @@ export default function TrainingExercise() {
 
   const handlePressExercise = (set: ExerciseSet) => {
     setSelectedSet(set);
+    setCheckedSetNumber(set.set_number);
     bottomSheetRef.current?.present();
   };
+
   const handleStartTimer = () => {
     timerSheetRef.current?.present();
   };
@@ -199,7 +216,7 @@ export default function TrainingExercise() {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            <ExerciseSection />
+            <ExerciseSection count={4} />
             <LiftGraph liftName={exerciseData?.exercise_name ?? "LIFT"} />
             <TalkToCoach coach_note={exerciseData?.coach_note} />
 
@@ -210,7 +227,7 @@ export default function TrainingExercise() {
                 reps={set.reps}
                 weight={set.weight}
                 rpm={set.rpm_percent}
-                isChecked={checked}
+                isChecked={checkedSetNumber === set.set_number}
                 onPress={() => handlePressExercise(set)}
               />
             ))}

@@ -67,7 +67,7 @@ interface TrainingState {
   days: Days | null;
   isFirstWeek: boolean;
   profileSnapshot: ProfileSnapshot | null;
-  selectedExercise: Exercise | null;
+  selectedExerciseName: string | null;
 
   sleepQuality: number;
   stressLevel: number;
@@ -82,7 +82,7 @@ const initialState: TrainingState = {
   sleepQuality: 0,
   stressLevel: 0,
   mentalReadiness: 0,
-  selectedExercise: null,
+  selectedExerciseName: null,
 };
 
 const trainingSlice = createSlice({
@@ -98,8 +98,8 @@ const trainingSlice = createSlice({
       state.isFirstWeek = is_first_week;
       state.profileSnapshot = profile_snapshot;
     },
-    setSelectedExercise: (state, action: PayloadAction<Exercise | null>) => {
-      state.selectedExercise = action.payload;
+    setSelectedExercise: (state, action: PayloadAction<string | null>) => {
+      state.selectedExerciseName = action.payload;
     },
     clearTrainingData: () => initialState,
   },

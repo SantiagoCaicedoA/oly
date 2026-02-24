@@ -1,6 +1,6 @@
-import Constants from "expo-constants";
-export const API_BASE_URL =
-  Constants.expoConfig?.extra?.apiUrl || "http://localhost:8000";
+export const API_BASE_URL = "http://api.olytraining.com/";
+// Constants.expoConfig?.extra?.apiUrl || "http://localhost:8000";
+
 export const AUTH_ROUTES = {
   SIGNUP: "/api/users",
   LOGIN: "/api/users/signin",
@@ -16,6 +16,7 @@ export const ATHLETE_ROUTES = {
   AI_TRAINING: "/api/training/generate",
   GET_AI_TRAINING: "api/training/week",
   UPDATE_TRAINING_DATA: "/api/training/log",
+  DAILY_CHECK_IN: "/api/daily/check-in",
 };
 export const API_ROUTES = {
   AUTH: AUTH_ROUTES,

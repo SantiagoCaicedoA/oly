@@ -14,6 +14,7 @@ import {
 } from "@/store/reducer/trainingSlice";
 import { RootState } from "@/store/store";
 import { Typography } from "@/utils/custom-styles";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 
 import React, { useEffect, useState } from "react";
@@ -35,7 +36,8 @@ export default function Workout() {
   const token = useSelector((state: RootState) => state.auth.token);
 
   const days = useSelector((state: RootState) => state.training.days);
-  const [fetchTraining, { data, isLoading, isError }] =
+
+  const [fetchTraining, { data, isLoading, isError, error }] =
     useLazyGetAiTrainingQuery();
 
   useEffect(() => {
@@ -58,14 +60,38 @@ export default function Workout() {
   const dayKey = DAY_KEYS[selectedDate.getDay()] as keyof Days;
   const todayData = days?.[dayKey];
 
-  const coachNote = todayData?.coach_note ?? "";
-  const keyCues = todayData?.key_cues ?? [];
   const todaysTraining = todayData?.exercises ?? [];
-  const handlePressItem = (item: Exercise) => {
-    dispatch(setSelectedExercise(item));
-    router.push("/athlete/daily-check-in");
-  };
+  const isRestDay = todayData?.type === "rest";
 
+  const coachNoteToShow = isRestDay
+    ? "Today is your recovery day. You've had two solid sessions so far — let your body absorb the work. Come back Tommorow ready to move."
+    : (todayData?.coach_note ?? "");
+
+  const keyCuesToShow = isRestDay
+    ? [
+        "Prioritize sleep tonight",
+        "Light mobility if anything feels tight",
+        "Don't skip meals — your body is rebuilding",
+      ]
+    : (todayData?.key_cues ?? []);
+
+  const handlePressItem = async (item: Exercise) => {
+    dispatch(setSelectedExercise(item.exercise_name));
+
+    const today = new Date().toDateString();
+    const key = `daily_check_in_done_${today}`;
+    const done = await AsyncStorage.getItem(key);
+
+    if (done) {
+      router.push("/athlete/training-exercise");
+    } else {
+      await AsyncStorage.setItem(key, "true");
+      router.push("/athlete/daily-check-in");
+    }
+  };
+  const handleAddSet = () => {
+    router.push("/athlete/add-exercise");
+  };
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -142,13 +168,16 @@ export default function Workout() {
             onDateChange={setSelectedDate}
           />
           <VolumeIntensity />
-          <CoachNote coach_note={coachNote} key_cues={keyCues} />
-          <TodaysTraining
-            trainings={todaysTraining}
-            onPressItem={handlePressItem}
-          />
-
-          <CustomButton title="ADD EXERCISE" />
+          <CoachNote coach_note={coachNoteToShow} key_cues={keyCuesToShow} />
+          {todayData?.type === "training" && todaysTraining.length > 0 && (
+            <>
+              <TodaysTraining
+                trainings={todaysTraining}
+                onPressItem={handlePressItem}
+              />
+              <CustomButton title="ADD EXERCISE" onPress={handleAddSet} />
+            </>
+          )}
         </ScrollView>
       </ScreenWrapper>
     </SafeAreaView>

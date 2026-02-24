@@ -3,12 +3,15 @@ import PhysicalState from "@/components/physical-state";
 import RecoveryMetrics from "@/components/slider";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
+import { useDailyCheckInMutation } from "@/store/api";
 import { Days } from "@/store/reducer/trainingSlice";
 import { RootState } from "@/store/store";
+import { DailyCheckInPayload } from "@/types/api/dashboard";
 import { Typography } from "@/utils/custom-styles";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
   Image,
   ScrollView,
   StyleSheet,
@@ -31,13 +34,18 @@ export default function DailyCheckIn() {
     "saturday",
   ];
   const { colors } = useTheme();
-  const exerciseData = useSelector(
-    (state: RootState) => state.training.selectedExercise,
+  const selectedExerciseName = useSelector(
+    (state: RootState) => state.training.selectedExerciseName,
   );
   const days = useSelector((state: RootState) => state.training.days);
 
   const dayKey = DAY_KEYS[new Date().getDay()] as keyof Days;
   const todayData = days?.[dayKey];
+  const exerciseData =
+    todayData?.exercises?.find(
+      (ex) => ex.exercise_name === selectedExerciseName,
+    ) ?? null;
+
   const dailyCheckIn = todayData?.daily_check_in;
   const [motivationValue, setMotivationValue] = useState("Neutral");
   const [sleepQuality, setSleepQuality] = useState(
@@ -58,17 +66,45 @@ export default function DailyCheckIn() {
     "LOWER BACK": 8,
     SHOULDER: 5,
   });
+  const [selectedIntensityArea, setSelectedIntensityArea] = useState<
+    string | null
+  >(null);
+
+  const todayKey = DAY_KEYS[new Date().getDay()];
+  const [submitCheckIn, { isLoading }] = useDailyCheckInMutation();
   const handleAreaIntensityChange = (area: string, value: number) => {
     setAreaIntensities((prev) => ({
       ...prev,
       [area]: value,
     }));
+    setSelectedIntensityArea(area);
   };
   const handleBackPress = () => {
     router.back();
   };
-  const handleStartPress = () => {
-    router.push("athlete/training-exercise");
+  const handleStartPress = async () => {
+    const payload: DailyCheckInPayload = {
+      day: todayKey,
+      daily_check_in: {
+        sleep_quality: sleepQuality,
+        stress_level: stressLevel,
+        mental_readiness: mentalReadiness,
+        motivation: motivationValue,
+        muscle_soreness: muscleSoreness,
+        sore_areas: soreAreas,
+        intensity: selectedIntensityArea
+          ? (areaIntensities[selectedIntensityArea] ?? 0)
+          : 0,
+      },
+    };
+
+    try {
+      const result = await submitCheckIn(payload).unwrap();
+
+      router.push("athlete/training-exercise");
+    } catch (error) {
+      console.error("Daily check-in error:", error);
+    }
   };
   const styles = StyleSheet.create({
     container: {
@@ -100,6 +136,17 @@ export default function DailyCheckIn() {
       color: colors.text,
       letterSpacing: Typography.letterSpacing.normal,
       textAlign: "center",
+    },
+    loaderContainer: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(0, 0, 0, 0.35)",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 999,
     },
   });
 
@@ -174,12 +221,17 @@ export default function DailyCheckIn() {
           onAreaIntensityChange={handleAreaIntensityChange}
         />
         <ActionButtonsRow
-          primaryTitle="Start"
+          primaryTitle={isLoading ? "SAVING" : "START"}
           secondaryTitle="Skip"
           onPrimaryPress={handleStartPress}
           onSecondaryPress={() => router.push("athlete/training-exercise")}
         />
       </ScrollView>
+      {isLoading && (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      )}
     </SafeAreaView>
   );
 }

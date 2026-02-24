@@ -1,6 +1,7 @@
 import { Images } from "@/assets";
 import { useTheme } from "@/context/theme-context";
 import { Typography } from "@/utils/custom-styles";
+import { getBarColor } from "@/utils/get-color";
 import React from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
@@ -9,12 +10,14 @@ interface TrainingDetailProps {
   time: string;
   sets: string;
   onPress: () => void;
+  percentage?: number;
 }
 export default function TrainingDetail({
   name,
   time,
   sets,
   onPress,
+  percentage = 0,
 }: TrainingDetailProps) {
   const { colors } = useTheme();
   const styles = StyleSheet.create({
@@ -53,8 +56,12 @@ export default function TrainingDetail({
       <View style={styles.rowContainer}>
         <View style={{ flexDirection: "row", gap: scale(8) }}>
           <View
-            style={{ height: 35, backgroundColor: colors.primary, width: 3 }}
-          ></View>
+            style={{
+              height: scale(30),
+              backgroundColor: getBarColor(percentage),
+              width: scale(3),
+            }}
+          />
           <View>
             <Text style={styles.name}>{name}</Text>
             <View style={{ flexDirection: "row", gap: scale(5) }}>

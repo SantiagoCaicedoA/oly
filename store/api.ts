@@ -17,6 +17,7 @@ import {
 } from "@/types/api/auth";
 import {
   CreateNewPostResponse,
+  DailyCheckInPayload,
   GetPostByIdResponse,
   GetPostsResponse,
   SubmitAIPayload,
@@ -36,7 +37,7 @@ interface RootState {
 }
 
 const baseQueryWithAuth = fetchBaseQuery({
-  baseUrl: API_BASE_URL,
+  baseUrl: "http://api.olytraining.com/",
   prepareHeaders: (headers, { getState }) => {
     const state = getState() as RootState;
     const token = state.auth.token;
@@ -69,7 +70,7 @@ const customBaseQuery: BaseQueryFn<
       headers.set("authorization", `Bearer ${token}`);
     }
 
-    const baseUrl = API_BASE_URL;
+    const baseUrl = "http://api.olytraining.com/";
 
     const result = await fetch(`${baseUrl}${url}`, {
       method,
@@ -240,6 +241,14 @@ export const api = createApi({
         body: payload
       }),
       invalidatesTags: ["Athlete"],
+    }),
+    dailyCheckIn: builder.mutation<void, DailyCheckInPayload>({
+      query: (payload) => ({
+        url: API_ROUTES.ATHLETE.DAILY_CHECK_IN,
+        method: "POST",
+        body: payload
+      }),
+      invalidatesTags: ["Athlete"]
     })
   }),
 });
@@ -255,5 +264,6 @@ export const {
   useGetPostByIdQuery,
   useSubmitDataToAIMutation,
   useLazyGetAiTrainingQuery,
-  useUpdateTrainingDataMutation
+  useUpdateTrainingDataMutation,
+  useDailyCheckInMutation,
 } = api;

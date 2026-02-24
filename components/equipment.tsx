@@ -8,6 +8,7 @@ export type EquipmentItem = {
   title?: string;
   description?: string;
   checked?: boolean;
+  badgeTitle?: string;
 };
 
 type EquipmentListProps = {
@@ -81,6 +82,20 @@ export default function EquipmentList({
       fontSize: scale(14),
       fontWeight: "bold",
     },
+    badgeContainer: {
+      borderWidth: 1,
+      borderColor: colors.textSecondary,
+      borderRadius: scale(20),
+      paddingHorizontal: scale(10),
+      paddingVertical: scale(4),
+      marginLeft: scale(10),
+    },
+
+    badgeText: {
+      color: colors.textSecondary,
+      fontSize: Typography.fontSize.xs,
+      fontWeight: Typography.fontWeight.normal,
+    },
   });
 
   return (
@@ -104,7 +119,33 @@ export default function EquipmentList({
             onPress={() => showCheckbox && onToggle?.(index)}
           >
             <View style={styles.content}>
-              {item.title && <Text style={styles.title}>{item.title}</Text>}
+              {item.title && (
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Text style={styles.title}>{item.title}</Text>
+
+                  {item.badgeTitle && (
+                    <View
+                      style={[
+                        styles.badgeContainer,
+                        isChecked && {
+                          backgroundColor: colors.semiLightBlue,
+                          borderColor: colors.primary,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.badgeText,
+                          isChecked && { color: colors.text },
+                        ]}
+                      >
+                        {item.badgeTitle.toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
+
               {item.description && (
                 <Text
                   style={[

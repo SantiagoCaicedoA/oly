@@ -4,8 +4,10 @@ import { Typography } from "@/utils/custom-styles";
 import React from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 import { scale } from "react-native-size-matters";
-
-export default function Context() {
+interface ContextProps {
+  showContext: boolean;
+}
+export default function Context({ showContext }: ContextProps) {
   const { colors } = useTheme();
   const styles = StyleSheet.create({
     container: {
@@ -56,8 +58,14 @@ export default function Context() {
           <Text style={styles.detail}>CONTEXT</Text>
         </View>
         <View style={{ gap: scale(3) }}>
-          <Text style={styles.secondValue}>Set 5 of 5</Text>
-          <Text style={styles.value}>TOP SET</Text>
+          {showContext ? (
+            <>
+              <Text style={styles.secondValue}>Set 5 of 5</Text>
+              <Text style={styles.value}>TOP SET</Text>
+            </>
+          ) : (
+            <Text style={styles.secondValue}>Set 4 of 5</Text>
+          )}
         </View>
       </View>
     </View>

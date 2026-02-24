@@ -1,6 +1,7 @@
 import { Images } from "@/assets";
 import CustomButton from "@/constants/custom-button";
 import { useTheme } from "@/context/theme-context";
+import { useToast } from "@/context/toast-context";
 import { useUpdateTrainingDataMutation } from "@/store/api";
 import { Exercise, ExerciseSet } from "@/store/reducer/trainingSlice";
 import { RootState } from "@/store/store";
@@ -8,7 +9,15 @@ import { UpdateTrainingPayload } from "@/types/api/dashboard";
 import { Typography } from "@/utils/custom-styles";
 import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import React, { forwardRef, useEffect, useMemo, useState } from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { scale } from "react-native-size-matters";
 import { useSelector } from "react-redux";
 import LiftAnalysis from "./lift-analysis";
@@ -59,7 +68,9 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
     const [wasPain, setWasPain] = useState(false);
     const [wherePain, setWherePain] = useState("");
     const todayKey = DAY_KEYS[new Date().getDay()];
-    const [updateTraining] = useUpdateTrainingDataMutation();
+    const { showSuccess, showError } = useToast();
+    const [updateTraining, { isLoading }] = useUpdateTrainingDataMutation();
+
     useEffect(() => {
       if (set) {
         setWeight(set.weight);
@@ -74,10 +85,24 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
         setWherePain(set.pain_where?.[0] ?? "");
       }
     }, [set]);
-    const getCurrentTime = () => {
-      const now = new Date();
-      return `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
-    };
+    useEffect(() => {
+      if (positionQuality !== "Poor") {
+        setPrimaryLimitingFactor(null);
+      }
+    }, [positionQuality]);
+    useEffect(() => {
+      if (!wasMiss) {
+        setFailLocation("");
+        setMissedWhere("");
+      }
+    }, [wasMiss]);
+
+    useEffect(() => {
+      if (!wasPain) {
+        setWherePain("");
+        setPainLevel("None");
+      }
+    }, [wasPain]);
 
     const handlePress = async () => {
       if (!exercise) return;
@@ -86,7 +111,7 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
         exercises: [
           {
             exercise_name: exercise.exercise_name,
-            time: getCurrentTime(),
+
             no_of_set: exercise.no_of_set,
             sets: [
               {
@@ -110,7 +135,8 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
 
       try {
         await updateTraining(payload).unwrap();
-        (ref as React.RefObject<BottomSheetModal>)?.current?.dismiss();
+        (showSuccess("Set updated successfully", ""),
+          (ref as React.RefObject<BottomSheetModal>)?.current?.dismiss());
       } catch (error) {
         console.error("Update training error:", error);
       }
@@ -232,8 +258,23 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
         letterSpacing: Typography.letterSpacing.normal,
         color: colors.text,
       },
+      centered: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        gap: scale(12),
+        paddingHorizontal: scale(24),
+      },
     });
-
+    if (isLoading) {
+      return (
+        <SafeAreaView style={styles.container}>
+          <View style={styles.centered}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        </SafeAreaView>
+      );
+    }
     return (
       <BottomSheetModal
         ref={ref}
@@ -326,7 +367,10 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
               wasPain={wasPain}
               onWasPainChange={setWasPain}
             />
-            <CustomButton title="SAVE" onPress={handlePress} />
+            <CustomButton
+              title={isLoading ? "SAVING" : "SAVE"}
+              onPress={handlePress}
+            />
           </View>
         </BottomSheetScrollView>
       </BottomSheetModal>

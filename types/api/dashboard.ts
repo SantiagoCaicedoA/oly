@@ -160,7 +160,7 @@ export interface SetPayload {
 
 export interface ExercisePayload {
   exercise_name: string;
-  time: string;
+
   no_of_set: number;
   sets: SetPayload[];
 }
@@ -168,4 +168,16 @@ export interface ExercisePayload {
 export interface UpdateTrainingPayload {
   day: string;
   exercises: ExercisePayload[];
+}
+export interface DailyCheckInPayload {
+  day: string;
+  daily_check_in: {
+    sleep_quality: number;
+    stress_level: number;
+    mental_readiness: number;
+    motivation: string;
+    muscle_soreness: number;
+    sore_areas: string[];
+    intensity: number;
+  };
 }

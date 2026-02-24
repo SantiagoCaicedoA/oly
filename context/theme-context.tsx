@@ -20,6 +20,7 @@ export const COLORS = {
     green: "#b3f076",
     yellow: "#fbbf24",
     lightYellow: "#5e532f",
+    red: "#FF0000",
   },
   dark: {
     background: "#15202a",
@@ -38,6 +39,7 @@ export const COLORS = {
     green: "#b3f076",
     yellow: "#fbbf24",
     lightYellow: "#5e532f",
+    red: "#FF0000",
   },
 } as const;
 

@@ -1,14 +1,21 @@
 import { useTheme } from "@/context/theme-context";
 import { Typography } from "@/utils/custom-styles";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
 
-const OPTIONS = ["A", "B", "C", "D"];
-
-export default function ExerciseSection() {
+interface ExerciseSectionProps {
+  count?: number;
+}
+export default function ExerciseSection({ count }: ExerciseSectionProps) {
   const { colors } = useTheme();
-  const [active, setActive] = useState<string>("A");
+  const validCount = count && count > 0 ? count : 3;
+  const OPTIONS: string[] = useMemo(
+    () =>
+      Array.from({ length: validCount }, (_, i) => String.fromCharCode(65 + i)),
+    [validCount],
+  );
+  const [active, setActive] = useState<string>(OPTIONS[0] || "A");
 
   const styles = StyleSheet.create({
     container: {
