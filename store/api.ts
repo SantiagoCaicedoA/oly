@@ -37,7 +37,7 @@ interface RootState {
 }
 
 const baseQueryWithAuth = fetchBaseQuery({
-  baseUrl: "http://api.olytraining.com/",
+  baseUrl: API_BASE_URL,
   prepareHeaders: (headers, { getState }) => {
     const state = getState() as RootState;
     const token = state.auth.token;
