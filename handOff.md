@@ -28,6 +28,7 @@ This project includes fully implemented authentication, post management, a dynam
 - Sets can be **edited**
 - Coach Notes are **dynamic**
 - Key Cues are **dynamic**
+- Users **cannot manually add exercises** (currently only AI-generated exercises are displayed)
 - All workout data updates dynamically based on the current day’s training data
 
 ---
