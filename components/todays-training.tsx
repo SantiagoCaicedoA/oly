@@ -1,16 +1,26 @@
 import { useTheme } from "@/context/theme-context";
+import { Exercise } from "@/store/reducer/trainingSlice";
 import { Typography } from "@/utils/custom-styles";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { scale } from "react-native-size-matters";
 import TrainingDetail from "./training-detail";
 
-export default function TodaysTraining() {
+interface TodaysTrainingProps {
+  trainings: Exercise[];
+  onPressItem?: (item: Exercise) => void;
+}
+
+export default function TodaysTraining({
+  trainings,
+  onPressItem,
+}: TodaysTrainingProps) {
   const { colors } = useTheme();
 
   const styles = StyleSheet.create({
     container: {
       marginTop: scale(6),
+      gap: scale(12),
     },
     heading: {
       fontSize: Typography.fontSize.base,
@@ -37,7 +47,15 @@ export default function TodaysTraining() {
       </View>
 
       <View style={styles.container}>
-        <TrainingDetail />
+        {trainings.map((item, index) => (
+          <TrainingDetail
+            key={index}
+            name={item.exercise_name}
+            time={item.time}
+            sets={`${item.no_of_set} sets`}
+            onPress={() => onPressItem?.(item)}
+          />
+        ))}
       </View>
     </View>
   );

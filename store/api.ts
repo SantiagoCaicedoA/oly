@@ -11,14 +11,26 @@ import { API_BASE_URL, API_ROUTES } from "@/utils/api-routes";
 import {
   AuthState,
   LoginValues,
+  SignupResponse,
   SignUpValues,
   TokenData,
 } from "@/types/api/auth";
 import {
+  CreateNewPostResponse,
+  DailyCheckInPayload,
+  GetPostByIdResponse,
+  GetPostsResponse,
+  SubmitAIPayload,
+  SubmitAIResponse,
+  UpdateTrainingPayload,
+} from "@/types/api/dashboard";
+import {
   OnboardingApiPayload,
   OnboardingApiResponse,
+  UploadAthleteVideoResponse,
+  UploadProfileImageResponse,
 } from "@/types/api/onboarding";
-import { logout, setTokens } from "./reducer/authSlice";
+import { logout } from "./reducer/authSlice";
 
 interface RootState {
   auth: AuthState;
@@ -28,17 +40,10 @@ const baseQueryWithAuth = fetchBaseQuery({
   baseUrl: API_BASE_URL,
   prepareHeaders: (headers, { getState }) => {
     const state = getState() as RootState;
-    const tokens = state.auth.tokens;
-    const userId = state.auth.user?._id;
+    const token = state.auth.token;
 
-    if (tokens?.access_token) {
-      headers.set("authorization", `Bearer ${tokens.access_token}`);
-    } else if (state.auth.user?.accessToken) {
-      headers.set("authorization", `Bearer ${state.auth.user.accessToken}`);
-    }
-
-    if (userId) {
-      headers.set("x-user-id", userId);
+    if (token) {
+      headers.set("authorization", `Bearer ${token}`);
     }
 
     return headers;
@@ -58,20 +63,14 @@ const customBaseQuery: BaseQueryFn<
     const headers = new Headers();
 
     const state = api.getState() as RootState;
-    const tokens = state.auth.tokens;
-    const userId = state.auth.user?._id;
+    const token = state.auth.token;
+    const user = state.auth.token;
 
-    if (tokens?.access_token) {
-      headers.set("authorization", `Bearer ${tokens.access_token}`);
-    } else if (state.auth.user?.accessToken) {
-      headers.set("authorization", `Bearer ${state.auth.user.accessToken}`);
+    if (token) {
+      headers.set("authorization", `Bearer ${token}`);
     }
 
-    if (userId) {
-      headers.set("x-user-id", userId);
-    }
-
-    const baseUrl = API_BASE_URL;
+    const baseUrl = "http://api.olytraining.com/";
 
     const result = await fetch(`${baseUrl}${url}`, {
       method,
@@ -108,7 +107,8 @@ const customBaseQueryWithReauth: BaseQueryFn<
     (result.error.status === 401 || result.error.status === 403)
   ) {
     const state = api.getState() as RootState;
-    const refreshToken = state.auth.tokens?.refresh_token;
+    const refreshToken = state.auth.token;
+
 
     if (!refreshToken) {
       api.dispatch(logout());
@@ -132,7 +132,7 @@ const customBaseQueryWithReauth: BaseQueryFn<
 
       const newTokens = (await refreshResponse.json()) as TokenData;
 
-      api.dispatch(setTokens(newTokens));
+      // api.dispatch(setTokens(newTokens));
 
       const retryResult = await customBaseQuery(args, api, extraOptions);
       return retryResult;
@@ -150,7 +150,7 @@ export const api = createApi({
   baseQuery: customBaseQueryWithReauth,
   tagTypes: ["Athlete", "Auth"],
   endpoints: (builder) => ({
-    signup: builder.mutation<any, SignUpValues>({
+    signup: builder.mutation<SignupResponse, SignUpValues>({
       query: (body) => ({
         url: API_ROUTES.AUTH.SIGNUP,
         method: "POST",
@@ -178,8 +178,92 @@ export const api = createApi({
       }),
       invalidatesTags: ["Athlete"],
     }),
+    uploadProfileImage: builder.mutation<UploadProfileImageResponse, FormData>({
+      query: (formData) => ({
+        url: API_ROUTES.AUTH.ONBOARDING_IMAGE_UPLOAD,
+        method: "POST",
+        body: formData,
+      }),
+      invalidatesTags: ["Athlete"],
+    }),
+    uploadAthleteVideo: builder.mutation<UploadAthleteVideoResponse, FormData>({
+      query: (formData) => ({
+        url: API_ROUTES.AUTH.ONBOARDING_VIDEO_UPLOAD,
+        method: "POST",
+        body: formData,
+      }),
+      invalidatesTags: ["Athlete"],
+    }),
+    createNewPost: builder.mutation<
+      CreateNewPostResponse,
+      { formData: FormData }
+    >({
+      query: ({ formData }) => ({
+        url: API_ROUTES.ATHLETE.CREATE_NEW_POST,
+        method: "POST",
+        body: formData,
+      }),
+      invalidatesTags: ["Athlete"],
+    }),
+    getPosts: builder.query<GetPostsResponse, void>({
+      query: () => ({
+        url: API_ROUTES.ATHLETE.GET_POSTS,
+        method: "GET",
+      }),
+      providesTags: ["Athlete"],
+    }),
+    getPostById: builder.query<GetPostByIdResponse, string>({
+      query: (postId) => ({
+        url: `${API_ROUTES.ATHLETE.GET_POST_BY_ID}/${postId}`,
+        method: "GET",
+      }),
+      providesTags: ["Athlete"],
+    }),
+    submitDataToAI: builder.mutation<SubmitAIResponse, SubmitAIPayload>({
+      query: (payload) => ({
+        url: API_ROUTES.ATHLETE.AI_TRAINING,
+        method: "POST",
+        body: payload,
+      }),
+      invalidatesTags: ["Athlete"],
+    }),
+    getAiTraining: builder.query<any, void>({
+      query: () => ({
+        url: API_ROUTES.ATHLETE.GET_AI_TRAINING,
+        method: "GET"
+      }),
+      providesTags: ['Athlete']
+    }),
+    updateTrainingData: builder.mutation<any, UpdateTrainingPayload>({
+      query: (payload) => ({
+        url: API_ROUTES.ATHLETE.UPDATE_TRAINING_DATA,
+        method: "PATCH",
+        body: payload
+      }),
+      invalidatesTags: ["Athlete"],
+    }),
+    dailyCheckIn: builder.mutation<void, DailyCheckInPayload>({
+      query: (payload) => ({
+        url: API_ROUTES.ATHLETE.DAILY_CHECK_IN,
+        method: "POST",
+        body: payload
+      }),
+      invalidatesTags: ["Athlete"]
+    })
   }),
 });
 
-export const { useSignupMutation, useLoginMutation, useSubmitProfileMutation } =
-  api;
+export const {
+  useSignupMutation,
+  useLoginMutation,
+  useSubmitProfileMutation,
+  useUploadProfileImageMutation,
+  useUploadAthleteVideoMutation,
+  useCreateNewPostMutation,
+  useLazyGetPostsQuery,
+  useGetPostByIdQuery,
+  useSubmitDataToAIMutation,
+  useLazyGetAiTrainingQuery,
+  useUpdateTrainingDataMutation,
+  useDailyCheckInMutation,
+} = api;

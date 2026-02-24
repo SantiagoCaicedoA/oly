@@ -10,7 +10,7 @@ type SegmentOption = {
 };
 
 type SegmentedSelectorProps = {
-  title: string;
+  title?: string;
   options: SegmentOption[];
   selectedValue: string | string[];
   onChange: (value: string | string[]) => void;
@@ -105,9 +105,11 @@ const SegmentedSelector: React.FC<SegmentedSelectorProps> = ({
   if (displayedOptions.length <= 3) {
     return (
       <View>
-        <Text style={[styles.title, { color: colors.textSecondary }]}>
-          {title.toUpperCase()}
-        </Text>
+        {title ? (
+          <Text style={[styles.title, { color: colors.textSecondary }]}>
+            {title.toUpperCase()}
+          </Text>
+        ) : null}
 
         <View style={[containerStyle, { flexDirection: "row" }]}>
           {displayedOptions.map((option) => {
@@ -145,9 +147,11 @@ const SegmentedSelector: React.FC<SegmentedSelectorProps> = ({
 
   return (
     <View>
-      <Text style={[styles.title, { color: colors.textSecondary }]}>
-        {title.toUpperCase()}
-      </Text>
+      {title ? (
+        <Text style={[styles.title, { color: colors.textSecondary }]}>
+          {title.toUpperCase()}
+        </Text>
+      ) : null}
 
       <View style={containerStyle}>
         {chunkedOptions.map((rowOptions, rowIndex) => (

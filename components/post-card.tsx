@@ -1,16 +1,55 @@
 import { Images } from "@/assets";
 import { useTheme } from "@/context/theme-context";
 import { Typography } from "@/utils/custom-styles";
-import { router } from "expo-router";
-import React from "react";
+import { getRelativeTime } from "@/utils/time";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { ResizeMode, Video } from "expo-av";
+import React, { useRef, useState } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
+import CommentBottomSheet from "./comment-bottom-sheet";
 
-export default function PostCard() {
-  const { colors } = useTheme();
-  const handlePress = () => {
-    router.push("/athlete");
+interface PostCardProps {
+  post: {
+    _id: string;
+    video_url: string;
+    opinion: string;
+    lift_name: string;
+    session_detail: any;
+    createdAt: string;
+    username: string;
+    name: string;
   };
+  onPress?: (post_id: string) => void;
+}
+
+export default function PostCard({ post, onPress }: PostCardProps) {
+  const { colors } = useTheme();
+  const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const videoRef = useRef<Video>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const handlePress = () => {
+    if (onPress) {
+      onPress(post._id);
+    }
+  };
+
+  const handleCommentPress = () => {
+    bottomSheetRef.current?.present();
+  };
+
+  const handleVideoPress = async () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        await videoRef.current.pauseAsync();
+      } else {
+        await videoRef.current.playAsync();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
   const styles = StyleSheet.create({
     container: {
       backgroundColor: colors.background,
@@ -53,7 +92,7 @@ export default function PostCard() {
       color: colors.textSecondary,
       marginBottom: scale(12),
     },
-    image: {
+    video: {
       width: "100%",
       height: scale(400),
       borderRadius: scale(12),
@@ -98,26 +137,40 @@ export default function PostCard() {
               alignItems: "center",
             }}
           >
-            <Text style={styles.name}>Athlete name</Text>
-            <Text style={styles.time}>6m</Text>
+            <Text style={styles.name}>{post.name}</Text>
+            <Text style={styles.time}>{getRelativeTime(post.createdAt)}</Text>
           </View>
-
-          <Text style={styles.userName}>@username</Text>
+          <Text style={styles.userName}>{post.username}</Text>
         </View>
         <Image source={Images.arrowforward} style={styles.arrowForward} />
       </View>
+      {post.opinion && <Text style={styles.caption}>{post.opinion}</Text>}
 
-      <Text style={styles.caption}>
-        Third complex rep out of four at 103 kg. Focused on staying smooth and
-        consistent throughout the set.
-      </Text>
-      <Image source={Images.man} style={styles.image} resizeMode="cover" />
+      <TouchableOpacity onPress={handleVideoPress} activeOpacity={0.9}>
+        <Video
+          ref={videoRef}
+          source={{ uri: post.video_url }}
+          style={styles.video}
+          resizeMode={ResizeMode.COVER}
+          shouldPlay={false}
+          isLooping
+          useNativeControls={false}
+        />
+      </TouchableOpacity>
+
       <View style={styles.iconContainer}>
-        <Image source={Images.like} style={styles.icon} />
+        <TouchableOpacity>
+          <Image source={Images.like} style={styles.icon} />
+        </TouchableOpacity>
         <Text style={styles.count}>12</Text>
-        <Image source={Images.comment} style={styles.icon} />
+
+        <TouchableOpacity onPress={handleCommentPress}>
+          <Image source={Images.comment} style={styles.icon} />
+        </TouchableOpacity>
         <Text style={styles.count}>3</Text>
       </View>
+
+      <CommentBottomSheet ref={bottomSheetRef} />
     </TouchableOpacity>
   );
 }

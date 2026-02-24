@@ -1,9 +1,11 @@
+import { Ionicons } from "@expo/vector-icons";
 import { forwardRef, useState } from "react";
 import {
   StyleSheet,
   Text,
   TextInput,
   TextInputProps,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { scale, verticalScale } from "react-native-size-matters";
@@ -17,6 +19,7 @@ interface CustomInputProps extends TextInputProps {
   inputStyle?: any;
   labelStyle?: any;
   errorStyle?: any;
+  isPassword?: boolean;
 }
 
 const CustomInput = forwardRef<TextInput, CustomInputProps>(
@@ -34,7 +37,8 @@ const CustomInput = forwardRef<TextInput, CustomInputProps>(
   ) => {
     const { colors } = useTheme();
     const [isFocused, setIsFocused] = useState(false);
-
+    const [showPassword, setShowPassword] = useState(false);
+    const { isPassword, secureTextEntry, ...rest } = props;
     const styles = StyleSheet.create({
       container: {
         marginBottom: verticalScale(12),
@@ -83,8 +87,22 @@ const CustomInput = forwardRef<TextInput, CustomInputProps>(
             placeholderTextColor={colors.textSecondary}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
-            {...props}
+            secureTextEntry={isPassword ? !showPassword : secureTextEntry}
+            {...rest}
+            multiline={rest.multiline ?? false}
           />
+          {props.isPassword && (
+            <TouchableOpacity
+              onPress={() => setShowPassword(!showPassword)}
+              style={{ position: "absolute", right: scale(12) }}
+            >
+              <Ionicons
+                name={showPassword ? "eye-outline" : "eye-off-outline"}
+                size={scale(20)}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+          )}
         </View>
 
         {error && <Text style={styles.errorText}>{error}</Text>}

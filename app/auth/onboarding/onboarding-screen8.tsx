@@ -1,38 +1,38 @@
 import Header from "@/components/header";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
-import { useSubmitProfileMutation } from "@/store/api";
+import {
+  useSubmitDataToAIMutation,
+  useSubmitProfileMutation,
+} from "@/store/api";
 
-import { selectUserId } from "@/store/reducer/authSlice";
 import { selectOnboardingData } from "@/store/reducer/onboardingSlice";
+import { RootState } from "@/store/store";
+import { Typography } from "@/utils/custom-styles";
 import { router } from "expo-router";
 import React from "react";
-import { ActivityIndicator, Alert, StyleSheet, View } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import { scale } from "react-native-size-matters";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 export default function OnboardingScreen8() {
   const { colors } = useTheme();
   const allData = useSelector(selectOnboardingData);
-  const userId = useSelector(selectUserId);
+
   const [submitProfile, { isLoading }] = useSubmitProfileMutation();
+  const [submitAI, { isLoading: loading }] = useSubmitDataToAIMutation();
+  const isAnyLoading = isLoading || loading;
+
+  const dispatch = useDispatch();
+  const token = useSelector((state: RootState) => state.auth.token);
 
   const onSubmit = async () => {
-    if (!userId) {
-      Alert.alert("Error", "User ID not found. Please sign in again.", [
-        {
-          text: "OK",
-          onPress: () => router.push("/auth/signin"),
-        },
-      ]);
-      return;
-    }
-
     try {
       const apiPayload = {
         display_name: allData.name,
         country: allData.country,
         age: parseInt(allData.age),
+        user_name: allData.user_name,
         sex: allData.sex,
         experience_years: parseInt(allData.experience),
         height_cm: parseFloat(allData.height),
@@ -92,11 +92,7 @@ export default function OnboardingScreen8() {
         performance_gaps: allData.performance_gaps,
       };
 
-      console.log("API Payload:", JSON.stringify(apiPayload, null, 2));
-
       const response = await submitProfile(apiPayload).unwrap();
-
-      console.log("API Response:", response);
 
       Alert.alert(
         "Success",
@@ -104,7 +100,7 @@ export default function OnboardingScreen8() {
         [
           {
             text: "OK",
-            onPress: () => router.push("/(tabs)/home"),
+            onPress: () => router.replace("/(tabs)/home"),
           },
         ],
         { cancelable: false },
@@ -154,7 +150,33 @@ export default function OnboardingScreen8() {
     loadingContainer: {
       marginVertical: scale(20),
     },
+    loaderContainer: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(0, 0, 0, 0.35)",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 999,
+    },
+    generatingText: {
+      fontSize: Typography.fontSize.md,
+      fontWeight: Typography.fontWeight.normal,
+      color: colors.textSecondary,
+      letterSpacing: Typography.letterSpacing.normal,
+    },
   });
+  if (isAnyLoading) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.generatingText}>
+          Generating your training plan...
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -163,17 +185,9 @@ export default function OnboardingScreen8() {
         subText="You'll be able to update the past personal data in your profile settings"
       />
 
-      {isLoading && (
-        <ActivityIndicator
-          size="large"
-          color={colors.primary || "#3B82F6"}
-          style={styles.loadingContainer}
-        />
-      )}
-
       <ActionButtonsRow
         onPrimaryPress={onSubmit}
-        // primaryButtonDisabled={isLoading}
+        primaryTitle={isAnyLoading ? "SAVING..." : "SAVE"}
       />
     </View>
   );

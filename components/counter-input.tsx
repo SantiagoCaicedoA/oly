@@ -114,6 +114,7 @@ export default function CounterInput({
           keyboardType="numeric"
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
+          editable={false}
         />
         <Text style={styles.suffix}>{suffix}</Text>
         <View style={styles.counterButtons}>

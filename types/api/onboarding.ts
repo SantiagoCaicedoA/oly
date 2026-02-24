@@ -97,3 +97,53 @@ export interface OnboardingApiResponse {
     user_id?: string;
   };
 }
+
+export interface UploadProfileImageResponse {
+  success: boolean;
+  message: string;
+  url: string;
+  data: {
+    availability: {
+      preferred_rest_days: string[];
+    };
+    bodyweight_unit: string;
+    considerations: {
+      affected_areas: string[];
+      triggers: string[];
+    };
+    equipment: {
+      optional: string[];
+    };
+    image_url: string;
+    performance_gaps: string[];
+    preferred_unit: string;
+    username: string;
+    video_urls: string[];
+  };
+}
+export interface UploadAthleteVideoResponse {
+  success: boolean;
+  message: string;
+  url: string;
+  video_urls: string[];
+  data: UploadAthleteVideoData;
+}
+
+export interface UploadAthleteVideoData {
+  availability: {
+    preferred_rest_days: string[];
+  };
+  bodyweight_unit: string;
+  considerations: {
+    affected_areas: string[];
+    triggers: string[];
+  };
+  equipment: {
+    optional: string[];
+  };
+  image_url: string;
+  performance_gaps: string[];
+  preferred_unit: string;
+  username: string;
+  video_urls: string[];
+}

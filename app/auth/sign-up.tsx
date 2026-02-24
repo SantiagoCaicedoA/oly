@@ -11,7 +11,17 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { router } from "expo-router";
 import React from "react";
 import { Controller, useForm } from "react-hook-form";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
 import { scale } from "react-native-size-matters";
 import { useDispatch } from "react-redux";
 export default function SignUp() {
@@ -45,7 +55,7 @@ export default function SignUp() {
       dispatch(
         loginSuccess({
           user: result.data,
-          token: result.data.token || result.token,
+          token: result.token,
         }),
       );
 
@@ -109,68 +119,95 @@ export default function SignUp() {
       letterSpacing: Typography.letterSpacing.normal,
       color: colors.text,
     },
+    loaderContainer: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(0, 0, 0, 0.35)",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 999,
+    },
   });
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.signUp}>SIGN UP</Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <View style={styles.container}>
+          <Text style={styles.signUp}>SIGN UP</Text>
 
-      <View style={styles.fieldContainer}>
-        <Controller
-          control={control}
-          name="name"
-          render={({ field: { onChange, value } }) => (
-            <CustomInput
-              label="NAME"
-              placeholder="Enter your name"
-              autoCapitalize="none"
-              value={value}
-              onChangeText={onChange}
-              error={errors.name?.message}
+          <View style={styles.fieldContainer}>
+            <Controller
+              control={control}
+              name="name"
+              render={({ field: { onChange, value } }) => (
+                <CustomInput
+                  label="NAME"
+                  placeholder="Enter your name"
+                  autoCapitalize="none"
+                  value={value}
+                  onChangeText={onChange}
+                  error={errors.name?.message}
+                />
+              )}
             />
-          )}
-        />
 
-        <Controller
-          control={control}
-          name="email"
-          render={({ field: { onChange, value } }) => (
-            <CustomInput
-              label="EMAIL"
-              placeholder="alex@gmail.com"
-              autoCapitalize="none"
-              value={value}
-              onChangeText={onChange}
-              error={errors.email?.message}
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { onChange, value } }) => (
+                <CustomInput
+                  label="EMAIL"
+                  placeholder="alex@gmail.com"
+                  autoCapitalize="none"
+                  value={value}
+                  onChangeText={onChange}
+                  error={errors.email?.message}
+                />
+              )}
             />
-          )}
-        />
 
-        <Controller
-          control={control}
-          name="password"
-          render={({ field: { onChange, value } }) => (
-            <CustomInput
-              label="PASSWORD"
-              placeholder="Enter your password"
-              autoCapitalize="none"
-              secureTextEntry
-              value={value}
-              onChangeText={onChange}
-              error={errors.password?.message}
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { onChange, value } }) => (
+                <CustomInput
+                  label="PASSWORD"
+                  placeholder="Enter your password"
+                  autoCapitalize="none"
+                  isPassword
+                  value={value}
+                  onChangeText={onChange}
+                  error={errors.password?.message}
+                />
+              )}
             />
-          )}
-        />
-      </View>
+          </View>
 
-      <CustomButton title="SIGN UP" onPress={handleSubmit(onSubmit)} />
+          <CustomButton
+            title={isLoading ? "SIGNING UP" : "SIGN UP"}
+            onPress={handleSubmit(onSubmit)}
+            disabled={isLoading}
+          />
 
-      <View style={styles.rowContainer}>
-        <Text style={styles.text}>Already have an account?</Text>
-        <TouchableOpacity onPress={handleLoginPress}>
-          <Text style={styles.login}>LOGIN</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+          <View style={styles.rowContainer}>
+            <Text style={styles.text}>Already have an account?</Text>
+            <TouchableOpacity onPress={handleLoginPress}>
+              <Text style={styles.login}>LOGIN</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableWithoutFeedback>
+      {isLoading && (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      )}
+    </KeyboardAvoidingView>
   );
 }

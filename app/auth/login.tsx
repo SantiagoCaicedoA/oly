@@ -3,6 +3,7 @@ import CustomInput from "@/constants/custom-input";
 import { useTheme } from "@/context/theme-context";
 import { useToast } from "@/context/toast-context";
 import { useLoginMutation } from "@/store/api";
+import { loginSuccess } from "@/store/reducer/authSlice";
 import { LoginPayload, LoginValues } from "@/types/api/auth";
 import { Typography } from "@/utils/custom-styles";
 import { loginSchema } from "@/utils/validation-schemas";
@@ -10,10 +11,22 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { router } from "expo-router";
 import React from "react";
 import { Controller, useForm } from "react-hook-form";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
 import { scale } from "react-native-size-matters";
+import { useDispatch } from "react-redux";
 export default function Login() {
   const { colors } = useTheme();
+  const dispatch = useDispatch();
   const { showSuccess, showError } = useToast();
   const [login, { isLoading }] = useLoginMutation();
   const {
@@ -37,6 +50,12 @@ export default function Login() {
       const result = await login(payload).unwrap();
 
       showSuccess("Success", "Login success");
+      dispatch(
+        loginSuccess({
+          user: result.data,
+          token: result.token,
+        }),
+      );
       router.replace("/(tabs)/home");
     } catch (err: any) {
       const errorMessage =
@@ -89,53 +108,80 @@ export default function Login() {
       letterSpacing: Typography.letterSpacing.normal,
       color: colors.text,
     },
+    loaderContainer: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(0, 0, 0, 0.35)",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 999,
+    },
   });
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.signUp}>LOGIN</Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <View style={styles.container}>
+          <Text style={styles.signUp}>LOGIN</Text>
 
-      <View style={styles.fieldContainer}>
-        <Controller
-          control={control}
-          name="email"
-          render={({ field: { onChange, value } }) => (
-            <CustomInput
-              label="EMAIL"
-              placeholder="alex@gmail.com"
-              autoCapitalize="none"
-              value={value}
-              onChangeText={onChange}
-              error={errors.email?.message}
+          <View style={styles.fieldContainer}>
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { onChange, value } }) => (
+                <CustomInput
+                  label="EMAIL"
+                  placeholder="alex@gmail.com"
+                  autoCapitalize="none"
+                  value={value}
+                  onChangeText={onChange}
+                  error={errors.email?.message}
+                />
+              )}
             />
-          )}
-        />
 
-        <Controller
-          control={control}
-          name="password"
-          render={({ field: { onChange, value } }) => (
-            <CustomInput
-              label="PASSWORD"
-              placeholder="Enter your password"
-              autoCapitalize="none"
-              secureTextEntry
-              value={value}
-              onChangeText={onChange}
-              error={errors.password?.message}
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { onChange, value } }) => (
+                <CustomInput
+                  label="PASSWORD"
+                  placeholder="Enter your password"
+                  autoCapitalize="none"
+                  value={value}
+                  onChangeText={onChange}
+                  isPassword
+                  error={errors.password?.message}
+                />
+              )}
             />
-          )}
-        />
-      </View>
+          </View>
 
-      <CustomButton title="LOGIN" onPress={handleSubmit(onSubmit)} />
+          <CustomButton
+            title={isLoading ? "LOGGING IN" : "LOGIN"}
+            onPress={handleSubmit(onSubmit)}
+            disabled={isLoading}
+          />
 
-      <View style={styles.rowContainer}>
-        <Text style={styles.text}>Don’t have an account?</Text>
-        <TouchableOpacity onPress={handleSignUpPress}>
-          <Text style={styles.login}>SIGN UP</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+          <View style={styles.rowContainer}>
+            <Text style={styles.text}>Don’t have an account?</Text>
+            <TouchableOpacity onPress={handleSignUpPress}>
+              <Text style={styles.login}>SIGN UP</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableWithoutFeedback>
+      {isLoading && (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      )}
+    </KeyboardAvoidingView>
   );
 }

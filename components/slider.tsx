@@ -1,6 +1,6 @@
 import { useTheme } from "@/context/theme-context";
 import { Typography } from "@/utils/custom-styles";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   LayoutChangeEvent,
   PanResponder,
@@ -100,8 +100,15 @@ const MetricBar: React.FC<MetricBarProps> = ({
   const [barWidth, setBarWidth] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
 
-  const calculateValue = (locationX: number): number => {
-    const percentage = Math.max(0, Math.min(1, locationX / barWidth));
+  const barPageX = useRef(0);
+  const barWidthRef = useRef(0);
+
+  const calculateValue = (pageX: number): number => {
+    const locationX = pageX - barPageX.current;
+    const percentage = Math.max(
+      0,
+      Math.min(1, locationX / barWidthRef.current),
+    );
     return Math.round(percentage * 10);
   };
 
@@ -110,11 +117,11 @@ const MetricBar: React.FC<MetricBarProps> = ({
     onMoveShouldSetPanResponder: () => true,
     onPanResponderGrant: (evt) => {
       setIsDragging(true);
-      const newValue = calculateValue(evt.nativeEvent.locationX);
+      const newValue = calculateValue(evt.nativeEvent.pageX);
       onChange(newValue);
     },
     onPanResponderMove: (evt) => {
-      const newValue = calculateValue(evt.nativeEvent.locationX);
+      const newValue = calculateValue(evt.nativeEvent.pageX);
       onChange(newValue);
     },
     onPanResponderRelease: () => {
@@ -126,7 +133,9 @@ const MetricBar: React.FC<MetricBarProps> = ({
   });
 
   const onBarLayout = (event: LayoutChangeEvent) => {
-    setBarWidth(event.nativeEvent.layout.width);
+    const { width } = event.nativeEvent.layout;
+    setBarWidth(width);
+    barWidthRef.current = width;
   };
 
   const fillPercentage = (value / 10) * 100;
@@ -176,7 +185,16 @@ const MetricBar: React.FC<MetricBarProps> = ({
 
       <View
         style={styles.barWrapper}
-        onLayout={onBarLayout}
+        onLayout={(event) => {
+          onBarLayout(event);
+        }}
+        ref={(ref) => {
+          if (ref) {
+            ref.measure((_x, _y, _width, _height, pageX) => {
+              barPageX.current = pageX;
+            });
+          }
+        }}
         {...panResponder.panHandlers}
       >
         <View

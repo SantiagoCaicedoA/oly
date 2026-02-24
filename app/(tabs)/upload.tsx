@@ -1,12 +1,9 @@
+import { Redirect } from "expo-router";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet } from "react-native";
 
 export default function Upload() {
-  return (
-    <View>
-      <Text>uploadjhjghvjlkhgfhjk</Text>
-    </View>
-  );
+  return <Redirect href={"/athlete/create-new-post"} />;
 }
 
 const styles = StyleSheet.create({});

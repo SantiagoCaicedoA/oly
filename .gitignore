@@ -42,3 +42,4 @@ app-example
 # env files
 .env.dev
 .env.prod
+.env*

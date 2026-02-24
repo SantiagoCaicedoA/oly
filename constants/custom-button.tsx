@@ -1,15 +1,28 @@
 import { useTheme } from "@/context/theme-context";
 import { Typography } from "@/utils/custom-styles";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity } from "react-native";
+import {
+  StyleProp,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  ViewStyle,
+} from "react-native";
 import { scale } from "react-native-size-matters";
 
 type CustomButtonProps = {
   title: string;
   onPress?: () => void;
+  disabled?: boolean;
+  style?: StyleProp<ViewStyle>;
 };
 
-export default function CustomButton({ title, onPress }: CustomButtonProps) {
+export default function CustomButton({
+  title,
+  onPress,
+  disabled,
+  style,
+}: CustomButtonProps) {
   const { colors } = useTheme();
 
   const styles = StyleSheet.create({
@@ -30,7 +43,11 @@ export default function CustomButton({ title, onPress }: CustomButtonProps) {
   });
 
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
+    <TouchableOpacity
+      style={[styles.container, disabled && { opacity: 0.5 }, style]}
+      onPress={onPress}
+      disabled={disabled}
+    >
       <Text style={styles.title}>{title}</Text>
     </TouchableOpacity>
   );

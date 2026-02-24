@@ -15,6 +15,12 @@ export const COLORS = {
     warning: "#FF9800",
     info: "#2196F3",
     lightBlue: "#0a274c",
+    headerBackground: "#0d1924",
+    semiLightBlue: "#0a346c",
+    green: "#b3f076",
+    yellow: "#fbbf24",
+    lightYellow: "#5e532f",
+    red: "#FF0000",
   },
   dark: {
     background: "#15202a",
@@ -28,6 +34,12 @@ export const COLORS = {
     warning: "#FF9800",
     info: "#2196F3",
     lightBlue: "#0a274c",
+    headerBackground: "#0d1924",
+    semiLightBlue: "#0a346c",
+    green: "#b3f076",
+    yellow: "#fbbf24",
+    lightYellow: "#5e532f",
+    red: "#FF0000",
   },
 } as const;
 

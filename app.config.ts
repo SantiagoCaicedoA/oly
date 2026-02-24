@@ -195,6 +195,13 @@ try {
 } catch {
   console.log("ℹ️  expo-font not found, skipping");
 }
+try {
+  require.resolve("@react-native-community/datetimepicker");
+  plugins.push("@react-native-community/datetimepicker");
+  console.log("✅ Added @react-native-community/datetimepicker plugin");
+} catch {
+  console.log("ℹ️  @react-native-community/datetimepicker not found, skipping");
+}
 
 if (plugins.length > 0) {
   expoConfig.plugins = plugins;

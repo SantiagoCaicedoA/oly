@@ -4,8 +4,10 @@ import { Typography } from "@/utils/custom-styles";
 import React from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 import { scale } from "react-native-size-matters";
-
-export default function Effort() {
+type EffortProps = {
+  effort_value: number;
+};
+export default function Effort({ effort_value = 0 }: EffortProps) {
   const { colors } = useTheme();
   const styles = StyleSheet.create({
     container: {
@@ -56,7 +58,7 @@ export default function Effort() {
     <View style={styles.container}>
       <View style={styles.rowContainer}>
         <View style={styles.row}>
-          <Image source={Images.like} style={styles.icon} />
+          <Image source={Images.efforticon} style={styles.icon} />
           <Text style={styles.detail}>EFFORT</Text>
         </View>
         <View style={{ flexDirection: "row", gap: scale(3) }}>
@@ -64,11 +66,20 @@ export default function Effort() {
         </View>
       </View>
       <View style={styles.barContainer}>
-        <View style={styles.bar}></View>
-        <View style={styles.bar}></View>
-        <View style={styles.bar}></View>
-        <View style={styles.bar}></View>
-        <View style={styles.bar}></View>
+        <View style={styles.barContainer}>
+          {[1, 2, 3, 4, 5].map((item) => (
+            <View
+              key={item}
+              style={[
+                styles.bar,
+                {
+                  backgroundColor:
+                    item <= effort_value ? colors.primary : colors.text,
+                },
+              ]}
+            />
+          ))}
+        </View>
       </View>
     </View>
   );
