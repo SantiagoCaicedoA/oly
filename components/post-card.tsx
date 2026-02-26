@@ -1,10 +1,11 @@
 import { Images } from "@/assets";
 import { useTheme } from "@/context/theme-context";
+import { useLikePostMutation, useUnLikePostMutation } from "@/store/api";
 import { Typography } from "@/utils/custom-styles";
 import { getRelativeTime } from "@/utils/time";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { ResizeMode, Video } from "expo-av";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
 import CommentBottomSheet from "./comment-bottom-sheet";
@@ -19,6 +20,7 @@ interface PostCardProps {
     createdAt: string;
     username: string;
     name: string;
+    isLiked: boolean;
   };
   onPress?: (post_id: string) => void;
 }
@@ -28,10 +30,35 @@ export default function PostCard({ post, onPress }: PostCardProps) {
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const videoRef = useRef<Video>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [likePost] = useLikePostMutation();
+  const [unlikePost] = useUnLikePostMutation();
+  const [isLiked, setIsLiked] = useState(post.isLiked ?? false);
 
+  useEffect(() => {
+    setIsLiked(post.isLiked ?? false);
+  }, [post.isLiked]);
   const handlePress = () => {
     if (onPress) {
       onPress(post._id);
+    }
+  };
+  const handleLike = async () => {
+    if (isLiked) {
+      try {
+        setIsLiked(false);
+        await unlikePost(post._id).unwrap();
+      } catch (error) {
+        console.error("Unlike error:", error);
+        setIsLiked(true);
+      }
+    } else {
+      try {
+        setIsLiked(true);
+        await likePost(post._id).unwrap();
+      } catch (error) {
+        console.error("Like error:", error);
+        setIsLiked(false);
+      }
     }
   };
 
@@ -159,8 +186,11 @@ export default function PostCard({ post, onPress }: PostCardProps) {
       </TouchableOpacity>
 
       <View style={styles.iconContainer}>
-        <TouchableOpacity>
-          <Image source={Images.like} style={styles.icon} />
+        <TouchableOpacity onPress={handleLike}>
+          <Image
+            source={isLiked ? Images.likeicon : Images.like}
+            style={styles.icon}
+          />
         </TouchableOpacity>
         <Text style={styles.count}>12</Text>
 
@@ -170,7 +200,7 @@ export default function PostCard({ post, onPress }: PostCardProps) {
         <Text style={styles.count}>3</Text>
       </View>
 
-      <CommentBottomSheet ref={bottomSheetRef} />
+      <CommentBottomSheet ref={bottomSheetRef} postId={post._id} />
     </TouchableOpacity>
   );
 }

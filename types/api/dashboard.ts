@@ -32,7 +32,10 @@ export interface GetPostsResponse {
   total: number;
   data: Post[];
 }
-
+export interface GetPostsParams {
+  page: number;
+  limit: number;
+}
 export interface Post {
   _id: string;
   createdAt: string;
@@ -47,6 +50,7 @@ export interface Post {
   user: PostUser;
   username: string;
   name: string;
+  isLiked: boolean
 }
 
 export interface SessionDetail {
@@ -84,6 +88,7 @@ export interface PostById {
   session_detail: SessionDetail;
   name: string;
   username: string;
+  is_liked: boolean
 }
 
 export interface SessionDetail {

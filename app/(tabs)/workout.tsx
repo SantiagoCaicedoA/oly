@@ -76,7 +76,13 @@ export default function Workout() {
     : (todayData?.key_cues ?? []);
 
   const handlePressItem = async (item: Exercise) => {
-    dispatch(setSelectedExercise(item.exercise_name));
+    dispatch(
+      setSelectedExercise({
+        name: item.exercise_name,
+        dayKey,
+        exercises: todaysTraining,
+      }),
+    );
 
     const today = new Date().toDateString();
     const key = `daily_check_in_done_${today}`;

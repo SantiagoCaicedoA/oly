@@ -3,12 +3,17 @@ import Context from "@/components/context";
 import DetailLift from "@/components/detail-lift";
 import Effort from "@/components/effort";
 import { useTheme } from "@/context/theme-context";
-import { useGetPostByIdQuery } from "@/store/api";
+import {
+  useGetPostByIdQuery,
+  useLikePostMutation,
+  useUnLikePostMutation,
+} from "@/store/api";
 import { Typography } from "@/utils/custom-styles";
 import { getRelativeTime } from "@/utils/time";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { ResizeMode, Video } from "expo-av";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -23,16 +28,22 @@ import { scale } from "react-native-size-matters";
 export default function PostExpanded() {
   const { colors } = useTheme();
   const { post_id } = useLocalSearchParams();
-
+  const [isLiked, setIsLiked] = useState(false);
   const videoRef = useRef<Video>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const { data, isLoading, error, isError } = useGetPostByIdQuery(
     post_id as string,
   );
-
+  const [likePost, { isLoading: isLiking }] = useLikePostMutation();
+  const [unlikePost, { isLoading: isUnliking }] = useUnLikePostMutation();
+  const bottomSheetRef = useRef<BottomSheetModal>(null);
   const post = data?.data;
   const session = post?.session_detail;
-
+  useEffect(() => {
+    if (post?.is_liked) {
+      setIsLiked(post.is_liked);
+    }
+  }, [post]);
   const handleBackPress = () => {
     router.back();
   };
@@ -46,6 +57,24 @@ export default function PostExpanded() {
       setIsPlaying(!isPlaying);
     }
   };
+  const handleLike = async () => {
+    try {
+      if (isLiked) {
+        const res = await unlikePost(post_id as string).unwrap();
+        setIsLiked(false);
+      } else {
+        const rs = await likePost(post_id as string).unwrap();
+
+        setIsLiked(true);
+      }
+    } catch (error) {
+      console.error("Like/Unlike error:", error);
+    }
+  };
+  const handleCommentPress = () => {
+    bottomSheetRef.current?.present();
+  };
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -91,7 +120,7 @@ export default function PostExpanded() {
       fontWeight: Typography.fontWeight.normal,
       letterSpacing: Typography.letterSpacing.normal,
       color: colors.textSecondary,
-      marginBottom: scale(12),
+      marginVertical: scale(12),
     },
     time: {
       fontSize: Typography.fontSize.base,
@@ -220,9 +249,17 @@ export default function PostExpanded() {
           {post?.opinion && <Text style={styles.caption}>{post.opinion}</Text>}
 
           <View style={styles.iconContainer}>
-            <Image source={Images.like} style={styles.icon} />
+            <TouchableOpacity onPress={handleLike}>
+              <Image
+                source={isLiked ? Images.likeicon : Images.like}
+                style={styles.icon}
+              />
+            </TouchableOpacity>
             <Text style={styles.count}>12</Text>
-            <Image source={Images.comment} style={styles.icon} />
+
+            <TouchableOpacity onPress={handleCommentPress}>
+              <Image source={Images.comment} style={styles.icon} />
+            </TouchableOpacity>
             <Text style={styles.count}>3</Text>
           </View>
           <View style={{ gap: scale(5), marginTop: scale(15) }}>

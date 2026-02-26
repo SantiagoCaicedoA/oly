@@ -36,6 +36,13 @@ export default function TrainingExercise() {
   const selectedExerciseName = useSelector(
     (state: RootState) => state.training.selectedExerciseName,
   );
+  const selectedDayKey = useSelector(
+    (state: RootState) => state.training.selectedDayKey,
+  );
+  const selectedDayExercises = useSelector(
+    (state: RootState) => state.training.selectedDayExercises,
+  );
+
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const timerSheetRef = useRef<BottomSheetModal>(null);
   const [timerDuration, setTimerDuration] = useState<number>(0);
@@ -53,12 +60,14 @@ export default function TrainingExercise() {
     "friday",
     "saturday",
   ];
-  const dayKey = DAY_KEYS[new Date().getDay()] as keyof Days;
-  const todayData = days?.[dayKey];
-  const exerciseData =
-    todayData?.exercises?.find(
-      (ex) => ex.exercise_name === selectedExerciseName,
-    ) ?? null;
+
+  const todayData = days?.[selectedDayKey as keyof Days];
+  const [activeIndex, setActiveIndex] = useState(
+    selectedDayExercises?.findIndex(
+      (e) => e.exercise_name === selectedExerciseName,
+    ) ?? 0,
+  );
+  const exerciseData = selectedDayExercises?.[activeIndex] ?? null;
   useEffect(() => {
     if (!selectedSet || !exerciseData) return;
 
@@ -216,7 +225,14 @@ export default function TrainingExercise() {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            <ExerciseSection count={4} />
+            <ExerciseSection
+              count={selectedDayExercises?.length ?? 0}
+              initialIndex={activeIndex}
+              onTabChange={(index) => {
+                setActiveIndex(index);
+                setCheckedSetNumber(null);
+              }}
+            />
             <LiftGraph liftName={exerciseData?.exercise_name ?? "LIFT"} />
             <TalkToCoach coach_note={exerciseData?.coach_note} />
 

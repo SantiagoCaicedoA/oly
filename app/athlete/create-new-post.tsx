@@ -12,7 +12,7 @@ import { getFirstError } from "@/utils/get-error";
 import { createPostSchema } from "@/utils/validation-schemas";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as ImagePicker from "expo-image-picker";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import * as VideoThumbnails from "expo-video-thumbnails";
 import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -45,6 +45,7 @@ const LIFT_NAME_OPTIONS = [
   "Push Press",
   "Power jerk",
   "Jerk",
+  "Clean Pull",
 ];
 export default function CreateNewPost() {
   const { colors } = useTheme();
@@ -58,6 +59,10 @@ export default function CreateNewPost() {
 
   const { showSuccess, showError } = useToast();
   const [createPost, { isLoading }] = useCreateNewPostMutation();
+  const { weight, exerciseName } = useLocalSearchParams<{
+    weight: string;
+    exerciseName: string;
+  }>();
 
   const {
     control,
@@ -80,6 +85,16 @@ export default function CreateNewPost() {
       effortRating: 0,
     },
   });
+  useEffect(() => {
+    if (exerciseName) {
+      setSelectedOpt(exerciseName);
+      setValue("liftName", exerciseName);
+    }
+
+    if (weight) {
+      setValue("loadLifted", String(weight));
+    }
+  }, [exerciseName, weight]);
   useEffect(() => {
     const firstError = getFirstError(errors);
     if (firstError) {

@@ -12,7 +12,6 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
-  RefreshControl,
   StyleSheet,
   Text,
   View,
@@ -194,15 +193,6 @@ export default function Home() {
             ]}
             ListEmptyComponent={renderEmptyComponent}
             showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={isFetching && !isLoading}
-                onRefresh={fetchPosts}
-                colors={[colors.primary]}
-                tintColor={colors.primary}
-                size={56}
-              />
-            }
           />
         </ScreenWrapper>
       </SafeAreaView>

@@ -1,11 +1,26 @@
 import { Images } from "@/assets";
 import { useTheme } from "@/context/theme-context";
 import { Typography } from "@/utils/custom-styles";
+import { getRelativeTime } from "@/utils/time";
 import React from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
-
-export default function CommentCard() {
+interface CommentCardProps {
+  comment: {
+    _id: string;
+    text: string;
+    user: {
+      username: string;
+      profile_image?: string;
+    };
+    createdAt: string;
+    likes_count: number;
+    is_liked: boolean;
+    replies?: any[];
+  };
+  postId: string;
+}
+export default function CommentCard({ comment, postId }: CommentCardProps) {
   const { colors } = useTheme();
   const styles = StyleSheet.create({
     container: {
@@ -61,9 +76,9 @@ export default function CommentCard() {
       marginVertical: scale(10),
     },
   });
+
   return (
     <>
-      <Text style={styles.commentHeading}>Comments</Text>
       <View style={styles.container}>
         <View style={styles.rowContainer}>
           <Image source={Images.profile} style={styles.profileIcon} />
@@ -76,12 +91,15 @@ export default function CommentCard() {
                 marginTop: scale(6),
               }}
             >
-              <Text style={styles.text}>2h</Text>
+              <Text style={styles.text}>
+                {getRelativeTime(comment.createdAt)}
+              </Text>
+
               <Text style={styles.text}>1 like</Text>
             </View>
           </View>
           <View>
-            <Text style={styles.comment}>Smooth</Text>
+            <Text style={styles.comment}>{comment.text}</Text>
             <TouchableOpacity style={{ marginTop: scale(6) }}>
               <Text style={styles.text}>Reply</Text>
             </TouchableOpacity>
@@ -92,7 +110,7 @@ export default function CommentCard() {
         </TouchableOpacity>
       </View>
       {/* reply part */}
-      <View style={styles.replyContainer}>
+      {/* <View style={styles.replyContainer}>
         <View style={styles.rowContainer}>
           <Image source={Images.profile} style={styles.profileIcon} />
           <View>
@@ -118,7 +136,7 @@ export default function CommentCard() {
         <TouchableOpacity>
           <Image source={Images.like} style={styles.likeIcon} />
         </TouchableOpacity>
-      </View>
+      </View> */}
     </>
   );
 }

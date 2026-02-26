@@ -59,7 +59,7 @@ export default function OnboardingScreen1({
   const dispatch = useDispatch();
   const { showSuccess, showError } = useToast();
   const [profileImage, setProfileImage] = React.useState<string>("");
-  const [uploadProfileImage, { isLoading: isUploading }] =
+  const [uploadProfileImage, { isLoading: isUploading, error }] =
     useUploadProfileImageMutation();
   const user = useSelector((state: RootState) => state.auth.token);
 

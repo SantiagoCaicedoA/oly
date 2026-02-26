@@ -20,9 +20,7 @@ import {
   DailyCheckInPayload,
   GetPostByIdResponse,
   GetPostsResponse,
-  SubmitAIPayload,
-  SubmitAIResponse,
-  UpdateTrainingPayload,
+  UpdateTrainingPayload
 } from "@/types/api/dashboard";
 import {
   OnboardingApiPayload,
@@ -70,7 +68,7 @@ const customBaseQuery: BaseQueryFn<
       headers.set("authorization", `Bearer ${token}`);
     }
 
-    const baseUrl = "http://api.olytraining.com/";
+    const baseUrl = API_BASE_URL;
 
     const result = await fetch(`${baseUrl}${url}`, {
       method,
@@ -219,14 +217,7 @@ export const api = createApi({
       }),
       providesTags: ["Athlete"],
     }),
-    submitDataToAI: builder.mutation<SubmitAIResponse, SubmitAIPayload>({
-      query: (payload) => ({
-        url: API_ROUTES.ATHLETE.AI_TRAINING,
-        method: "POST",
-        body: payload,
-      }),
-      invalidatesTags: ["Athlete"],
-    }),
+
     getAiTraining: builder.query<any, void>({
       query: () => ({
         url: API_ROUTES.ATHLETE.GET_AI_TRAINING,
@@ -249,7 +240,39 @@ export const api = createApi({
         body: payload
       }),
       invalidatesTags: ["Athlete"]
-    })
+    }),
+    likePost: builder.mutation<any, string>({
+      query: (postId) => ({
+        url: API_ROUTES.ATHLETE.LIKE_POST_BY_ID(postId),
+        method: "POST",
+      }),
+      invalidatesTags: ["Athlete"],
+    }),
+    unLikePost: builder.mutation<any, string>({
+      query: (postId) => ({
+        url: API_ROUTES.ATHLETE.UN_LIKE_POST_BY_ID(postId),
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Athlete"],
+    }),
+    commentOnPost: builder.mutation<any, { postId: string; text: string }>({
+      query: ({ postId, text }) => ({
+        url: API_ROUTES.ATHLETE.COMMENT_POST_BY_ID(postId),
+        method: "POST",
+        body: {
+          text,
+          parentComment: null,
+        },
+      }),
+      invalidatesTags: ["Athlete"],
+    }),
+    getComments: builder.query<any, { postId: string; page?: number; limit?: number }>({
+      query: ({ postId, page = 1, limit = 20 }) => ({
+        url: `${API_ROUTES.ATHLETE.GET_COMMENTS_BY_POST_ID(postId)}?page=${page}&limit=${limit}`,
+        method: "GET",
+      }),
+      providesTags: ["Athlete"],
+    }),
   }),
 });
 
@@ -262,8 +285,11 @@ export const {
   useCreateNewPostMutation,
   useLazyGetPostsQuery,
   useGetPostByIdQuery,
-  useSubmitDataToAIMutation,
   useLazyGetAiTrainingQuery,
   useUpdateTrainingDataMutation,
   useDailyCheckInMutation,
+  useLikePostMutation,
+  useUnLikePostMutation,
+  useCommentOnPostMutation,
+  useGetCommentsQuery
 } = api;

@@ -1,10 +1,7 @@
 import Header from "@/components/header";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
-import {
-  useSubmitDataToAIMutation,
-  useSubmitProfileMutation,
-} from "@/store/api";
+import { useSubmitProfileMutation } from "@/store/api";
 
 import { selectOnboardingData } from "@/store/reducer/onboardingSlice";
 import { RootState } from "@/store/store";
@@ -20,8 +17,6 @@ export default function OnboardingScreen8() {
   const allData = useSelector(selectOnboardingData);
 
   const [submitProfile, { isLoading }] = useSubmitProfileMutation();
-  const [submitAI, { isLoading: loading }] = useSubmitDataToAIMutation();
-  const isAnyLoading = isLoading || loading;
 
   const dispatch = useDispatch();
   const token = useSelector((state: RootState) => state.auth.token);
@@ -168,7 +163,7 @@ export default function OnboardingScreen8() {
       letterSpacing: Typography.letterSpacing.normal,
     },
   });
-  if (isAnyLoading) {
+  if (isLoading) {
     return (
       <View style={styles.container}>
         <Text style={styles.generatingText}>
@@ -187,7 +182,7 @@ export default function OnboardingScreen8() {
 
       <ActionButtonsRow
         onPrimaryPress={onSubmit}
-        primaryTitle={isAnyLoading ? "SAVING..." : "SAVE"}
+        primaryTitle={isLoading ? "SAVING..." : "SAVE"}
       />
     </View>
   );
