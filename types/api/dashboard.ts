@@ -50,7 +50,9 @@ export interface Post {
   user: PostUser;
   username: string;
   name: string;
-  isLiked: boolean
+  isLiked: boolean;
+  likeCount: number;
+  commentCount: number;
 }
 
 export interface SessionDetail {
@@ -61,6 +63,7 @@ export interface SessionDetail {
   isIntent: boolean;
   lifted_kg: number;
   rpe: string;
+  context_value: string;
 }
 
 export interface PostUser {
@@ -88,7 +91,10 @@ export interface PostById {
   session_detail: SessionDetail;
   name: string;
   username: string;
-  is_liked: boolean
+  is_liked: boolean;
+  commentCount: number;
+  likeCount: number;
+  isLiked: boolean;
 }
 
 export interface SessionDetail {
@@ -185,4 +191,8 @@ export interface DailyCheckInPayload {
     sore_areas: string[];
     intensity: number;
   };
+}
+export interface CustomSetPayload {
+  day: string;
+  exercise_index: number;
 }

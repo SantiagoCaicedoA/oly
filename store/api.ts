@@ -17,10 +17,11 @@ import {
 } from "@/types/api/auth";
 import {
   CreateNewPostResponse,
+  CustomSetPayload,
   DailyCheckInPayload,
   GetPostByIdResponse,
   GetPostsResponse,
-  UpdateTrainingPayload
+  UpdateTrainingPayload,
 } from "@/types/api/dashboard";
 import {
   OnboardingApiPayload,
@@ -106,7 +107,6 @@ const customBaseQueryWithReauth: BaseQueryFn<
   ) {
     const state = api.getState() as RootState;
     const refreshToken = state.auth.token;
-
 
     if (!refreshToken) {
       api.dispatch(logout());
@@ -221,15 +221,15 @@ export const api = createApi({
     getAiTraining: builder.query<any, void>({
       query: () => ({
         url: API_ROUTES.ATHLETE.GET_AI_TRAINING,
-        method: "GET"
+        method: "GET",
       }),
-      providesTags: ['Athlete']
+      providesTags: ["Athlete"],
     }),
     updateTrainingData: builder.mutation<any, UpdateTrainingPayload>({
       query: (payload) => ({
         url: API_ROUTES.ATHLETE.UPDATE_TRAINING_DATA,
         method: "PATCH",
-        body: payload
+        body: payload,
       }),
       invalidatesTags: ["Athlete"],
     }),
@@ -237,9 +237,17 @@ export const api = createApi({
       query: (payload) => ({
         url: API_ROUTES.ATHLETE.DAILY_CHECK_IN,
         method: "POST",
-        body: payload
+        body: payload,
       }),
-      invalidatesTags: ["Athlete"]
+      invalidatesTags: ["Athlete"],
+    }),
+    customSet: builder.mutation<any, CustomSetPayload>({
+      query: (payload) => ({
+        url: API_ROUTES.ATHLETE.CUSTOM_SET,
+        method: "POST",
+        body: payload,
+      }),
+      invalidatesTags: ["Athlete"],
     }),
     likePost: builder.mutation<any, string>({
       query: (postId) => ({
@@ -266,7 +274,10 @@ export const api = createApi({
       }),
       invalidatesTags: ["Athlete"],
     }),
-    getComments: builder.query<any, { postId: string; page?: number; limit?: number }>({
+    getComments: builder.query<
+      any,
+      { postId: string; page?: number; limit?: number }
+    >({
       query: ({ postId, page = 1, limit = 20 }) => ({
         url: `${API_ROUTES.ATHLETE.GET_COMMENTS_BY_POST_ID(postId)}?page=${page}&limit=${limit}`,
         method: "GET",
@@ -288,8 +299,9 @@ export const {
   useLazyGetAiTrainingQuery,
   useUpdateTrainingDataMutation,
   useDailyCheckInMutation,
+  useCustomSetMutation,
   useLikePostMutation,
   useUnLikePostMutation,
   useCommentOnPostMutation,
-  useGetCommentsQuery
+  useGetCommentsQuery,
 } = api;

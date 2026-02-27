@@ -6,8 +6,9 @@ import { Image, StyleSheet, Text, View } from "react-native";
 import { scale } from "react-native-size-matters";
 interface ContextProps {
   showContext: boolean;
+  contextValue?: string;
 }
-export default function Context({ showContext }: ContextProps) {
+export default function Context({ showContext, contextValue }: ContextProps) {
   const { colors } = useTheme();
   const styles = StyleSheet.create({
     container: {
@@ -58,13 +59,15 @@ export default function Context({ showContext }: ContextProps) {
           <Text style={styles.detail}>CONTEXT</Text>
         </View>
         <View style={{ gap: scale(3) }}>
-          {showContext ? (
+          {showContext && contextValue ? (
             <>
-              <Text style={styles.secondValue}>Set 5 of 5</Text>
-              <Text style={styles.value}>TOP SET</Text>
+              <Text style={styles.secondValue}>{contextValue}</Text>
+              {contextValue === "Set 5 of 5" && (
+                <Text style={styles.value}>TOP SET</Text>
+              )}
             </>
           ) : (
-            <Text style={styles.secondValue}>Set 4 of 5</Text>
+            <Text style={styles.secondValue}>{contextValue}</Text>
           )}
         </View>
       </View>

@@ -21,6 +21,8 @@ interface PostCardProps {
     username: string;
     name: string;
     isLiked: boolean;
+    commentCount: number;
+    likeCount: number;
   };
   onPress?: (post_id: string) => void;
 }
@@ -192,12 +194,12 @@ export default function PostCard({ post, onPress }: PostCardProps) {
             style={styles.icon}
           />
         </TouchableOpacity>
-        <Text style={styles.count}>12</Text>
+        <Text style={styles.count}>{post.likeCount}</Text>
 
         <TouchableOpacity onPress={handleCommentPress}>
           <Image source={Images.comment} style={styles.icon} />
         </TouchableOpacity>
-        <Text style={styles.count}>3</Text>
+        <Text style={styles.count}>{post.commentCount}</Text>
       </View>
 
       <CommentBottomSheet ref={bottomSheetRef} postId={post._id} />

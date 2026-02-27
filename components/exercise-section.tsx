@@ -6,12 +6,12 @@ import { scale } from "react-native-size-matters";
 
 interface ExerciseSectionProps {
   count?: number;
-  initialIndex?: number;
+  activeIndex?: number;
   onTabChange?: (index: number) => void;
 }
 export default function ExerciseSection({
   count,
-  initialIndex,
+  activeIndex,
   onTabChange,
 }: ExerciseSectionProps) {
   const { colors } = useTheme();
@@ -21,9 +21,13 @@ export default function ExerciseSection({
       Array.from({ length: validCount }, (_, i) => String.fromCharCode(65 + i)),
     [validCount],
   );
-  const [active, setActive] = useState<string>(
-    OPTIONS[initialIndex ?? 0] || "A",
-  );
+  const [active, setActive] = useState<string>("A");
+
+  React.useEffect(() => {
+    if (activeIndex !== undefined) {
+      setActive(OPTIONS[activeIndex] || "A");
+    }
+  }, [activeIndex, OPTIONS]);
 
   const styles = StyleSheet.create({
     container: {

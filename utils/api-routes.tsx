@@ -16,6 +16,7 @@ export const ATHLETE_ROUTES = {
   GET_AI_TRAINING: "api/training/week",
   UPDATE_TRAINING_DATA: "/api/training/log",
   DAILY_CHECK_IN: "/api/daily/check-in",
+  CUSTOM_SET: "/api/training/week/custom-set",
   LIKE_POST_BY_ID: (postId: string) => `/api/posts/${postId}/like`,
   UN_LIKE_POST_BY_ID: (postId: string) => `/api/posts/${postId}/like`,
   COMMENT_POST_BY_ID: (postId: string) => `/api/posts/${postId}/comments`,

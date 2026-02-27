@@ -59,9 +59,11 @@ export default function CreateNewPost() {
 
   const { showSuccess, showError } = useToast();
   const [createPost, { isLoading }] = useCreateNewPostMutation();
-  const { weight, exerciseName } = useLocalSearchParams<{
+  const { weight, exerciseName, intent, context } = useLocalSearchParams<{
     weight: string;
     exerciseName: string;
+    intent: string;
+    context: string;
   }>();
 
   const {
@@ -87,6 +89,10 @@ export default function CreateNewPost() {
   });
   useEffect(() => {
     if (exerciseName) {
+      if (!LIFT_NAME_OPTIONS.includes(exerciseName)) {
+        LIFT_NAME_OPTIONS.push(exerciseName);
+      }
+
       setSelectedOpt(exerciseName);
       setValue("liftName", exerciseName);
     }
@@ -94,7 +100,11 @@ export default function CreateNewPost() {
     if (weight) {
       setValue("loadLifted", String(weight));
     }
-  }, [exerciseName, weight]);
+
+    if (intent && watch("intentEnabled")) {
+      setValue("intentValue", intent);
+    }
+  }, [exerciseName, weight, intent, context, watch("intentEnabled")]);
   useEffect(() => {
     const firstError = getFirstError(errors);
     if (firstError) {
@@ -123,6 +133,9 @@ export default function CreateNewPost() {
       lifted_kg: Number(data.loadLifted),
 
       context: data.contextEnabled,
+      context_value: data.contextEnabled
+        ? data.contextValue || context || ""
+        : "",
     };
 
     if (data.effortEnabled) {
@@ -132,7 +145,7 @@ export default function CreateNewPost() {
 
     if (data.intentEnabled) {
       session_detail.isIntent = true;
-      session_detail.intent_opt = data.intentValue;
+      session_detail.intent_opt = data.intentValue || intent || "";
     }
 
     const payload = {

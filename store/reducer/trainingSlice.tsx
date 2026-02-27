@@ -15,6 +15,8 @@ export interface ExerciseSet {
   pain_where?: string[];
   key_cues?: string[];
   coach_prescription?: string;
+  intent: string;
+  context: string;
 }
 
 export interface Exercise {

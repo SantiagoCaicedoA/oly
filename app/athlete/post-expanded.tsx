@@ -34,14 +34,15 @@ export default function PostExpanded() {
   const { data, isLoading, error, isError } = useGetPostByIdQuery(
     post_id as string,
   );
+
   const [likePost, { isLoading: isLiking }] = useLikePostMutation();
   const [unlikePost, { isLoading: isUnliking }] = useUnLikePostMutation();
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const post = data?.data;
   const session = post?.session_detail;
   useEffect(() => {
-    if (post?.is_liked) {
-      setIsLiked(post.is_liked);
+    if (post?.isLiked) {
+      setIsLiked(post.isLiked);
     }
   }, [post]);
   const handleBackPress = () => {
@@ -249,18 +250,16 @@ export default function PostExpanded() {
           {post?.opinion && <Text style={styles.caption}>{post.opinion}</Text>}
 
           <View style={styles.iconContainer}>
-            <TouchableOpacity onPress={handleLike}>
-              <Image
-                source={isLiked ? Images.likeicon : Images.like}
-                style={styles.icon}
-              />
-            </TouchableOpacity>
-            <Text style={styles.count}>12</Text>
+            <Image
+              source={isLiked ? Images.likeicon : Images.like}
+              style={styles.icon}
+            />
 
-            <TouchableOpacity onPress={handleCommentPress}>
-              <Image source={Images.comment} style={styles.icon} />
-            </TouchableOpacity>
-            <Text style={styles.count}>3</Text>
+            <Text style={styles.count}>{post?.likeCount}</Text>
+
+            <Image source={Images.comment} style={styles.icon} />
+
+            <Text style={styles.count}>{post?.commentCount}</Text>
           </View>
           <View style={{ gap: scale(5), marginTop: scale(15) }}>
             {session?.lifted_kg != null && (
@@ -271,8 +270,13 @@ export default function PostExpanded() {
                 unit="kg"
               />
             )}
+            {session?.context_value && (
+              <Context
+                showContext={session?.context ?? false}
+                contextValue={session?.context_value}
+              />
+            )}
 
-            <Context showContext={session?.context ?? false} />
             {session?.isIntent && (
               <DetailLift
                 icon={Images.intenticon}

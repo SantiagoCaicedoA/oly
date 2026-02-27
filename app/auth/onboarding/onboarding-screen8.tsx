@@ -2,9 +2,11 @@ import Header from "@/components/header";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
 import { useSubmitProfileMutation } from "@/store/api";
+import { setUser } from "@/store/reducer/authSlice";
 
 import { selectOnboardingData } from "@/store/reducer/onboardingSlice";
 import { RootState } from "@/store/store";
+import { OnboardingApiPayload } from "@/types/api/onboarding";
 import { Typography } from "@/utils/custom-styles";
 import { router } from "expo-router";
 import React from "react";
@@ -23,7 +25,7 @@ export default function OnboardingScreen8() {
 
   const onSubmit = async () => {
     try {
-      const apiPayload = {
+      const apiPayload: OnboardingApiPayload = {
         display_name: allData.name,
         country: allData.country,
         age: parseInt(allData.age),
@@ -87,8 +89,8 @@ export default function OnboardingScreen8() {
         performance_gaps: allData.performance_gaps,
       };
 
-      const response = await submitProfile(apiPayload).unwrap();
-
+      const result = await submitProfile(apiPayload).unwrap();
+      dispatch(setUser(result.data));
       Alert.alert(
         "Success",
         "Your profile has been created successfully!",

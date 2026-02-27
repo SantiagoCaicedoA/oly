@@ -105,9 +105,9 @@ export default function CommentCard({ comment, postId }: CommentCardProps) {
             </TouchableOpacity>
           </View>
         </View>
-        <TouchableOpacity>
+        {/* <TouchableOpacity>
           <Image source={Images.like} style={styles.likeIcon} />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
       {/* reply part */}
       {/* <View style={styles.replyContainer}>

@@ -70,6 +70,9 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
     const [wherePain, setWherePain] = useState("");
     const todayKey = DAY_KEYS[new Date().getDay()];
     const { showSuccess, showError } = useToast();
+    const selectedDayKey = useSelector(
+      (state: RootState) => state.training.selectedDayKey,
+    );
     const [updateTraining, { isLoading }] = useUpdateTrainingDataMutation();
 
     useEffect(() => {
@@ -108,7 +111,7 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
     const handlePress = async () => {
       if (!exercise) return;
       const payload: UpdateTrainingPayload = {
-        day: todayKey,
+        day: selectedDayKey ?? "",
         exercises: [
           {
             exercise_name: exercise.exercise_name,
@@ -160,6 +163,8 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
         params: {
           weight: set?.weight ?? 0,
           exerciseName: exercise?.exercise_name ?? "",
+          intent: set?.intent,
+          context: set?.context,
         },
       });
     };
