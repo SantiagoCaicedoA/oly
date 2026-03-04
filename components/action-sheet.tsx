@@ -2,10 +2,10 @@ import { Images } from "@/assets";
 import CustomButton from "@/constants/custom-button";
 import { useTheme } from "@/context/theme-context";
 import { useToast } from "@/context/toast-context";
-import { useUpdateTrainingDataMutation } from "@/store/api";
+import { useLogSetMutation, useUpdateTrainingDataMutation } from "@/store/api";
 import { Exercise, ExerciseSet } from "@/store/reducer/trainingSlice";
 import { RootState } from "@/store/store";
-import { UpdateTrainingPayload } from "@/types/api/dashboard";
+import { LogSetPayload, UpdateTrainingPayload } from "@/types/api/dashboard";
 import { Typography } from "@/utils/custom-styles";
 import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { router } from "expo-router";
@@ -74,7 +74,7 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
       (state: RootState) => state.training.selectedDayKey,
     );
     const [updateTraining, { isLoading }] = useUpdateTrainingDataMutation();
-
+    const [logSet, { isError, error }] = useLogSetMutation();
     useEffect(() => {
       if (set) {
         setWeight(set.weight);
@@ -145,6 +145,23 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
         console.error("Update training error:", error);
       }
     };
+
+    const handleCompletePress = async () => {
+      if (!set?.set_number || !exercise?.exercise_name || !selectedDayKey) {
+        return;
+      }
+      try {
+        const payload: LogSetPayload = {
+          set_number: set?.set_number,
+          exercise_name: exercise?.exercise_name,
+          day: selectedDayKey,
+        };
+
+        const res = await logSet(payload).unwrap();
+      } catch (error) {
+        console.log("error", error);
+      }
+    };
     const handleToggleOptions = (e?: any) => {
       e?.stopPropagation?.();
       setShowOptions((prev) => !prev);
@@ -211,8 +228,8 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
         borderWidth: scale(1),
         borderColor: colors.primary,
         paddingHorizontal: scale(12),
-        paddingVertical: scale(8),
-        gap: scale(5),
+        paddingVertical: scale(15),
+        gap: scale(10),
         marginTop: scale(15),
         marginBottom: scale(10),
       },
@@ -260,7 +277,7 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
         borderWidth: scale(1),
         borderRadius: scale(15),
         paddingHorizontal: scale(13),
-        paddingVertical: scale(10),
+        paddingVertical: scale(15),
       },
       dotContainer: {
         flexDirection: "row",
@@ -361,7 +378,7 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
               <Image source={Images.profile} style={styles.profile} />
               <View style={styles.userInfo}>
                 <View style={styles.videoRow}>
-                  <Text style={styles.userName}>VIDEO UPLOADED </Text>
+                  <Text style={styles.userName}>UPLOAD VIDEO</Text>
                 </View>
 
                 <Text style={styles.name}>{exercise?.exercise_name}</Text>
@@ -447,6 +464,10 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
                 title={isLoading ? "SAVING" : "SAVE"}
                 onPress={handlePress}
               />
+              {/* <CustomButton
+                title={"MARK SET AS COMPLETE"}
+                onPress={handleCompletePress}
+              /> */}
             </View>
           </Pressable>
         </BottomSheetScrollView>

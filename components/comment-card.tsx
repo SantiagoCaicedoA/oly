@@ -1,16 +1,28 @@
 import { Images } from "@/assets";
 import { useTheme } from "@/context/theme-context";
+import { useDeleteCommentMutation } from "@/store/api";
+import { RootState } from "@/store/store";
 import { Typography } from "@/utils/custom-styles";
 import { getRelativeTime } from "@/utils/time";
 import React from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Swipeable } from "react-native-gesture-handler";
 import { scale } from "react-native-size-matters";
+import { useSelector } from "react-redux";
 interface CommentCardProps {
   comment: {
     _id: string;
     text: string;
     user: {
-      username: string;
+      _id: string;
+      name: string;
       profile_image?: string;
     };
     createdAt: string;
@@ -19,9 +31,40 @@ interface CommentCardProps {
     replies?: any[];
   };
   postId: string;
+  onDelete?: (commentId: string) => void;
 }
-export default function CommentCard({ comment, postId }: CommentCardProps) {
+export default function CommentCard({
+  comment,
+  postId,
+  onDelete,
+}: CommentCardProps) {
   const { colors } = useTheme();
+  const loggedInUserId = useSelector(
+    (state: RootState) => state.auth.user?._id,
+  );
+  const isOwner = loggedInUserId === comment.user._id;
+  const [deleteComment, { isLoading: isDeleting }] = useDeleteCommentMutation();
+  const handleDelete = async () => {
+    try {
+      await deleteComment({ postId, commentId: comment._id }).unwrap();
+      onDelete?.(comment._id);
+    } catch (error) {
+      console.error("Delete error:", error);
+    }
+  };
+  const renderRightActions = () => (
+    <TouchableOpacity
+      style={[styles.deleteContainer, { opacity: isDeleting ? 0.5 : 1 }]}
+      onPress={handleDelete}
+      disabled={isDeleting}
+    >
+      {isDeleting ? (
+        <ActivityIndicator size="small" color={colors.text} />
+      ) : (
+        <Text style={styles.deleteText}>Delete</Text>
+      )}
+    </TouchableOpacity>
+  );
   const styles = StyleSheet.create({
     container: {
       flexDirection: "row",
@@ -75,15 +118,25 @@ export default function CommentCard({ comment, postId }: CommentCardProps) {
       textAlign: "center",
       marginVertical: scale(10),
     },
+    deleteText: {
+      color: colors.text,
+      fontWeight: Typography.fontWeight.bold,
+    },
+    deleteContainer: {
+      backgroundColor: colors.red,
+      justifyContent: "center",
+      alignItems: "center",
+      width: scale(80),
+      borderRadius: scale(8),
+    },
   });
-
-  return (
+  const content = (
     <>
       <View style={styles.container}>
         <View style={styles.rowContainer}>
           <Image source={Images.profile} style={styles.profileIcon} />
           <View>
-            <Text style={styles.userName}>@username</Text>
+            <Text style={styles.userName}>{comment.user.name}</Text>
             <View
               style={{
                 flexDirection: "row",
@@ -95,7 +148,7 @@ export default function CommentCard({ comment, postId }: CommentCardProps) {
                 {getRelativeTime(comment.createdAt)}
               </Text>
 
-              <Text style={styles.text}>1 like</Text>
+              <Text style={styles.text}>like</Text>
             </View>
           </View>
           <View>
@@ -138,5 +191,10 @@ export default function CommentCard({ comment, postId }: CommentCardProps) {
         </TouchableOpacity>
       </View> */}
     </>
+  );
+  return isOwner ? (
+    <Swipeable renderRightActions={renderRightActions}>{content}</Swipeable>
+  ) : (
+    content
   );
 }

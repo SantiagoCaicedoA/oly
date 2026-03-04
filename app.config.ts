@@ -160,7 +160,7 @@ const expoConfig: ExpoConfig = {
   extra: {
     variant,
     isDev: IS_DEV,
-    apiUrl: process.env.API_URL || "",
+    apiUrl: process.env.API_URL,
     eas: {
       // ← ADD THIS
       projectId: "464325be-436e-4335-b734-63ef0a998d62", // ← Your EAS project ID

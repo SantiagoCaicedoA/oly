@@ -36,7 +36,9 @@ import { useSelector } from "react-redux";
 export default function TrainingExercise() {
   const { colors } = useTheme();
   const { showSuccess, showError } = useToast();
-  const [checkedSetNumber, setCheckedSetNumber] = useState<number | null>(null);
+  const [checkedSetNumbers, setCheckedSetNumbers] = useState<Set<number>>(
+    new Set(),
+  );
   const days = useSelector((state: RootState) => state.training.days);
   const selectedExerciseName = useSelector(
     (state: RootState) => state.training.selectedExerciseName,
@@ -47,7 +49,9 @@ export default function TrainingExercise() {
   const selectedDayExercises = useSelector(
     (state: RootState) => state.training.selectedDayExercises,
   );
+
   const [customSet, { isLoading }] = useCustomSetMutation();
+
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const timerSheetRef = useRef<BottomSheetModal>(null);
   const [timerDuration, setTimerDuration] = useState<number>(0);
@@ -114,7 +118,7 @@ export default function TrainingExercise() {
 
   const handlePressExercise = (set: ExerciseSet) => {
     setSelectedSet(set);
-    setCheckedSetNumber(set.set_number);
+    setCheckedSetNumbers((prev) => new Set(prev).add(set.set_number));
     bottomSheetRef.current?.present();
   };
 
@@ -136,12 +140,13 @@ export default function TrainingExercise() {
       console.log("error", e);
     }
   };
+
   const handleNextExercise = () => {
     if (!selectedDayExercises) return;
 
     if (activeIndex < selectedDayExercises.length - 1) {
       setActiveIndex((prev) => prev + 1);
-      setCheckedSetNumber(null);
+      setCheckedSetNumbers(new Set());
     }
   };
 
@@ -150,7 +155,7 @@ export default function TrainingExercise() {
 
     if (activeIndex > 0) {
       setActiveIndex((prev) => prev - 1);
-      setCheckedSetNumber(null);
+      setCheckedSetNumbers(new Set());
     }
   };
   const styles = StyleSheet.create({
@@ -275,7 +280,7 @@ export default function TrainingExercise() {
               activeIndex={activeIndex}
               onTabChange={(index) => {
                 setActiveIndex(index);
-                setCheckedSetNumber(null);
+                setCheckedSetNumbers(new Set());
               }}
             />
             <LiftGraph liftName={exerciseData?.exercise_name ?? "LIFT"} />
@@ -288,7 +293,7 @@ export default function TrainingExercise() {
                 reps={set.reps}
                 weight={set.weight}
                 rpm={set.rpm_percent}
-                isChecked={checkedSetNumber === set.set_number}
+                isChecked={checkedSetNumbers.has(set.set_number)}
                 onPress={() => handlePressExercise(set)}
               />
             ))}

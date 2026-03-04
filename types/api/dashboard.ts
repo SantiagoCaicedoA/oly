@@ -53,6 +53,7 @@ export interface Post {
   isLiked: boolean;
   likeCount: number;
   commentCount: number;
+  country: string
 }
 
 export interface SessionDetail {
@@ -87,7 +88,7 @@ export interface PostById {
   opinion: string;
   status: "DRAFT" | "PUBLISHED" | string;
   video_url: string;
-  user: string;
+  user: PostUserById;
   session_detail: SessionDetail;
   name: string;
   username: string;
@@ -95,8 +96,15 @@ export interface PostById {
   commentCount: number;
   likeCount: number;
   isLiked: boolean;
-}
 
+}
+export interface PostUserById {
+  _id: string;
+  name: string;
+  profile: {
+    country: string;
+  };
+}
 export interface SessionDetail {
   context: boolean;
   effort_value: number;
@@ -195,4 +203,24 @@ export interface DailyCheckInPayload {
 export interface CustomSetPayload {
   day: string;
   exercise_index: number;
+}
+export interface LogSetPayload {
+  set_number: number;
+  exercise_name: string;
+  day: string;
+}
+export interface LogSetData {
+  _id: string;
+  set_number: number;
+  exercise_name: string;
+  time: string;
+  day: string;
+  completed_at: string;
+  createdAt: string;
+}
+
+export interface LogSetResponse {
+  success: boolean;
+  data: LogSetData;
+  message: string;
 }

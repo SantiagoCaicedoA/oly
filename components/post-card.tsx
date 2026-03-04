@@ -23,6 +23,7 @@ interface PostCardProps {
     isLiked: boolean;
     commentCount: number;
     likeCount: number;
+    country: string;
   };
   onPress?: (post_id: string) => void;
 }
@@ -35,7 +36,7 @@ export default function PostCard({ post, onPress }: PostCardProps) {
   const [likePost] = useLikePostMutation();
   const [unlikePost] = useUnLikePostMutation();
   const [isLiked, setIsLiked] = useState(post.isLiked ?? false);
-
+  const [likeCount, setLikeCount] = useState(post.likeCount ?? 0);
   useEffect(() => {
     setIsLiked(post.isLiked ?? false);
   }, [post.isLiked]);
@@ -46,20 +47,24 @@ export default function PostCard({ post, onPress }: PostCardProps) {
   };
   const handleLike = async () => {
     if (isLiked) {
+      setIsLiked(false);
+      setLikeCount((prev) => prev - 1);
       try {
-        setIsLiked(false);
         await unlikePost(post._id).unwrap();
       } catch (error) {
         console.error("Unlike error:", error);
         setIsLiked(true);
+        setLikeCount((prev) => prev + 1);
       }
     } else {
+      setIsLiked(true);
+      setLikeCount((prev) => prev + 1);
       try {
-        setIsLiked(true);
         await likePost(post._id).unwrap();
       } catch (error) {
         console.error("Like error:", error);
         setIsLiked(false);
+        setLikeCount((prev) => prev - 1);
       }
     }
   };
@@ -166,10 +171,10 @@ export default function PostCard({ post, onPress }: PostCardProps) {
               alignItems: "center",
             }}
           >
-            <Text style={styles.name}>{post.name}</Text>
+            <Text style={styles.name}>{post.username}</Text>
             <Text style={styles.time}>{getRelativeTime(post.createdAt)}</Text>
           </View>
-          <Text style={styles.userName}>{post.username}</Text>
+          <Text style={styles.userName}>{post.country}</Text>
         </View>
         <Image source={Images.arrowforward} style={styles.arrowForward} />
       </View>
@@ -194,7 +199,7 @@ export default function PostCard({ post, onPress }: PostCardProps) {
             style={styles.icon}
           />
         </TouchableOpacity>
-        <Text style={styles.count}>{post.likeCount}</Text>
+        <Text style={styles.count}>{likeCount}</Text>
 
         <TouchableOpacity onPress={handleCommentPress}>
           <Image source={Images.comment} style={styles.icon} />

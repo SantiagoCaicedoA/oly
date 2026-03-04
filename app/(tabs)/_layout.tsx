@@ -4,7 +4,7 @@ import { Typography } from "@/utils/custom-styles";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { BlurView } from "expo-blur";
-import { Tabs } from "expo-router";
+import { router, Tabs } from "expo-router";
 import React, { createContext, useState } from "react";
 import { Image, Platform, Text, TouchableOpacity, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -33,7 +33,7 @@ export default function TabLayout() {
                   paddingBottom: Platform.OS === "ios" ? scale(20) : scale(10),
                   paddingTop: scale(10),
                   elevation: 0,
-                  marginHorizontal: scale(10),
+                  marginHorizontal: scale(15),
                   marginBottom: scale(20),
                   borderRadius: scale(45),
                   overflow: "visible",
@@ -42,6 +42,7 @@ export default function TabLayout() {
             tabBarBackground: () => (
               <BlurView
                 intensity={40}
+                experimentalBlurMethod="dimezisBlurView"
                 style={{
                   position: "absolute",
                   top: 0,
@@ -103,7 +104,7 @@ export default function TabLayout() {
               tabBarButton: (props) => (
                 <View style={{ alignItems: "center", top: scale(-25) }}>
                   <TouchableOpacity
-                    onPress={props.onPress}
+                    onPress={() => router.push("/athlete/create-new-post")}
                     style={{
                       justifyContent: "center",
                       alignItems: "center",

@@ -21,6 +21,8 @@ import {
   DailyCheckInPayload,
   GetPostByIdResponse,
   GetPostsResponse,
+  LogSetPayload,
+  LogSetResponse,
   UpdateTrainingPayload,
 } from "@/types/api/dashboard";
 import {
@@ -249,6 +251,14 @@ export const api = createApi({
       }),
       invalidatesTags: ["Athlete"],
     }),
+    logSet: builder.mutation<LogSetResponse, LogSetPayload>({
+      query: (payload) => ({
+        url: API_ROUTES.ATHLETE.LOG_SET,
+        method: "POST",
+        body: payload
+      }),
+      invalidatesTags: ["Athlete"],
+    }),
     likePost: builder.mutation<any, string>({
       query: (postId) => ({
         url: API_ROUTES.ATHLETE.LIKE_POST_BY_ID(postId),
@@ -284,6 +294,13 @@ export const api = createApi({
       }),
       providesTags: ["Athlete"],
     }),
+    deleteComment: builder.mutation<any, { postId: string; commentId: string }>({
+      query: ({ postId, commentId }) => ({
+        url: API_ROUTES.ATHLETE.DELETE_COMMENT_BY_ID(postId, commentId),
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Athlete"],
+    })
   }),
 });
 
@@ -300,8 +317,10 @@ export const {
   useUpdateTrainingDataMutation,
   useDailyCheckInMutation,
   useCustomSetMutation,
+  useLogSetMutation,
   useLikePostMutation,
   useUnLikePostMutation,
   useCommentOnPostMutation,
   useGetCommentsQuery,
+  useDeleteCommentMutation,
 } = api;

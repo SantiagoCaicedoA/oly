@@ -29,7 +29,7 @@ export default function Home() {
     useLazyGetPostsQuery();
   useEffect(() => {
     if (token) {
-      fetchPosts();
+      fetchPosts(undefined, false);
     }
   }, [token]);
   const posts = postsData?.data ?? [];
@@ -144,7 +144,11 @@ export default function Home() {
         Something went wrong. Please try again.
       </Text>
 
-      <CustomButton title="Retry" onPress={fetchPosts} style={styles.button} />
+      <CustomButton
+        title="Retry"
+        onPress={() => fetchPosts(undefined, false)}
+        style={styles.button}
+      />
     </View>
   );
   if (isLoading) {

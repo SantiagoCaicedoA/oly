@@ -1,7 +1,11 @@
 import { TabBarContext } from "@/app/(tabs)/_layout";
 import { Images } from "@/assets";
 import { useTheme } from "@/context/theme-context";
-import { useCommentOnPostMutation, useGetCommentsQuery } from "@/store/api";
+import {
+  useCommentOnPostMutation,
+  useDeleteCommentMutation,
+  useGetCommentsQuery,
+} from "@/store/api";
 import { Typography } from "@/utils/custom-styles";
 import {
   BottomSheetFooter,
@@ -12,12 +16,14 @@ import {
 } from "@gorhom/bottom-sheet";
 import React, {
   forwardRef,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
-  useState,
+  useRef,
 } from "react";
 import {
+  ActivityIndicator,
   Image,
   Platform,
   StyleSheet,
@@ -35,11 +41,15 @@ const CommentBottomSheet = forwardRef<
   CommentBottomSheetProps
 >(({ postId }, ref) => {
   const { colors } = useTheme();
+
   const snapPoints = useMemo(() => ["50%", "90%"], []);
   const { hideTabBar, showTabBar } = useContext(TabBarContext);
-  const [commentText, setCommentText] = useState("");
+  const commentInputRef = useRef<any>(null);
+  const commentText = useRef("");
+
   const [commentOnPost, { isLoading }] = useCommentOnPostMutation();
   const { data: commentsData } = useGetCommentsQuery({ postId });
+  const [deleteComment] = useDeleteCommentMutation();
   useEffect(() => {
     if (commentsData) {
     }
@@ -47,19 +57,20 @@ const CommentBottomSheet = forwardRef<
 
   const comments = commentsData?.data ?? [];
   const handleSendComment = async () => {
-    if (!commentText.trim()) return;
-
+    if (!commentText.current.trim()) return;
     try {
-      const res = await commentOnPost({ postId, text: commentText }).unwrap();
-
-      setCommentText("");
+      await commentOnPost({ postId, text: commentText.current }).unwrap();
+      commentText.current = "";
+      commentInputRef.current?.clear();
     } catch (error) {
       console.error("Comment error:", error);
     }
   };
+
   const styles = StyleSheet.create({
     contentContainer: {
       paddingHorizontal: scale(10),
+      paddingBottom: scale(80),
     },
     footer: {
       borderTopColor: colors.text,
@@ -113,6 +124,18 @@ const CommentBottomSheet = forwardRef<
       fontSize: Typography.fontSize.md,
       textAlign: "center",
     },
+    loaderContainer: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 999,
+      borderRadius: scale(15),
+      backgroundColor: "rgba(0, 0, 0, 0.35)",
+    },
   });
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
@@ -124,34 +147,39 @@ const CommentBottomSheet = forwardRef<
       </Text>
     </View>
   );
-  const renderFooter = (props: BottomSheetFooterProps) => (
-    <BottomSheetFooter {...props} bottomInset={0}>
-      <View style={styles.footer}>
-        <View
-          style={{
-            flexDirection: "row",
-            gap: scale(5),
-            alignItems: "center",
-          }}
-        >
-          <BottomSheetTextInput
-            style={styles.messageContainer}
-            placeholder="Message"
-            placeholderTextColor={colors.textSecondary}
-            value={commentText}
-            onChangeText={setCommentText}
-          />
-
-          <TouchableOpacity
-            style={styles.sendContainer}
-            onPress={handleSendComment}
-            disabled={isLoading || !commentText.trim()}
+  const renderFooter = useCallback(
+    (props: BottomSheetFooterProps) => (
+      <BottomSheetFooter {...props} bottomInset={0}>
+        <View style={styles.footer}>
+          <View
+            style={{
+              flexDirection: "row",
+              gap: scale(5),
+              alignItems: "center",
+            }}
           >
-            <Image source={Images.send} style={styles.sendIcon} />
-          </TouchableOpacity>
+            <BottomSheetTextInput
+              style={styles.messageContainer}
+              placeholder="Message"
+              placeholderTextColor={colors.textSecondary}
+              onChangeText={(text) => {
+                commentText.current = text;
+              }}
+              ref={commentInputRef}
+            />
+
+            <TouchableOpacity
+              style={styles.sendContainer}
+              onPress={handleSendComment}
+              disabled={isLoading}
+            >
+              <Image source={Images.send} style={styles.sendIcon} />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </BottomSheetFooter>
+      </BottomSheetFooter>
+    ),
+    [colors, isLoading],
   );
 
   return (
@@ -175,6 +203,11 @@ const CommentBottomSheet = forwardRef<
         keyboardShouldPersistTaps="handled"
       >
         <>
+          {isLoading && (
+            <View style={styles.loaderContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+          )}
           <Text style={styles.commentHeading}>Comments</Text>
           {comments.length === 0
             ? renderEmptyState()

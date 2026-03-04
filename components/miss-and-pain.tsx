@@ -70,7 +70,7 @@ export default function MissAndPain({
       paddingVertical: scale(20),
     },
     switchRow: {
-      marginBottom: wasMiss ? scale(12) : 0,
+      // marginBottom: wasMiss ? scale(1) : 0,
     },
     switchQuestion: {
       fontSize: Typography.fontSize.md,

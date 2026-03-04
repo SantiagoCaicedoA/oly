@@ -42,11 +42,11 @@ export default function Workout() {
 
   useEffect(() => {
     if (token) {
-      fetchTraining();
+      fetchTraining(undefined, false);
     }
   }, [token]);
   useEffect(() => {
-    if (data) dispatch(setTrainingData(data));
+    if (data) dispatch(setTrainingData(JSON.parse(JSON.stringify(data))));
   }, [data]);
   const DAY_KEYS = [
     "sunday",
@@ -80,7 +80,7 @@ export default function Workout() {
       setSelectedExercise({
         name: item.exercise_name,
         dayKey,
-        exercises: todaysTraining,
+        exercises: JSON.parse(JSON.stringify(todaysTraining)),
       }),
     );
 
@@ -154,7 +154,7 @@ export default function Workout() {
           </Text>
           <CustomButton
             title="RETRY"
-            onPress={fetchTraining}
+            onPress={() => fetchTraining(undefined, false)}
             style={styles.retryButton}
           />
         </View>

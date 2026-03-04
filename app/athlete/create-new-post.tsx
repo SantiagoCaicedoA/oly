@@ -112,7 +112,7 @@ export default function CreateNewPost() {
     }
   }, [errors]);
   const handleBackPress = () => {
-    router.push("/(tabs)/home");
+    router.back();
   };
 
   const onSubmit = async (data: CreatePostFormValues) => {

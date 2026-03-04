@@ -237,13 +237,15 @@ export default function PostExpanded() {
                   alignItems: "center",
                 }}
               >
-                <Text style={styles.name}>{post?.name}</Text>
+                <Text style={styles.name}>{post?.username}</Text>
                 <Text style={styles.time}>
                   {getRelativeTime(post?.createdAt)}
                 </Text>
               </View>
 
-              <Text style={styles.userName}>{post?.username}</Text>
+              <Text style={styles.userName}>
+                {post?.user?.profile?.country}
+              </Text>
             </View>
           </View>
           <Text style={styles.liftName}>{post?.lift_name}</Text>
