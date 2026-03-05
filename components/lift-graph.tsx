@@ -1,16 +1,8 @@
 import { Images } from "@/assets";
 import { useTheme } from "@/context/theme-context";
 import { Typography } from "@/utils/custom-styles";
-import { router } from "expo-router";
 import React, { useState } from "react";
-import {
-  Image,
-  Pressable,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { scale } from "react-native-size-matters";
 interface LiftGraphProps {
   liftName: string;
@@ -18,16 +10,7 @@ interface LiftGraphProps {
 export default function LiftGraph({ liftName }: LiftGraphProps) {
   const { colors } = useTheme();
   const [showOptions, setShowOptions] = useState(false);
-  const handleToggleOptions = (e?: any) => {
-    e?.stopPropagation?.();
-    setShowOptions((prev) => !prev);
-  };
-  const handleOptionPress = (e: any) => {
-    e.stopPropagation();
-    setShowOptions(false);
 
-    router.push("/athlete/add-exercise");
-  };
   const handleOutsidePress = () => {
     if (showOptions) {
       setShowOptions(false);
@@ -95,24 +78,6 @@ export default function LiftGraph({ liftName }: LiftGraphProps) {
       <>
         <View style={styles.headerContainer}>
           <Text style={styles.heading}>{liftName}</Text>
-          <View style={styles.optionsWrapper}>
-            <TouchableOpacity onPress={handleToggleOptions}>
-              <Image
-                source={Images.optionicon}
-                style={styles.optionIcon}
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
-
-            {showOptions && (
-              <TouchableOpacity
-                style={styles.dropdown}
-                onPress={handleOptionPress}
-              >
-                <Text style={styles.dropdownText}>Add Exercise</Text>
-              </TouchableOpacity>
-            )}
-          </View>
         </View>
 
         <View style={styles.graphContainer}>

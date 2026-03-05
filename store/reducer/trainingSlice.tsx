@@ -17,6 +17,7 @@ export interface ExerciseSet {
   coach_prescription?: string;
   intent: string;
   context: string;
+  isComplete: boolean;
 }
 
 export interface Exercise {

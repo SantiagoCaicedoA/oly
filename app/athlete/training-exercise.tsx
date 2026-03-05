@@ -118,7 +118,6 @@ export default function TrainingExercise() {
 
   const handlePressExercise = (set: ExerciseSet) => {
     setSelectedSet(set);
-    setCheckedSetNumbers((prev) => new Set(prev).add(set.set_number));
     bottomSheetRef.current?.present();
   };
 
@@ -293,7 +292,7 @@ export default function TrainingExercise() {
                 reps={set.reps}
                 weight={set.weight}
                 rpm={set.rpm_percent}
-                isChecked={checkedSetNumbers.has(set.set_number)}
+                isComplete={set.isComplete ?? false}
                 onPress={() => handlePressExercise(set)}
               />
             ))}

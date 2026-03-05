@@ -17,14 +17,13 @@ export const ATHLETE_ROUTES = {
   UPDATE_TRAINING_DATA: "/api/training/log",
   DAILY_CHECK_IN: "/api/daily/check-in",
   CUSTOM_SET: "/api/training/week/custom-set",
-  LOG_SET: "/api/set-log",
   LIKE_POST_BY_ID: (postId: string) => `/api/posts/${postId}/like`,
   UN_LIKE_POST_BY_ID: (postId: string) => `/api/posts/${postId}/like`,
   COMMENT_POST_BY_ID: (postId: string) => `/api/posts/${postId}/comments`,
   GET_COMMENTS_BY_POST_ID: (postId: string) => `/api/posts/${postId}/comments`,
   DELETE_COMMENT_BY_ID: (postId: string, commentId: string) =>
     `/api/posts/${postId}/comments/${commentId}`,
-};
+} as const;
 export const API_ROUTES = {
   AUTH: AUTH_ROUTES,
   ATHLETE: ATHLETE_ROUTES,

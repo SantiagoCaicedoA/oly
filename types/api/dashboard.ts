@@ -204,23 +204,3 @@ export interface CustomSetPayload {
   day: string;
   exercise_index: number;
 }
-export interface LogSetPayload {
-  set_number: number;
-  exercise_name: string;
-  day: string;
-}
-export interface LogSetData {
-  _id: string;
-  set_number: number;
-  exercise_name: string;
-  time: string;
-  day: string;
-  completed_at: string;
-  createdAt: string;
-}
-
-export interface LogSetResponse {
-  success: boolean;
-  data: LogSetData;
-  message: string;
-}

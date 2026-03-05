@@ -9,10 +9,9 @@ interface SetDetailProps {
   reps: number;
   weight: number;
   rpm: number;
-  isChecked?: boolean;
-  onToggleCheck?: () => void;
   onPress?: () => void;
   barColor?: string;
+  isComplete?: boolean;
 }
 
 export default function SetDetail({
@@ -20,10 +19,9 @@ export default function SetDetail({
   reps,
   weight,
   rpm,
-  isChecked = false,
-  onToggleCheck,
   onPress,
   barColor,
+  isComplete = false,
 }: SetDetailProps) {
   const { colors } = useTheme();
 
@@ -36,7 +34,7 @@ export default function SetDetail({
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      backgroundColor: isChecked ? colors.lightBlue : "transparent",
+      backgroundColor: isComplete ? colors.lightBlue : "transparent",
     },
     setContainer: {
       flexDirection: "row",
@@ -63,7 +61,7 @@ export default function SetDetail({
       borderRadius: scale(10),
       borderWidth: scale(2),
       borderColor: colors.primary,
-      backgroundColor: isChecked ? colors.primary : "transparent",
+      backgroundColor: isComplete ? colors.primary : "transparent",
       alignItems: "center",
       justifyContent: "center",
     },
@@ -76,13 +74,13 @@ export default function SetDetail({
       fontSize: Typography.fontSize.xs,
       fontWeight: Typography.fontWeight.bold,
       letterSpacing: Typography.letterSpacing.normal,
-      color: isChecked ? colors.text : colors.textSecondary,
+      color: isComplete ? colors.text : colors.textSecondary,
     },
     weightText: {
       fontSize: Typography.fontSize.md,
       fontWeight: Typography.fontWeight.normal,
       letterSpacing: Typography.letterSpacing.normal,
-      color: isChecked ? colors.text : colors.textSecondary,
+      color: isComplete ? colors.text : colors.textSecondary,
     },
   });
 
@@ -106,13 +104,9 @@ export default function SetDetail({
       <View style={styles.weightContainer}>
         <Text style={styles.weightText}>{rpm} %</Text>
       </View>
-      <TouchableOpacity
-        style={styles.checkbox}
-        onPress={onToggleCheck}
-        activeOpacity={0.7}
-      >
-        {isChecked && <Text style={styles.checkmark}>✓</Text>}
-      </TouchableOpacity>
+      <View style={styles.checkbox}>
+        {isComplete && <Text style={styles.checkmark}>✓</Text>}
+      </View>
     </TouchableOpacity>
   );
 }
