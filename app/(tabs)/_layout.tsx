@@ -23,6 +23,7 @@ export default function TabLayout() {
         <Tabs
           screenOptions={{
             headerShown: false,
+
             tabBarActiveTintColor: colors.primary,
             tabBarInactiveTintColor: "#8e8e93",
             tabBarStyle: isTabBarVisible
@@ -41,7 +42,7 @@ export default function TabLayout() {
               : { display: "none" },
             tabBarBackground: () => (
               <BlurView
-                intensity={40}
+                intensity={Platform.OS === "android" ? 70 : 40}
                 experimentalBlurMethod="dimezisBlurView"
                 style={{
                   position: "absolute",
@@ -61,6 +62,7 @@ export default function TabLayout() {
               textTransform: "uppercase",
             },
             tabBarShowLabel: true,
+            animation: "none",
           }}
         >
           <Tabs.Screen

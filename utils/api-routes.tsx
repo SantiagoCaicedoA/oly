@@ -5,12 +5,12 @@ export const AUTH_ROUTES = {
   SIGNUP: "/api/users",
   LOGIN: "/api/users/signin",
   ONBOARDING: "/api/profile",
-  ONBOARDING_IMAGE_UPLOAD: "/api/profile/upload-image",
-  ONBOARDING_VIDEO_UPLOAD: "/api/profile/upload-video",
+  ONBOARDING_IMAGE_UPLOAD: "api/profile/upload-image",
+  ONBOARDING_VIDEO_UPLOAD: "api/profile/upload-video",
 } as const;
 
 export const ATHLETE_ROUTES = {
-  CREATE_NEW_POST: "/api/posts",
+  CREATE_NEW_POST: "api/posts",
   GET_POSTS: "/api/posts",
   GET_POST_BY_ID: "/api/posts",
   GET_AI_TRAINING: "api/training/week",

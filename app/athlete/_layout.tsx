@@ -1,8 +1,17 @@
+import { useTheme } from "@/context/theme-context";
 import { Stack } from "expo-router";
 import React from "react";
 export default function AthleteLayout() {
+  const { colors } = useTheme();
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        animation: "slide_from_right",
+        gestureEnabled: false,
+        contentStyle: { backgroundColor: colors.background },
+      }}
+    >
       <Stack.Screen name="post-expanded" />
       <Stack.Screen name="daily-check-in" />
       <Stack.Screen name="training-exercise" />

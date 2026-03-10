@@ -4,6 +4,7 @@ import Header from "@/components/header";
 import SegmentedSelector from "@/components/segmented-selector";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
+import { useToast } from "@/context/toast-context";
 import { saveOnboardingData } from "@/store/reducer/onboardingSlice";
 import React from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -25,6 +26,7 @@ export default function OnboardingScreen4({
 }: OnboardingScreen4Props) {
   const { colors } = useTheme();
   const dispatch = useDispatch();
+  const { showError } = useToast();
   const onSubmit = (data: OnboardingScreen4Values) => {
     dispatch(saveOnboardingData(data));
 
@@ -35,6 +37,7 @@ export default function OnboardingScreen4({
   const {
     control,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<OnboardingScreen4Values>({
     defaultValues: {
@@ -43,6 +46,8 @@ export default function OnboardingScreen4({
       rest_days: [],
     },
   });
+  const daysPerWeek = watch("days_per_week");
+  const maxRestDays = 7 - (daysPerWeek || 1);
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -105,7 +110,13 @@ export default function OnboardingScreen4({
             control={control}
             name="rest_days"
             render={({ field: { onChange, value } }) => (
-              <DaysName value={value} onChange={onChange} />
+              <DaysName
+                value={value}
+                onChange={onChange}
+                maxRestDays={maxRestDays}
+                trainingDays={daysPerWeek}
+                onError={(msg) => showError(msg)}
+              />
             )}
           />
         </View>

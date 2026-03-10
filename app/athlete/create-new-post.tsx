@@ -128,7 +128,13 @@ export default function CreateNewPost() {
       type: "video/mp4",
       name: "post-video.mp4",
     } as any);
-
+    if (thumbnailUri) {
+      formData.append("thumbnail", {
+        uri: thumbnailUri,
+        type: "image/jpeg",
+        name: "thumbnail.jpg",
+      } as any);
+    }
     const session_detail: any = {
       lifted_kg: Number(data.loadLifted),
 
@@ -165,7 +171,7 @@ export default function CreateNewPost() {
       const result = await createPost({ formData }).unwrap();
 
       alert("Post created successfully!");
-      router.push("/(tabs)/home");
+      router.back();
     } catch (error: any) {
       console.error("Full error:", JSON.stringify(error, null, 2));
       if (error?.data?.errors) {

@@ -4,7 +4,7 @@ import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
 import { Typography } from "@/utils/custom-styles";
 import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
-import React, { forwardRef, useMemo, useState } from "react";
+import React, { forwardRef, useMemo, useRef, useState } from "react";
 import {
   Keyboard,
   StyleSheet,
@@ -49,7 +49,8 @@ const TimerBottomSheet = forwardRef<BottomSheetModal, Props>(
     const selectedTimer = `${minutes}:${seconds}`;
     const [lastSelectedTimer, setLastSelectedTimer] = useState<string>("");
     const hasTimerChanged = selectedTimer !== lastSelectedTimer;
-
+    const minutesRef = useRef<TextInput>(null);
+    const secondsRef = useRef<TextInput>(null);
     const formatMinutes = (text: string) => {
       const cleaned = text.replace(/\D/g, "");
       const num = parseInt(cleaned) || 0;
@@ -57,13 +58,14 @@ const TimerBottomSheet = forwardRef<BottomSheetModal, Props>(
     };
 
     const formatSeconds = (text: string) => {
+      if (text === "") return "";
       const cleaned = text.replace(/\D/g, "");
       const num = parseInt(cleaned) || 0;
       return num > 59 ? "59" : cleaned.slice(0, 2);
     };
 
     const handleSecondsBlur = () => {
-      if (seconds === "") {
+      if (seconds === "" || !seconds) {
         setSeconds("00");
       } else if (seconds.length === 1) {
         setSeconds(seconds.padStart(2, "0"));
@@ -185,23 +187,44 @@ const TimerBottomSheet = forwardRef<BottomSheetModal, Props>(
               <View style={styles.timerContainer}>
                 {isEditing ? (
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <TextInput
-                      style={[styles.timerInput]}
-                      value={minutes}
-                      onChangeText={(text) => setMinutes(formatMinutes(text))}
-                      keyboardType="numeric"
-                      maxLength={2}
-                      autoFocus
-                    />
+                    <TouchableOpacity
+                      onPress={() => minutesRef.current?.focus()}
+                      // style={{
+                      //   width: scale(80),
+                      //   alignItems: "center",
+                      // }}
+                    >
+                      <TextInput
+                        ref={minutesRef}
+                        style={[styles.timerInput]}
+                        value={minutes}
+                        onChangeText={(text) => setMinutes(formatMinutes(text))}
+                        onFocus={() => {
+                          if (minutes === "") setMinutes("00");
+                        }}
+                        keyboardType="numeric"
+                        maxLength={2}
+                        autoFocus
+                      />
+                    </TouchableOpacity>
                     <Text style={styles.timer}>:</Text>
-                    <TextInput
-                      style={[styles.timerInput]}
-                      value={seconds}
-                      onChangeText={(text) => setSeconds(formatSeconds(text))}
-                      onBlur={handleSecondsBlur}
-                      keyboardType="numeric"
-                      maxLength={2}
-                    />
+                    <TouchableOpacity
+                      onPress={() => secondsRef.current?.focus()}
+                      // style={{ width: scale(100), alignItems: "center" }}
+                    >
+                      <TextInput
+                        ref={secondsRef}
+                        style={[styles.timerInput]}
+                        value={seconds}
+                        onChangeText={(text) => setSeconds(formatSeconds(text))}
+                        onFocus={() => {
+                          if (seconds === "") setSeconds("00");
+                        }}
+                        onBlur={handleSecondsBlur}
+                        keyboardType="numeric"
+                        maxLength={2}
+                      />
+                    </TouchableOpacity>
                   </View>
                 ) : (
                   <TouchableOpacity onPress={() => setIsEditing(true)}>

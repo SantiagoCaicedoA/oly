@@ -96,6 +96,7 @@ export interface PostById {
   commentCount: number;
   likeCount: number;
   isLiked: boolean;
+  thumbnail_url: string
 
 }
 export interface PostUserById {

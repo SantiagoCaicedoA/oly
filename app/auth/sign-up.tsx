@@ -59,7 +59,7 @@ export default function SignUp() {
         }),
       );
 
-      showSuccess("Success", "Signup success");
+      showSuccess("Success", "Welcome! Let's get started");
       router.push({
         pathname: "/auth/onboarding/main-onboarding",
         params: {

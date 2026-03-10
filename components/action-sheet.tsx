@@ -342,7 +342,9 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
       <BottomSheetModal
         ref={ref}
         snapPoints={snapPoints}
-        backgroundStyle={{ backgroundColor: colors.background }}
+        backgroundStyle={{
+          backgroundColor: colors.background,
+        }}
         handleIndicatorStyle={{ backgroundColor: colors.text }}
       >
         <BottomSheetScrollView
@@ -413,7 +415,7 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
                 </Text>
               </View>
             </View>
-            <View style={{ gap: scale(12) }}>
+            <View style={{ gap: scale(12), paddingBottom: scale(20) }}>
               <WeightAndRep
                 weight={weight}
                 onWeightChange={setWeight}

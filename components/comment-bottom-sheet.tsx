@@ -21,6 +21,7 @@ import React, {
   useEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import {
   ActivityIndicator,
@@ -41,14 +42,17 @@ const CommentBottomSheet = forwardRef<
   CommentBottomSheetProps
 >(({ postId }, ref) => {
   const { colors } = useTheme();
-
+  const [enabled, setEnabled] = useState(false);
   const snapPoints = useMemo(() => ["50%", "90%"], []);
   const { hideTabBar, showTabBar } = useContext(TabBarContext);
   const commentInputRef = useRef<any>(null);
   const commentText = useRef("");
 
   const [commentOnPost, { isLoading }] = useCommentOnPostMutation();
-  const { data: commentsData } = useGetCommentsQuery({ postId });
+  const { data: commentsData } = useGetCommentsQuery(
+    { postId },
+    { skip: !enabled },
+  );
   const [deleteComment] = useDeleteCommentMutation();
   useEffect(() => {
     if (commentsData) {
@@ -166,6 +170,7 @@ const CommentBottomSheet = forwardRef<
                 commentText.current = text;
               }}
               ref={commentInputRef}
+              multiline
             />
 
             <TouchableOpacity
@@ -186,6 +191,10 @@ const CommentBottomSheet = forwardRef<
     <BottomSheetModal
       ref={ref}
       index={0}
+      onChange={(index) => {
+        if (index >= 0) setEnabled(true);
+        else setEnabled(false);
+      }}
       enableDynamicSizing={false}
       snapPoints={snapPoints}
       backgroundStyle={{ backgroundColor: colors.background }}

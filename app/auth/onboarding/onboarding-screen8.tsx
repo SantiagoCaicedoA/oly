@@ -10,7 +10,7 @@ import { OnboardingApiPayload } from "@/types/api/onboarding";
 import { Typography } from "@/utils/custom-styles";
 import { router } from "expo-router";
 import React from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
 import { scale } from "react-native-size-matters";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -168,9 +168,8 @@ export default function OnboardingScreen8() {
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <Text style={styles.generatingText}>
-          Generating your training plan...
-        </Text>
+        <ActivityIndicator size={"large"} color={colors.primary} />
+        <Text style={styles.generatingText}>Generating Content...</Text>
       </View>
     );
   }

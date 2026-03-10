@@ -20,6 +20,7 @@ import {
   CustomSetPayload,
   DailyCheckInPayload,
   GetPostByIdResponse,
+  GetPostsParams,
   GetPostsResponse,
   UpdateTrainingPayload
 } from "@/types/api/dashboard";
@@ -203,9 +204,10 @@ export const api = createApi({
       }),
       invalidatesTags: ["Athlete"],
     }),
-    getPosts: builder.query<GetPostsResponse, void>({
-      query: () => ({
-        url: API_ROUTES.ATHLETE.GET_POSTS,
+
+    getPosts: builder.query<GetPostsResponse, GetPostsParams>({
+      query: ({ page, limit }) => ({
+        url: `${API_ROUTES.ATHLETE.GET_POSTS}?page=${page}&limit=${limit}`,
         method: "GET",
       }),
       providesTags: ["Athlete"],
@@ -302,7 +304,8 @@ export const {
   useUploadProfileImageMutation,
   useUploadAthleteVideoMutation,
   useCreateNewPostMutation,
-  useLazyGetPostsQuery,
+  // useLazyGetPostsQuery,
+  useGetPostsQuery,
   useGetPostByIdQuery,
   useLazyGetAiTrainingQuery,
   useUpdateTrainingDataMutation,

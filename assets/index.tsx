@@ -34,4 +34,5 @@ export const Images = {
   send: require("./images/send.png"),
   chart: require("./images/chart.png"),
   likeicon: require("./images/likeicon.png"),
+  videoplay: require("./images/videoplay.png"),
 };
