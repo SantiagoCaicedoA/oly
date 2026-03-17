@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.abdulhannan96.olyapp"
+      "bundleIdentifier": "com.oly.workoutplanner"
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +21,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.abdulhannan96.olyapp"
+      "package": "com.oly.workoutplanner"
     },
     "web": {
       "output": "static",

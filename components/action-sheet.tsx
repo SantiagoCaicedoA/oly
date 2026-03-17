@@ -138,7 +138,8 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
       };
 
       try {
-        await updateTraining(payload).unwrap();
+        const res = await updateTraining(payload).unwrap();
+
         showSuccess("Set updated successfully", "");
         (ref as React.RefObject<BottomSheetModal>)?.current?.dismiss();
       } catch (error) {

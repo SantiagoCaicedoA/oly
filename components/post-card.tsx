@@ -82,7 +82,7 @@ export default function PostCard({ post, onPress, isVisible }: PostCardProps) {
       setIsLiked(false);
       setLikeCount((prev) => prev - 1);
       try {
-        await unlikePost(post._id).unwrap();
+        const res = await unlikePost(post._id).unwrap();
       } catch (error) {
         console.error("Unlike error:", error);
         setIsLiked(true);
@@ -106,16 +106,25 @@ export default function PostCard({ post, onPress, isVisible }: PostCardProps) {
   };
 
   const handleVideoPress = async () => {
-    if (videoRef.current) {
+    if (!videoRef.current) return;
+    try {
       if (isPlaying) {
         await videoRef.current.pauseAsync();
+        setIsPlaying(false);
       } else {
         await videoRef.current.playAsync();
+        setIsPlaying(true);
       }
-      setIsPlaying(!isPlaying);
+    } catch (error) {
+      console.error("Video error:", error);
     }
   };
-
+  const handlePlaybackStatusUpdate = (status: any) => {
+    if (status.didJustFinish) {
+      videoRef.current?.setPositionAsync(0);
+      setIsPlaying(false);
+    }
+  };
   const styles = StyleSheet.create({
     container: {
       backgroundColor: colors.background,
@@ -218,23 +227,29 @@ export default function PostCard({ post, onPress, isVisible }: PostCardProps) {
       {post.opinion && <Text style={styles.caption}>{post.opinion}</Text>}
 
       <TouchableOpacity
-        onPress={videoPressed ? handleVideoPress : () => setVideoPressed(true)}
+        onPress={
+          videoPressed
+            ? handleVideoPress
+            : () => {
+                setVideoPressed(true);
+                setTimeout(() => {
+                  videoRef.current?.playAsync();
+                  setIsPlaying(true);
+                }, 100);
+              }
+        }
         activeOpacity={0.9}
       >
-        {videoPressed ? (
-          <Video
-            ref={videoRef}
-            source={{ uri: post.video_url }}
-            style={styles.video}
-            resizeMode={ResizeMode.COVER}
-            shouldPlay={true}
-            useNativeControls={false}
-          />
-        ) : (
+        {!videoPressed && (
           <View
             style={[
               styles.video,
-              { justifyContent: "center", alignItems: "center" },
+              {
+                justifyContent: "center",
+                alignItems: "center",
+                position: "absolute",
+                zIndex: 2,
+              },
             ]}
           >
             {post.thumbnail_url && (
@@ -249,13 +264,22 @@ export default function PostCard({ post, onPress, isVisible }: PostCardProps) {
             )}
             <Image
               source={Images.videoplay}
-              style={{ width: scale(50), height: scale(50), zIndex: 1 }}
+              style={{ width: scale(50), height: scale(50), zIndex: 3 }}
               resizeMode="contain"
             />
           </View>
         )}
-      </TouchableOpacity>
 
+        <Video
+          ref={videoRef}
+          source={{ uri: post.video_url }}
+          style={styles.video}
+          resizeMode={ResizeMode.COVER}
+          shouldPlay={false}
+          useNativeControls={false}
+          onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
+        />
+      </TouchableOpacity>
       <View style={styles.iconContainer}>
         <TouchableOpacity onPress={handleLike}>
           <Image

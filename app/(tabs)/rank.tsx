@@ -15,11 +15,15 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { scale } from "react-native-size-matters";
 
 export default function Rank() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const handleBackPress = () => {
     router.back();
   };
@@ -27,6 +31,7 @@ export default function Rank() {
     container: {
       flex: 1,
       backgroundColor: colors.background,
+      paddingBottom: insets.bottom + scale(30),
     },
     scrollContent: {
       paddingVertical: scale(15),

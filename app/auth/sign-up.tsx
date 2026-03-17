@@ -28,7 +28,7 @@ export default function SignUp() {
   const { colors } = useTheme();
   const { showSuccess, showError } = useToast();
   const dispatch = useDispatch();
-  const [submitProfile, { isLoading }] = useSignupMutation();
+  const [submitProfile, { isLoading, error }] = useSignupMutation();
   const {
     control,
     handleSubmit,

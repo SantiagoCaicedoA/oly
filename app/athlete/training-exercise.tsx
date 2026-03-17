@@ -133,6 +133,7 @@ export default function TrainingExercise() {
         exercise_index: activeIndex,
       };
       await customSet(payload).unwrap();
+
       showSuccess("Set Added Successfully", "");
     } catch (e) {
       showError("Failed To Add Set", "Error");

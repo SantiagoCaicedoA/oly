@@ -53,7 +53,7 @@ export interface Post {
   isLiked: boolean;
   likeCount: number;
   commentCount: number;
-  country: string
+  country: string;
 }
 
 export interface SessionDetail {
@@ -96,8 +96,7 @@ export interface PostById {
   commentCount: number;
   likeCount: number;
   isLiked: boolean;
-  thumbnail_url: string
-
+  thumbnail_url: string;
 }
 export interface PostUserById {
   _id: string;
@@ -204,4 +203,160 @@ export interface DailyCheckInPayload {
 export interface CustomSetPayload {
   day: string;
   exercise_index: number;
+}
+
+export interface KeyCue {
+  [index: number]: string;
+}
+
+export interface SetDetail {
+  set_number: number;
+  weight: number;
+  reps: number;
+  rpm_percent: number;
+  isComplete: boolean;
+  coach_prescription: string;
+  key_cues: string[];
+  was_it_a_miss: boolean;
+  any_pain_or_discomfort: boolean;
+  pain_where: string[];
+  intent: string;
+  context: string;
+}
+
+export interface AiExerciseDetail {
+  exercise_name: string;
+  time: string;
+  no_of_set: number;
+  sets: SetDetail[];
+  coach_note: string;
+}
+
+export interface DailyCheckIn {
+  sleep_quality: number | null;
+  stress_level: number | null;
+  mental_readiness: number | null;
+  motivation: string;
+  muscle_soreness: number;
+  sore_areas: string[];
+  intensity: number;
+}
+
+export interface Completion {
+  isComplete: boolean;
+  completed_at: string | null;
+  sets_logged: number;
+}
+
+export interface AiTrainingDay {
+  type: "training";
+  coach_note: string;
+  key_cues: string[];
+  daily_check_in: DailyCheckIn;
+  exercises: AiExerciseDetail[];
+  coach_prescription: string;
+  key_cues_of_specific_lift: string[];
+  weight_lifted: number | null;
+  reps: number | null;
+  completion: Completion;
+}
+
+export interface RestDay {
+  type: "rest";
+  key_cues: string[];
+  key_cues_of_specific_lift: string[];
+  completion: Completion;
+  daily_check_in: DailyCheckIn;
+  exercises: [];
+}
+
+export type DayPlan = TrainingDay | RestDay;
+
+export interface WeekSchedule {
+  monday: DayPlan;
+  tuesday: DayPlan;
+  wednesday: DayPlan;
+  thursday: DayPlan;
+  friday: DayPlan;
+  saturday: DayPlan;
+  sunday: DayPlan;
+}
+
+export interface ProfileSnapshot {
+  training_days_per_week: number;
+  preferred_rest_days: string[];
+  session_duration: number;
+}
+
+export interface AiTrainingPlan {
+  week_schedule: WeekSchedule;
+  is_first_week: boolean;
+  profile_snapshot: ProfileSnapshot;
+}
+
+export interface AiTrainingResponse {
+  data: AiTrainingPlan;
+}
+export interface UpdateTrainingResponse {
+  success: boolean;
+  message: string;
+  data: UpdatedTrainingDay;
+}
+
+export interface UpdatedTrainingDay {
+  completion: Completion;
+  type: "training" | "rest";
+  coach_note: string;
+  key_cues: string[];
+  daily_check_in: DailyCheckIn;
+  exercises: UpdatedExercise[];
+  coach_prescription: string;
+  key_cues_of_specific_lift: string[];
+  weight_lifted: number | null;
+  reps: number | null;
+}
+
+export interface UpdatedExercise {
+  exercise_name: string;
+  time: string;
+  no_of_set: number;
+  sets: UpdatedSetDetail[];
+  coach_note: string;
+}
+
+export interface UpdatedSetDetail {
+  set_number: number;
+  weight: number;
+  reps: number;
+  rpm_percent: number;
+  isComplete: boolean;
+  coach_prescription: string;
+  key_cues: string[];
+  was_it_a_miss: boolean;
+  any_pain_or_discomfort: boolean;
+  pain_where: string[];
+  intent: string;
+  context: string;
+
+  bar_speed?: string;
+  position_quality?: string;
+  where_did_it_fail?: string;
+  missed_where?: string;
+  pain_level?: string;
+}
+
+export interface CustomSetResponse {
+  success: boolean;
+  message: string;
+  data: {
+    set: UpdatedSetDetail;
+    total_sets: number;
+  };
+}
+
+export interface LikeUnlikeResponse {
+  success: boolean;
+  message: string;
+  likeCount: number;
+  isLiked: boolean;
 }

@@ -1,6 +1,7 @@
 import Header from "@/components/header";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
+import { useLoadingMessages } from "@/hooks/useLoadingMessage";
 import { useSubmitProfileMutation } from "@/store/api";
 import { setUser } from "@/store/reducer/authSlice";
 
@@ -22,7 +23,7 @@ export default function OnboardingScreen8() {
 
   const dispatch = useDispatch();
   const token = useSelector((state: RootState) => state.auth.token);
-
+  const loadingMessage = useLoadingMessages(isLoading, 25000);
   const onSubmit = async () => {
     try {
       const apiPayload: OnboardingApiPayload = {
@@ -169,7 +170,7 @@ export default function OnboardingScreen8() {
     return (
       <View style={styles.container}>
         <ActivityIndicator size={"large"} color={colors.primary} />
-        <Text style={styles.generatingText}>Generating Content...</Text>
+        <Text style={styles.generatingText}>{loadingMessage}</Text>
       </View>
     );
   }

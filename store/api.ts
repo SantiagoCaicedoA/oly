@@ -16,13 +16,17 @@ import {
   TokenData,
 } from "@/types/api/auth";
 import {
+  AiTrainingResponse,
   CreateNewPostResponse,
   CustomSetPayload,
+  CustomSetResponse,
   DailyCheckInPayload,
   GetPostByIdResponse,
   GetPostsParams,
   GetPostsResponse,
-  UpdateTrainingPayload
+  LikeUnlikeResponse,
+  UpdateTrainingPayload,
+  UpdateTrainingResponse,
 } from "@/types/api/dashboard";
 import {
   OnboardingApiPayload,
@@ -157,7 +161,7 @@ export const api = createApi({
       }),
       invalidatesTags: ["Athlete"],
     }),
-    login: builder.mutation<any, LoginValues>({
+    login: builder.mutation<SignupResponse, LoginValues>({
       query: (body) => ({
         url: API_ROUTES.AUTH.LOGIN,
         method: "POST",
@@ -220,14 +224,17 @@ export const api = createApi({
       providesTags: ["Athlete"],
     }),
 
-    getAiTraining: builder.query<any, void>({
+    getAiTraining: builder.query<AiTrainingResponse, void>({
       query: () => ({
         url: API_ROUTES.ATHLETE.GET_AI_TRAINING,
         method: "GET",
       }),
       providesTags: ["Athlete"],
     }),
-    updateTrainingData: builder.mutation<any, UpdateTrainingPayload>({
+    updateTrainingData: builder.mutation<
+      UpdateTrainingResponse,
+      UpdateTrainingPayload
+    >({
       query: (payload) => ({
         url: API_ROUTES.ATHLETE.UPDATE_TRAINING_DATA,
         method: "PATCH",
@@ -243,7 +250,7 @@ export const api = createApi({
       }),
       invalidatesTags: ["Athlete"],
     }),
-    customSet: builder.mutation<any, CustomSetPayload>({
+    customSet: builder.mutation<CustomSetResponse, CustomSetPayload>({
       query: (payload) => ({
         url: API_ROUTES.ATHLETE.CUSTOM_SET,
         method: "POST",
@@ -252,14 +259,14 @@ export const api = createApi({
       invalidatesTags: ["Athlete"],
     }),
 
-    likePost: builder.mutation<any, string>({
+    likePost: builder.mutation<LikeUnlikeResponse, string>({
       query: (postId) => ({
         url: API_ROUTES.ATHLETE.LIKE_POST_BY_ID(postId),
         method: "POST",
       }),
       invalidatesTags: ["Athlete"],
     }),
-    unLikePost: builder.mutation<any, string>({
+    unLikePost: builder.mutation<LikeUnlikeResponse, string>({
       query: (postId) => ({
         url: API_ROUTES.ATHLETE.UN_LIKE_POST_BY_ID(postId),
         method: "DELETE",
@@ -287,13 +294,15 @@ export const api = createApi({
       }),
       providesTags: ["Athlete"],
     }),
-    deleteComment: builder.mutation<any, { postId: string; commentId: string }>({
-      query: ({ postId, commentId }) => ({
-        url: API_ROUTES.ATHLETE.DELETE_COMMENT_BY_ID(postId, commentId),
-        method: "DELETE",
-      }),
-      invalidatesTags: ["Athlete"],
-    })
+    deleteComment: builder.mutation<any, { postId: string; commentId: string }>(
+      {
+        query: ({ postId, commentId }) => ({
+          url: API_ROUTES.ATHLETE.DELETE_COMMENT_BY_ID(postId, commentId),
+          method: "DELETE",
+        }),
+        invalidatesTags: ["Athlete"],
+      },
+    ),
   }),
 });
 
@@ -304,7 +313,7 @@ export const {
   useUploadProfileImageMutation,
   useUploadAthleteVideoMutation,
   useCreateNewPostMutation,
-  // useLazyGetPostsQuery,
+
   useGetPostsQuery,
   useGetPostByIdQuery,
   useLazyGetAiTrainingQuery,

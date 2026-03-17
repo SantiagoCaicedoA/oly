@@ -58,61 +58,61 @@ export default function OnboardingScreen5({
   });
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-    >
-      <Header
-        mainText="Equipment"
-        subText="Used to tailor exercise selection and loading."
-      />
-
-      <View style={styles.formGroup}>
-        <EquipmentList
-          heading="Essential Equipment"
-          items={[
-            {
-              title: "Barbell + Bumper Plates",
-              description: "Required for core lifting sessions",
-            },
-            {
-              title: "Squat Rack",
-              description: "Required for squats and press variations",
-            },
-          ]}
+    <View style={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Header
+          mainText="Equipment"
+          subText="Used to tailor exercise selection and loading."
         />
 
-        <Controller
-          control={control}
-          name="optional_equipment"
-          render={({ field: { value, onChange } }) => (
-            <EquipmentList
-              heading="Optional Equipment"
-              showCheckbox
-              items={OPTIONAL_EQUIPMENT.map((title) => ({
-                title,
-                description: "",
-                checked: value.includes(title),
-              }))}
-              onToggle={(index) => {
-                const item = OPTIONAL_EQUIPMENT[index];
+        <View style={styles.formGroup}>
+          <EquipmentList
+            heading="Essential Equipment"
+            items={[
+              {
+                title: "Barbell + Bumper Plates",
+                description: "Required for core lifting sessions",
+              },
+              {
+                title: "Squat Rack",
+                description: "Required for squats and press variations",
+              },
+            ]}
+          />
 
-                if (value.includes(item)) {
-                  onChange(value.filter((v) => v !== item));
-                } else {
-                  onChange([...value, item]);
-                }
-              }}
-            />
-          )}
-        />
-      </View>
+          <Controller
+            control={control}
+            name="optional_equipment"
+            render={({ field: { value, onChange } }) => (
+              <EquipmentList
+                heading="Optional Equipment"
+                showCheckbox
+                items={OPTIONAL_EQUIPMENT.map((title) => ({
+                  title,
+                  description: "",
+                  checked: value.includes(title),
+                }))}
+                onToggle={(index) => {
+                  const item = OPTIONAL_EQUIPMENT[index];
 
+                  if (value.includes(item)) {
+                    onChange(value.filter((v) => v !== item));
+                  } else {
+                    onChange([...value, item]);
+                  }
+                }}
+              />
+            )}
+          />
+        </View>
+      </ScrollView>
       <ActionButtonsRow
         onPrimaryPress={handleSubmit(onSubmit)}
         onSecondaryPress={onBack}
       />
-    </ScrollView>
+    </View>
   );
 }
