@@ -15,6 +15,9 @@ export interface ExerciseSet {
   pain_where?: string[];
   key_cues?: string[];
   coach_prescription?: string;
+  intent: string;
+  context: string;
+  isComplete: boolean;
 }
 
 export interface Exercise {
@@ -68,10 +71,11 @@ interface TrainingState {
   isFirstWeek: boolean;
   profileSnapshot: ProfileSnapshot | null;
   selectedExerciseName: string | null;
-
+  selectedDayKey: string | null;
   sleepQuality: number;
   stressLevel: number;
   mentalReadiness: number;
+  selectedDayExercises: Exercise[] | null;
 }
 
 const initialState: TrainingState = {
@@ -83,6 +87,8 @@ const initialState: TrainingState = {
   stressLevel: 0,
   mentalReadiness: 0,
   selectedExerciseName: null,
+  selectedDayKey: null,
+  selectedDayExercises: null,
 };
 
 const trainingSlice = createSlice({
@@ -97,9 +103,22 @@ const trainingSlice = createSlice({
       state.days = days;
       state.isFirstWeek = is_first_week;
       state.profileSnapshot = profile_snapshot;
+      if (state.selectedDayKey && days?.[state.selectedDayKey as keyof Days]) {
+        state.selectedDayExercises =
+          days[state.selectedDayKey as keyof Days].exercises;
+      }
     },
-    setSelectedExercise: (state, action: PayloadAction<string | null>) => {
-      state.selectedExerciseName = action.payload;
+    setSelectedExercise: (
+      state,
+      action: PayloadAction<{
+        name: string | null;
+        dayKey: string | null;
+        exercises: Exercise[];
+      }>,
+    ) => {
+      state.selectedExerciseName = action.payload.name;
+      state.selectedDayKey = action.payload.dayKey;
+      state.selectedDayExercises = action.payload.exercises;
     },
     clearTrainingData: () => initialState,
   },

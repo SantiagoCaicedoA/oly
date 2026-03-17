@@ -1,17 +1,17 @@
 import Header from "@/components/header";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
-import {
-  useSubmitDataToAIMutation,
-  useSubmitProfileMutation,
-} from "@/store/api";
+import { useLoadingMessages } from "@/hooks/useLoadingMessage";
+import { useSubmitProfileMutation } from "@/store/api";
+import { setUser } from "@/store/reducer/authSlice";
 
 import { selectOnboardingData } from "@/store/reducer/onboardingSlice";
 import { RootState } from "@/store/store";
+import { OnboardingApiPayload } from "@/types/api/onboarding";
 import { Typography } from "@/utils/custom-styles";
 import { router } from "expo-router";
 import React from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
 import { scale } from "react-native-size-matters";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -20,15 +20,13 @@ export default function OnboardingScreen8() {
   const allData = useSelector(selectOnboardingData);
 
   const [submitProfile, { isLoading }] = useSubmitProfileMutation();
-  const [submitAI, { isLoading: loading }] = useSubmitDataToAIMutation();
-  const isAnyLoading = isLoading || loading;
 
   const dispatch = useDispatch();
   const token = useSelector((state: RootState) => state.auth.token);
-
+  const loadingMessage = useLoadingMessages(isLoading, 25000);
   const onSubmit = async () => {
     try {
-      const apiPayload = {
+      const apiPayload: OnboardingApiPayload = {
         display_name: allData.name,
         country: allData.country,
         age: parseInt(allData.age),
@@ -92,8 +90,8 @@ export default function OnboardingScreen8() {
         performance_gaps: allData.performance_gaps,
       };
 
-      const response = await submitProfile(apiPayload).unwrap();
-
+      const result = await submitProfile(apiPayload).unwrap();
+      dispatch(setUser(result.data));
       Alert.alert(
         "Success",
         "Your profile has been created successfully!",
@@ -168,12 +166,11 @@ export default function OnboardingScreen8() {
       letterSpacing: Typography.letterSpacing.normal,
     },
   });
-  if (isAnyLoading) {
+  if (isLoading) {
     return (
       <View style={styles.container}>
-        <Text style={styles.generatingText}>
-          Generating your training plan...
-        </Text>
+        <ActivityIndicator size={"large"} color={colors.primary} />
+        <Text style={styles.generatingText}>{loadingMessage}</Text>
       </View>
     );
   }
@@ -187,7 +184,7 @@ export default function OnboardingScreen8() {
 
       <ActionButtonsRow
         onPrimaryPress={onSubmit}
-        primaryTitle={isAnyLoading ? "SAVING..." : "SAVE"}
+        primaryTitle={isLoading ? "SAVING..." : "SAVE"}
       />
     </View>
   );

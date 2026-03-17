@@ -65,7 +65,7 @@ export default function CoachNote({ coach_note, key_cues }: CoachNoteProps) {
       borderWidth: scale(1),
       borderRadius: scale(10),
       paddingHorizontal: scale(13),
-      paddingVertical: scale(10),
+      paddingVertical: scale(15),
     },
     dotContainer: {
       flexDirection: "row",

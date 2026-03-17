@@ -7,9 +7,18 @@ import { scale } from "react-native-size-matters";
 type DaysNameProps = {
   value: string[];
   onChange: (selected: string[]) => void;
+  maxRestDays: number;
+  trainingDays: number;
+  onError: (message: string) => void;
 };
 
-export default function DaysName({ value, onChange }: DaysNameProps) {
+export default function DaysName({
+  value,
+  onChange,
+  maxRestDays,
+  trainingDays,
+  onError,
+}: DaysNameProps) {
   const { colors } = useTheme();
 
   const days = [
@@ -58,10 +67,15 @@ export default function DaysName({ value, onChange }: DaysNameProps) {
     if (value.includes(day)) {
       onChange(value.filter((d) => d !== day));
     } else {
+      if (value.length >= maxRestDays) {
+        onError(
+          `You can only select ${maxRestDays} rest days for ${trainingDays} training days per week`,
+        );
+        return;
+      }
       onChange([...value, day]);
     }
   };
-
   const renderRow = (rowDays: string[]) => (
     <View style={styles.row}>
       {rowDays.map((day) => {

@@ -28,7 +28,7 @@ export default function SignUp() {
   const { colors } = useTheme();
   const { showSuccess, showError } = useToast();
   const dispatch = useDispatch();
-  const [submitProfile, { isLoading }] = useSignupMutation();
+  const [submitProfile, { isLoading, error }] = useSignupMutation();
   const {
     control,
     handleSubmit,
@@ -59,7 +59,7 @@ export default function SignUp() {
         }),
       );
 
-      showSuccess("Success", "Signup success");
+      showSuccess("Success", "Welcome! Let's get started");
       router.push({
         pathname: "/auth/onboarding/main-onboarding",
         params: {
@@ -134,8 +134,8 @@ export default function SignUp() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1, backgroundColor: colors.background }}
+      behavior={Platform.OS === "ios" ? "padding" : "padding"}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <View style={styles.container}>

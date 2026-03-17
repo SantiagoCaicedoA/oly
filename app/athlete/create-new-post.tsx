@@ -12,7 +12,7 @@ import { getFirstError } from "@/utils/get-error";
 import { createPostSchema } from "@/utils/validation-schemas";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as ImagePicker from "expo-image-picker";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import * as VideoThumbnails from "expo-video-thumbnails";
 import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -45,6 +45,7 @@ const LIFT_NAME_OPTIONS = [
   "Push Press",
   "Power jerk",
   "Jerk",
+  "Clean Pull",
 ];
 export default function CreateNewPost() {
   const { colors } = useTheme();
@@ -58,6 +59,12 @@ export default function CreateNewPost() {
 
   const { showSuccess, showError } = useToast();
   const [createPost, { isLoading }] = useCreateNewPostMutation();
+  const { weight, exerciseName, intent, context } = useLocalSearchParams<{
+    weight: string;
+    exerciseName: string;
+    intent: string;
+    context: string;
+  }>();
 
   const {
     control,
@@ -81,13 +88,31 @@ export default function CreateNewPost() {
     },
   });
   useEffect(() => {
+    if (exerciseName) {
+      if (!LIFT_NAME_OPTIONS.includes(exerciseName)) {
+        LIFT_NAME_OPTIONS.push(exerciseName);
+      }
+
+      setSelectedOpt(exerciseName);
+      setValue("liftName", exerciseName);
+    }
+
+    if (weight) {
+      setValue("loadLifted", String(weight));
+    }
+
+    if (intent && watch("intentEnabled")) {
+      setValue("intentValue", intent);
+    }
+  }, [exerciseName, weight, intent, context, watch("intentEnabled")]);
+  useEffect(() => {
     const firstError = getFirstError(errors);
     if (firstError) {
       showError(firstError);
     }
   }, [errors]);
   const handleBackPress = () => {
-    router.push("/(tabs)/home");
+    router.back();
   };
 
   const onSubmit = async (data: CreatePostFormValues) => {
@@ -103,11 +128,20 @@ export default function CreateNewPost() {
       type: "video/mp4",
       name: "post-video.mp4",
     } as any);
-
+    if (thumbnailUri) {
+      formData.append("thumbnail", {
+        uri: thumbnailUri,
+        type: "image/jpeg",
+        name: "thumbnail.jpg",
+      } as any);
+    }
     const session_detail: any = {
       lifted_kg: Number(data.loadLifted),
 
       context: data.contextEnabled,
+      context_value: data.contextEnabled
+        ? data.contextValue || context || ""
+        : "",
     };
 
     if (data.effortEnabled) {
@@ -117,7 +151,7 @@ export default function CreateNewPost() {
 
     if (data.intentEnabled) {
       session_detail.isIntent = true;
-      session_detail.intent_opt = data.intentValue;
+      session_detail.intent_opt = data.intentValue || intent || "";
     }
 
     const payload = {
@@ -137,7 +171,7 @@ export default function CreateNewPost() {
       const result = await createPost({ formData }).unwrap();
 
       alert("Post created successfully!");
-      router.push("/(tabs)/home");
+      router.back();
     } catch (error: any) {
       console.error("Full error:", JSON.stringify(error, null, 2));
       if (error?.data?.errors) {

@@ -1,39 +1,61 @@
 import { Images } from "@/assets";
 import PostCard from "@/components/post-card";
-import ScreenWrapper from "@/components/screen-wrapper";
 import CustomButton from "@/constants/custom-button";
 import { useTheme } from "@/context/theme-context";
-import { useLazyGetPostsQuery } from "@/store/api";
+import { useGetPostsQuery } from "@/store/api";
 import { RootState } from "@/store/store";
 import { Typography } from "@/utils/custom-styles";
 import { router, Stack } from "expo-router";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   Image,
-  RefreshControl,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { scale } from "react-native-size-matters";
 import { useDispatch, useSelector } from "react-redux";
 
 export default function Home() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
   const token = useSelector((state: RootState) => state.auth.token);
-
-  const [fetchPosts, { data: postsData, isLoading, isError, isFetching }] =
-    useLazyGetPostsQuery();
-  useEffect(() => {
-    if (token) {
-      fetchPosts();
-    }
-  }, [token]);
+  const LIMIT = 10;
+  const [page, setPage] = useState(1);
+  const isLoadingMore = useRef(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [allPosts, setAllPosts] = useState<any[]>([]);
+  const [visiblePostIds, setVisiblePostIds] = useState<Set<string>>(new Set());
+  const {
+    data: postsData,
+    isLoading,
+    isError,
+    isFetching,
+  } = useGetPostsQuery({ page, limit: LIMIT }, { skip: !token });
   const posts = postsData?.data ?? [];
+
+  useEffect(() => {
+    if (postsData?.data) {
+      if (page === 1) {
+        setAllPosts(postsData.data);
+      } else {
+        setAllPosts((prev) => {
+          const existingIds = new Set(prev.map((p) => p._id));
+          const unique = postsData.data.filter((p) => !existingIds.has(p._id));
+          return [...prev, ...unique];
+        });
+      }
+      if (postsData.data.length < LIMIT) setHasMore(false);
+      else setHasMore(true);
+    }
+  }, [page, postsData]);
 
   const handlePostPress = (post_id: string) => {
     router.push({
@@ -41,10 +63,31 @@ export default function Home() {
       params: { post_id },
     });
   };
+  const handleLoadMore = () => {
+    if (isLoadingMore.current || isFetching || isLoading || !hasMore) return;
+    isLoadingMore.current = true;
+    setPage((prev) => prev + 1);
+  };
+  useEffect(() => {
+    if (!isFetching) {
+      isLoadingMore.current = false;
+    }
+  }, [isFetching]);
+  const handleRefresh = () => {
+    setHasMore(true);
+    setPage(1);
+  };
+  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+    const ids = new Set<string>(
+      viewableItems.map((item: any) => item.item._id),
+    );
+    setVisiblePostIds(ids);
+  }).current;
   const styles = StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: colors.background,
+      paddingBottom: insets.bottom + scale(30),
     },
     icon: {
       width: scale(20),
@@ -145,7 +188,11 @@ export default function Home() {
         Something went wrong. Please try again.
       </Text>
 
-      <CustomButton title="Retry" onPress={fetchPosts} style={styles.button} />
+      <CustomButton
+        title="Retry"
+        onPress={handleRefresh}
+        style={styles.button}
+      />
     </View>
   );
   if (isLoading) {
@@ -169,42 +216,54 @@ export default function Home() {
     <>
       <Stack.Screen options={{ gestureEnabled: false }} />
       <SafeAreaView style={styles.container}>
-        <ScreenWrapper>
-          <View style={styles.header}>
-            <View style={styles.headerSection}>
-              <Image source={Images.profile} style={styles.icon} />
-              <Image source={Images.search} style={styles.icon} />
-            </View>
-            <Text style={styles.home}>HOME</Text>
-            <View style={styles.headerSection}>
-              <Image source={Images.notificationicon} style={styles.icon} />
-              <Image source={Images.comment} style={styles.icon} />
-            </View>
+        {/* <ScreenWrapper> */}
+        <View style={styles.header}>
+          <View style={styles.headerSection}>
+            <Image source={Images.profile} style={styles.icon} />
+            <Image source={Images.search} style={styles.icon} />
           </View>
+          <Text style={styles.home}>HOME</Text>
+          <View style={styles.headerSection}>
+            <Image source={Images.notificationicon} style={styles.icon} />
+            <Image source={Images.comment} style={styles.icon} />
+          </View>
+        </View>
 
-          <FlatList
-            data={postsData?.data || []}
-            keyExtractor={(item) => item._id}
-            renderItem={({ item }) => (
-              <PostCard post={item} onPress={handlePostPress} />
-            )}
-            contentContainerStyle={[
-              styles.listContent,
-              posts.length === 0 && { flex: 1 },
-            ]}
-            ListEmptyComponent={renderEmptyComponent}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={isFetching && !isLoading}
-                onRefresh={fetchPosts}
-                colors={[colors.primary]}
-                tintColor={colors.primary}
-                size={56}
+        <FlatList
+          data={allPosts}
+          keyExtractor={(item) => item._id}
+          renderItem={({ item }) => (
+            <PostCard
+              post={item}
+              onPress={handlePostPress}
+              isVisible={visiblePostIds.has(item._id)}
+            />
+          )}
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
+          contentContainerStyle={[
+            styles.listContent,
+            allPosts.length === 0 && { flex: 1 },
+          ]}
+          ListFooterComponent={() =>
+            isFetching && !isLoading ? (
+              <ActivityIndicator
+                size="small"
+                color={colors.primary}
+                style={{ padding: scale(10) }}
               />
-            }
-          />
-        </ScreenWrapper>
+            ) : null
+          }
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.1}
+          windowSize={5}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          removeClippedSubviews={true}
+          ListEmptyComponent={renderEmptyComponent}
+          showsVerticalScrollIndicator={false}
+        />
+        {/* </ScreenWrapper> */}
       </SafeAreaView>
     </>
   );

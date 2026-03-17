@@ -6,9 +6,10 @@ import { useTheme } from "@/context/theme-context";
 import { useGetPostByIdQuery } from "@/store/api";
 import { Typography } from "@/utils/custom-styles";
 import { getRelativeTime } from "@/utils/time";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { ResizeMode, Video } from "expo-av";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -23,16 +24,22 @@ import { scale } from "react-native-size-matters";
 export default function PostExpanded() {
   const { colors } = useTheme();
   const { post_id } = useLocalSearchParams();
-
+  const [videoPressed, setVideoPressed] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
   const videoRef = useRef<Video>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const { data, isLoading, error, isError } = useGetPostByIdQuery(
     post_id as string,
   );
 
+  const bottomSheetRef = useRef<BottomSheetModal>(null);
   const post = data?.data;
   const session = post?.session_detail;
-
+  useEffect(() => {
+    if (post?.isLiked) {
+      setIsLiked(post.isLiked);
+    }
+  }, [post]);
   const handleBackPress = () => {
     router.back();
   };
@@ -46,6 +53,11 @@ export default function PostExpanded() {
       setIsPlaying(!isPlaying);
     }
   };
+
+  const handleCommentPress = () => {
+    bottomSheetRef.current?.present();
+  };
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -91,7 +103,7 @@ export default function PostExpanded() {
       fontWeight: Typography.fontWeight.normal,
       letterSpacing: Typography.letterSpacing.normal,
       color: colors.textSecondary,
-      marginBottom: scale(12),
+      marginVertical: scale(12),
     },
     time: {
       fontSize: Typography.fontSize.base,
@@ -182,19 +194,46 @@ export default function PostExpanded() {
         showsVerticalScrollIndicator={false}
       >
         <TouchableOpacity
-          onPress={handleVideoPress}
+          onPress={
+            videoPressed ? handleVideoPress : () => setVideoPressed(true)
+          }
           activeOpacity={0.9}
           style={{ paddingHorizontal: scale(14) }}
         >
-          <Video
-            ref={videoRef}
-            source={{ uri: post?.video_url ?? "" }}
-            style={styles.image}
-            resizeMode={ResizeMode.COVER}
-            shouldPlay={false}
-            isLooping
-            useNativeControls={false}
-          />
+          {videoPressed ? (
+            <Video
+              ref={videoRef}
+              source={{ uri: post?.video_url ?? "" }}
+              style={styles.image}
+              resizeMode={ResizeMode.COVER}
+              shouldPlay={true}
+              isLooping
+              useNativeControls={false}
+            />
+          ) : (
+            <View
+              style={[
+                styles.image,
+                { justifyContent: "center", alignItems: "center" },
+              ]}
+            >
+              {post?.thumbnail_url && (
+                <Image
+                  source={{ uri: post.thumbnail_url }}
+                  style={[
+                    styles.image,
+                    { position: "absolute", top: 0, left: 0 },
+                  ]}
+                  resizeMode="cover"
+                />
+              )}
+              <Image
+                source={Images.videoplay}
+                style={{ width: scale(50), height: scale(50), zIndex: 1 }}
+                resizeMode="contain"
+              />
+            </View>
+          )}
         </TouchableOpacity>
         <View style={styles.detailContainer}>
           <View style={styles.header}>
@@ -207,23 +246,31 @@ export default function PostExpanded() {
                   alignItems: "center",
                 }}
               >
-                <Text style={styles.name}>{post?.name}</Text>
+                <Text style={styles.name}>{post?.username}</Text>
                 <Text style={styles.time}>
                   {getRelativeTime(post?.createdAt)}
                 </Text>
               </View>
 
-              <Text style={styles.userName}>{post?.username}</Text>
+              <Text style={styles.userName}>
+                {post?.user?.profile?.country}
+              </Text>
             </View>
           </View>
           <Text style={styles.liftName}>{post?.lift_name}</Text>
           {post?.opinion && <Text style={styles.caption}>{post.opinion}</Text>}
 
           <View style={styles.iconContainer}>
-            <Image source={Images.like} style={styles.icon} />
-            <Text style={styles.count}>12</Text>
+            <Image
+              source={isLiked ? Images.likeicon : Images.like}
+              style={styles.icon}
+            />
+
+            <Text style={styles.count}>{post?.likeCount}</Text>
+
             <Image source={Images.comment} style={styles.icon} />
-            <Text style={styles.count}>3</Text>
+
+            <Text style={styles.count}>{post?.commentCount}</Text>
           </View>
           <View style={{ gap: scale(5), marginTop: scale(15) }}>
             {session?.lifted_kg != null && (
@@ -234,8 +281,13 @@ export default function PostExpanded() {
                 unit="kg"
               />
             )}
+            {session?.context_value && (
+              <Context
+                showContext={session?.context ?? false}
+                contextValue={session?.context_value}
+              />
+            )}
 
-            <Context showContext={session?.context ?? false} />
             {session?.isIntent && (
               <DetailLift
                 icon={Images.intenticon}

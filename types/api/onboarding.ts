@@ -76,6 +76,7 @@ export interface OnboardingApiPayload {
   country: string;
   age: number;
   sex: string;
+  user_name: string;
   experience_years: number;
   height_cm: number;
   bodyweight_value: number;
@@ -89,13 +90,60 @@ export interface OnboardingApiPayload {
   training_preference: string;
   performance_gaps: string[];
 }
+export interface StrengthItem {
+  value: number;
+  checked: boolean;
+}
 
+export interface Considerations {
+  has_limitations: boolean;
+  affected_areas: string[];
+  impact_level: string;
+  triggers: string[];
+}
+
+export interface Availability {
+  training_days_per_week: number;
+  session_duration: number;
+  preferred_rest_days: string[];
+}
+
+export interface Equipment {
+  optional: string[];
+}
+export interface Profile {
+  image_url: string;
+  video_urls: string[];
+  display_name: string;
+  country: string;
+  age: number;
+  sex: string;
+  experience_years: number;
+  height_cm: number;
+  bodyweight_value: number;
+  bodyweight_unit: string;
+  preferred_unit: string;
+  strength_stats: StrengthStats;
+  considerations: Considerations;
+  availability: Availability;
+  equipment: Equipment;
+  training_preference: string;
+  performance_gaps: string[];
+}
+export interface OnboardingUser {
+  _id: string;
+  name: string;
+  email: string;
+  username: string;
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
+  profile: Profile;
+}
 export interface OnboardingApiResponse {
   success: boolean;
   message?: string;
-  data?: {
-    user_id?: string;
-  };
+  data: OnboardingUser;
 }
 
 export interface UploadProfileImageResponse {

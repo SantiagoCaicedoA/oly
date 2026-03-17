@@ -90,8 +90,8 @@ export default function LiftDetailsCard({
       opacity: 0.3,
     },
     icon: {
-      width: scale(18),
-      height: scale(18),
+      width: scale(14),
+      height: scale(14),
     },
   });
 

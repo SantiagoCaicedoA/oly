@@ -1,15 +1,21 @@
 import { Images } from "@/assets";
 import { useTheme } from "@/context/theme-context";
 import { Typography } from "@/utils/custom-styles";
-import React from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useState } from "react";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { scale } from "react-native-size-matters";
 interface LiftGraphProps {
   liftName: string;
 }
 export default function LiftGraph({ liftName }: LiftGraphProps) {
   const { colors } = useTheme();
+  const [showOptions, setShowOptions] = useState(false);
 
+  const handleOutsidePress = () => {
+    if (showOptions) {
+      setShowOptions(false);
+    }
+  };
   const styles = StyleSheet.create({
     container: {
       backgroundColor: colors.surface,
@@ -21,7 +27,7 @@ export default function LiftGraph({ liftName }: LiftGraphProps) {
     headerContainer: {
       flexDirection: "row",
       alignItems: "center",
-
+      marginBottom: scale(8),
       justifyContent: "space-between",
     },
     heading: {
@@ -43,27 +49,45 @@ export default function LiftGraph({ liftName }: LiftGraphProps) {
       width: "100%",
       height: scale(140),
     },
+    optionsWrapper: {
+      position: "relative",
+    },
+    dropdownText: {
+      color: colors.text,
+      fontSize: Typography.fontSize.md,
+    },
+    dropdown: {
+      position: "absolute",
+      top: scale(25),
+      right: 0,
+      backgroundColor: colors.surface,
+      paddingHorizontal: scale(14),
+      paddingVertical: scale(10),
+      borderRadius: scale(8),
+      minWidth: scale(120),
+      zIndex: 999,
+      elevation: 8,
+      alignItems: "center",
+    },
+    wrapper: {
+      flex: 0,
+    },
   });
   return (
-    <>
-      <View style={styles.headerContainer}>
-        <Text style={styles.heading}>{liftName}</Text>
-        <TouchableOpacity>
+    <Pressable style={styles.wrapper} onPress={handleOutsidePress}>
+      <>
+        <View style={styles.headerContainer}>
+          <Text style={styles.heading}>{liftName}</Text>
+        </View>
+
+        <View style={styles.graphContainer}>
           <Image
-            source={Images.optionicon}
-            style={styles.optionIcon}
+            source={Images.bargraph}
+            style={styles.graph}
             resizeMode="contain"
           />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.graphContainer}>
-        <Image
-          source={Images.bargraph}
-          style={styles.graph}
-          resizeMode="contain"
-        />
-      </View>
-    </>
+        </View>
+      </>
+    </Pressable>
   );
 }

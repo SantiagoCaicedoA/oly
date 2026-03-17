@@ -86,8 +86,9 @@ export default function OnboardingScreen2({
     press: PRESS_LIFTS.map((lift) => lift.value),
     variation: VARIATION_LIFTS.map((lift) => lift.value),
   });
-  const [uploadAthleteVideo, { isLoading: isUploadingToApi }] =
+  const [uploadAthleteVideo, { isLoading: isUploadingToApi, error }] =
     useUploadAthleteVideoMutation();
+
   const handleValueChange = (
     category: LiftCategory,
     index: number,

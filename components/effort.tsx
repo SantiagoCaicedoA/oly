@@ -9,6 +9,13 @@ type EffortProps = {
 };
 export default function Effort({ effort_value = 0 }: EffortProps) {
   const { colors } = useTheme();
+  const effortTextMap: Record<number, string> = {
+    1: "Very Slow",
+    2: "Slow",
+    3: "Normal",
+    4: "Fast",
+    5: "Very Fast",
+  };
   const styles = StyleSheet.create({
     container: {
       backgroundColor: colors.surface,
@@ -62,7 +69,9 @@ export default function Effort({ effort_value = 0 }: EffortProps) {
           <Text style={styles.detail}>EFFORT</Text>
         </View>
         <View style={{ flexDirection: "row", gap: scale(3) }}>
-          <Text style={styles.value}>Bar Speed: FAST</Text>
+          <Text style={styles.value}>
+            Bar Speed: {effortTextMap[effort_value]}
+          </Text>
         </View>
       </View>
       <View style={styles.barContainer}>

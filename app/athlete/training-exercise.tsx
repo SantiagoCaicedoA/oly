@@ -7,8 +7,11 @@ import TalkToCoach from "@/components/talk-to-coach";
 import TimerBottomSheet from "@/components/timer-bottom-sheet";
 import CustomButton from "@/constants/custom-button";
 import { useTheme } from "@/context/theme-context";
+import { useToast } from "@/context/toast-context";
+import { useCustomSetMutation } from "@/store/api";
 import { Days, ExerciseSet } from "@/store/reducer/trainingSlice";
 import { RootState } from "@/store/store";
+import { CustomSetPayload } from "@/types/api/dashboard";
 import { Typography } from "@/utils/custom-styles";
 import {
   BottomSheetModal,
@@ -17,6 +20,7 @@ import {
 import { router } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Image,
   ScrollView,
   StyleSheet,
@@ -31,11 +35,23 @@ import { useSelector } from "react-redux";
 
 export default function TrainingExercise() {
   const { colors } = useTheme();
-  const [checkedSetNumber, setCheckedSetNumber] = useState<number | null>(null);
+  const { showSuccess, showError } = useToast();
+  const [checkedSetNumbers, setCheckedSetNumbers] = useState<Set<number>>(
+    new Set(),
+  );
   const days = useSelector((state: RootState) => state.training.days);
   const selectedExerciseName = useSelector(
     (state: RootState) => state.training.selectedExerciseName,
   );
+  const selectedDayKey = useSelector(
+    (state: RootState) => state.training.selectedDayKey,
+  );
+  const selectedDayExercises = useSelector(
+    (state: RootState) => state.training.selectedDayExercises,
+  );
+
+  const [customSet, { isLoading }] = useCustomSetMutation();
+
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const timerSheetRef = useRef<BottomSheetModal>(null);
   const [timerDuration, setTimerDuration] = useState<number>(0);
@@ -53,12 +69,14 @@ export default function TrainingExercise() {
     "friday",
     "saturday",
   ];
-  const dayKey = DAY_KEYS[new Date().getDay()] as keyof Days;
-  const todayData = days?.[dayKey];
-  const exerciseData =
-    todayData?.exercises?.find(
-      (ex) => ex.exercise_name === selectedExerciseName,
-    ) ?? null;
+
+  const todayData = days?.[selectedDayKey as keyof Days];
+  const [activeIndex, setActiveIndex] = useState(
+    selectedDayExercises?.findIndex(
+      (e) => e.exercise_name === selectedExerciseName,
+    ) ?? 0,
+  );
+  const exerciseData = selectedDayExercises?.[activeIndex] ?? null;
   useEffect(() => {
     if (!selectedSet || !exerciseData) return;
 
@@ -100,15 +118,45 @@ export default function TrainingExercise() {
 
   const handlePressExercise = (set: ExerciseSet) => {
     setSelectedSet(set);
-    setCheckedSetNumber(set.set_number);
     bottomSheetRef.current?.present();
   };
 
   const handleStartTimer = () => {
     timerSheetRef.current?.present();
   };
-  const handleAddSet = () => {
-    router.push("/athlete/add-exercise");
+  const handleAddSet = async () => {
+    try {
+      if (!selectedDayKey || !exerciseData) return;
+
+      const payload: CustomSetPayload = {
+        day: selectedDayKey,
+        exercise_index: activeIndex,
+      };
+      await customSet(payload).unwrap();
+
+      showSuccess("Set Added Successfully", "");
+    } catch (e) {
+      showError("Failed To Add Set", "Error");
+      console.log("error", e);
+    }
+  };
+
+  const handleNextExercise = () => {
+    if (!selectedDayExercises) return;
+
+    if (activeIndex < selectedDayExercises.length - 1) {
+      setActiveIndex((prev) => prev + 1);
+      setCheckedSetNumbers(new Set());
+    }
+  };
+
+  const handlePreviousExercise = () => {
+    if (!selectedDayExercises) return;
+
+    if (activeIndex > 0) {
+      setActiveIndex((prev) => prev - 1);
+      setCheckedSetNumbers(new Set());
+    }
   };
   const styles = StyleSheet.create({
     container: {
@@ -190,6 +238,17 @@ export default function TrainingExercise() {
       color: colors.text,
       letterSpacing: Typography.letterSpacing.normal,
     },
+    loaderContainer: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(0, 0, 0, 0.35)",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 999,
+    },
   });
 
   return (
@@ -216,7 +275,14 @@ export default function TrainingExercise() {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            <ExerciseSection count={4} />
+            <ExerciseSection
+              count={selectedDayExercises?.length ?? 0}
+              activeIndex={activeIndex}
+              onTabChange={(index) => {
+                setActiveIndex(index);
+                setCheckedSetNumbers(new Set());
+              }}
+            />
             <LiftGraph liftName={exerciseData?.exercise_name ?? "LIFT"} />
             <TalkToCoach coach_note={exerciseData?.coach_note} />
 
@@ -227,12 +293,15 @@ export default function TrainingExercise() {
                 reps={set.reps}
                 weight={set.weight}
                 rpm={set.rpm_percent}
-                isChecked={checkedSetNumber === set.set_number}
+                isComplete={set.isComplete ?? false}
                 onPress={() => handlePressExercise(set)}
               />
             ))}
 
-            <CustomButton title="ADD SET" onPress={handleAddSet} />
+            <CustomButton
+              title={isLoading ? "ADDING" : "ADD SET"}
+              onPress={handleAddSet}
+            />
           </ScrollView>
 
           <ActionSheet
@@ -263,7 +332,10 @@ export default function TrainingExercise() {
           />
         </SafeAreaView>
         <View style={styles.footer}>
-          <TouchableOpacity style={styles.footerButtonContainer}>
+          <TouchableOpacity
+            style={styles.footerButtonContainer}
+            onPress={handlePreviousExercise}
+          >
             <Image source={Images.arrowBack} style={styles.icon} />
             <Text style={styles.footerText}>BACK</Text>
           </TouchableOpacity>
@@ -289,11 +361,23 @@ export default function TrainingExercise() {
               <Image source={Images.arrowup} style={styles.icon} />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.footerButtonContainer}>
-            <Image source={Images.arrowforward} style={styles.icon} />
+          <TouchableOpacity
+            style={styles.footerButtonContainer}
+            onPress={handleNextExercise}
+          >
+            <Image
+              source={Images.arrowforward}
+              style={styles.icon}
+              tintColor={colors.text}
+            />
             <Text style={styles.footerText}>NEXT</Text>
           </TouchableOpacity>
         </View>
+        {isLoading && (
+          <View style={styles.loaderContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        )}
       </BottomSheetModalProvider>
     </GestureHandlerRootView>
   );

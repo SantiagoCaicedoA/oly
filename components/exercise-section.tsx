@@ -1,13 +1,19 @@
 import { useTheme } from "@/context/theme-context";
 import { Typography } from "@/utils/custom-styles";
 import React, { useMemo, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity } from "react-native";
 import { scale } from "react-native-size-matters";
 
 interface ExerciseSectionProps {
   count?: number;
+  activeIndex?: number;
+  onTabChange?: (index: number) => void;
 }
-export default function ExerciseSection({ count }: ExerciseSectionProps) {
+export default function ExerciseSection({
+  count,
+  activeIndex,
+  onTabChange,
+}: ExerciseSectionProps) {
   const { colors } = useTheme();
   const validCount = count && count > 0 ? count : 3;
   const OPTIONS: string[] = useMemo(
@@ -15,11 +21,16 @@ export default function ExerciseSection({ count }: ExerciseSectionProps) {
       Array.from({ length: validCount }, (_, i) => String.fromCharCode(65 + i)),
     [validCount],
   );
-  const [active, setActive] = useState<string>(OPTIONS[0] || "A");
+  const [active, setActive] = useState<string>("A");
+
+  React.useEffect(() => {
+    if (activeIndex !== undefined) {
+      setActive(OPTIONS[activeIndex] || "A");
+    }
+  }, [activeIndex, OPTIONS]);
 
   const styles = StyleSheet.create({
     container: {
-      flexDirection: "row",
       backgroundColor: colors.lightBlue,
       borderColor: colors.primary,
       borderWidth: scale(1),
@@ -27,6 +38,7 @@ export default function ExerciseSection({ count }: ExerciseSectionProps) {
       padding: scale(4),
     },
     segment: {
+      minWidth: scale(60),
       flex: 1,
       paddingVertical: scale(5),
       borderRadius: scale(20),
@@ -40,7 +52,12 @@ export default function ExerciseSection({ count }: ExerciseSectionProps) {
   });
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.container}
+      contentContainerStyle={{ flexDirection: "row", flexGrow: 1 }}
+    >
       {OPTIONS.map((option) => {
         const isActive = active === option;
 
@@ -54,7 +71,10 @@ export default function ExerciseSection({ count }: ExerciseSectionProps) {
               },
             ]}
             activeOpacity={0.8}
-            onPress={() => setActive(option)}
+            onPress={() => {
+              setActive(option);
+              onTabChange?.(OPTIONS.indexOf(option));
+            }}
           >
             <Text
               style={[
@@ -69,6 +89,6 @@ export default function ExerciseSection({ count }: ExerciseSectionProps) {
           </TouchableOpacity>
         );
       })}
-    </View>
+    </ScrollView>
   );
 }

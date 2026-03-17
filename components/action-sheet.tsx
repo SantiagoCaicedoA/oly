@@ -8,11 +8,12 @@ import { RootState } from "@/store/store";
 import { UpdateTrainingPayload } from "@/types/api/dashboard";
 import { Typography } from "@/utils/custom-styles";
 import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { router } from "expo-router";
 import React, { forwardRef, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
-  SafeAreaView,
+  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -64,11 +65,14 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
       Sharp: "Can't lift safely",
     };
     const days = useSelector((state: RootState) => state.training.days);
-
+    const [showOptions, setShowOptions] = useState(false);
     const [wasPain, setWasPain] = useState(false);
     const [wherePain, setWherePain] = useState("");
     const todayKey = DAY_KEYS[new Date().getDay()];
     const { showSuccess, showError } = useToast();
+    const selectedDayKey = useSelector(
+      (state: RootState) => state.training.selectedDayKey,
+    );
     const [updateTraining, { isLoading }] = useUpdateTrainingDataMutation();
 
     useEffect(() => {
@@ -107,7 +111,7 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
     const handlePress = async () => {
       if (!exercise) return;
       const payload: UpdateTrainingPayload = {
-        day: todayKey,
+        day: selectedDayKey ?? "",
         exercises: [
           {
             exercise_name: exercise.exercise_name,
@@ -134,12 +138,37 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
       };
 
       try {
-        await updateTraining(payload).unwrap();
-        (showSuccess("Set updated successfully", ""),
-          (ref as React.RefObject<BottomSheetModal>)?.current?.dismiss());
+        const res = await updateTraining(payload).unwrap();
+
+        showSuccess("Set updated successfully", "");
+        (ref as React.RefObject<BottomSheetModal>)?.current?.dismiss();
       } catch (error) {
         console.error("Update training error:", error);
       }
+    };
+
+    const handleToggleOptions = (e?: any) => {
+      e?.stopPropagation?.();
+      setShowOptions((prev) => !prev);
+    };
+
+    const handleCloseOptions = () => {
+      if (showOptions) setShowOptions(false);
+    };
+
+    const handleOptionPress = (e: any) => {
+      e.stopPropagation();
+      setShowOptions(false);
+
+      router.push({
+        pathname: "/athlete/create-new-post",
+        params: {
+          weight: set?.weight ?? 0,
+          exerciseName: exercise?.exercise_name ?? "",
+          intent: set?.intent,
+          context: set?.context,
+        },
+      });
     };
     const styles = StyleSheet.create({
       contentContainer: {
@@ -184,8 +213,8 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
         borderWidth: scale(1),
         borderColor: colors.primary,
         paddingHorizontal: scale(12),
-        paddingVertical: scale(8),
-        gap: scale(5),
+        paddingVertical: scale(15),
+        gap: scale(10),
         marginTop: scale(15),
         marginBottom: scale(10),
       },
@@ -233,7 +262,7 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
         borderWidth: scale(1),
         borderRadius: scale(15),
         paddingHorizontal: scale(13),
-        paddingVertical: scale(10),
+        paddingVertical: scale(15),
       },
       dotContainer: {
         flexDirection: "row",
@@ -265,113 +294,165 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
         gap: scale(12),
         paddingHorizontal: scale(24),
       },
+      optionsWrapper: {
+        position: "relative",
+      },
+      dropdownText: {
+        color: colors.text,
+        fontSize: Typography.fontSize.md,
+      },
+      dropdown: {
+        position: "absolute",
+        top: scale(25),
+        right: 0,
+        backgroundColor: colors.surface,
+        paddingHorizontal: scale(14),
+        paddingVertical: scale(10),
+        borderRadius: scale(8),
+        minWidth: scale(120),
+        zIndex: 999,
+        elevation: 8,
+        alignItems: "center",
+      },
+      keyListContainer: {
+        padding: scale(6),
+        gap: scale(5),
+      },
+      videoRow: {
+        flexDirection: "row",
+        gap: scale(7),
+        alignItems: "center",
+      },
+      pressableContainer: {
+        flex: 1,
+      },
+      loaderContainer: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 999,
+        borderRadius: scale(15),
+      },
     });
-    if (isLoading) {
-      return (
-        <SafeAreaView style={styles.container}>
-          <View style={styles.centered}>
-            <ActivityIndicator size="large" color={colors.primary} />
-          </View>
-        </SafeAreaView>
-      );
-    }
+
     return (
       <BottomSheetModal
         ref={ref}
         snapPoints={snapPoints}
-        backgroundStyle={{ backgroundColor: colors.background }}
+        backgroundStyle={{
+          backgroundColor: colors.background,
+        }}
         handleIndicatorStyle={{ backgroundColor: colors.text }}
       >
         <BottomSheetScrollView
           style={styles.contentContainer}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.header}>
-            <Image source={Images.profile} style={styles.profile} />
-            <View style={styles.userInfo}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  gap: scale(7),
-                  alignItems: "center",
-                }}
-              >
-                <Text style={styles.userName}>VIDEO UPLOADED </Text>
-              </View>
-
-              <Text style={styles.name}>{exercise?.exercise_name}</Text>
+          {isLoading && (
+            <View style={styles.loaderContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
             </View>
-            <TouchableOpacity>
-              <Image
-                source={Images.optionicon}
-                style={styles.optionIcon}
-                resizeMode="contain"
+          )}
+          <Pressable
+            style={styles.pressableContainer}
+            onPress={handleCloseOptions}
+          >
+            <View style={styles.header}>
+              <Image source={Images.profile} style={styles.profile} />
+              <View style={styles.userInfo}>
+                <View style={styles.videoRow}>
+                  <Text style={styles.userName}>UPLOAD VIDEO</Text>
+                </View>
+
+                <Text style={styles.name}>{exercise?.exercise_name}</Text>
+              </View>
+              <View style={styles.optionsWrapper}>
+                <TouchableOpacity onPress={handleToggleOptions}>
+                  <Image
+                    source={Images.optionicon}
+                    style={styles.optionIcon}
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
+
+                {showOptions && (
+                  <TouchableOpacity
+                    style={styles.dropdown}
+                    onPress={handleOptionPress}
+                  >
+                    <Text style={styles.dropdownText}>Upload Post</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+            <View style={styles.prescriptionContainer}>
+              <Text style={styles.coachText}>COACHES PRESCRIPTION</Text>
+              <Text style={styles.prescriptionText}>
+                {set?.coach_prescription ?? ""}
+              </Text>
+              <View style={styles.keyContainer}>
+                <Text style={styles.keyCues}>KEY CUES</Text>
+                <View style={styles.keyListContainer}>
+                  {(set?.key_cues ?? []).map((cue, index) => (
+                    <View key={index} style={styles.dotContainer}>
+                      <Text style={styles.dot}>•</Text>
+                      <Text style={styles.point}>{cue}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+              <View style={styles.weightRowContainer}>
+                <Text style={styles.weight}>
+                  {set?.weight ?? 0}
+                  <Text style={styles.unit}> kg</Text>
+                </Text>
+                <Text style={styles.weight}>
+                  {set?.rpm_percent ?? 0}{" "}
+                  <Text style={styles.unit}>% of 1 RM</Text>
+                </Text>
+              </View>
+            </View>
+            <View style={{ gap: scale(12), paddingBottom: scale(20) }}>
+              <WeightAndRep
+                weight={weight}
+                onWeightChange={setWeight}
+                reps={reps}
+                onRepsChange={setReps}
               />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.prescriptionContainer}>
-            <Text style={styles.coachText}>COACHES PRESCRIPTION</Text>
-            <Text style={styles.prescriptionText}>
-              {set?.coach_prescription ?? ""}
-            </Text>
-            <View style={styles.keyContainer}>
-              <Text style={styles.keyCues}>KEY CUES</Text>
-              <View style={{ padding: scale(6), gap: scale(5) }}>
-                {(set?.key_cues ?? []).map((cue, index) => (
-                  <View key={index} style={styles.dotContainer}>
-                    <Text style={styles.dot}>•</Text>
-                    <Text style={styles.point}>{cue}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-            <View style={styles.weightRowContainer}>
-              <Text style={styles.weight}>
-                {set?.weight ?? 0}
-                <Text style={styles.unit}> kg</Text>
-              </Text>
-              <Text style={styles.weight}>
-                {set?.rpm_percent ?? 0}{" "}
-                <Text style={styles.unit}>% of 1 RM</Text>
-              </Text>
-            </View>
-          </View>
-          <View style={{ gap: scale(12) }}>
-            <WeightAndRep
-              weight={weight}
-              onWeightChange={setWeight}
-              reps={reps}
-              onRepsChange={setReps}
-            />
-            <LiftAnalysis
-              barSpeed={barSpeed}
-              onBarSpeedChange={setBarSpeed}
-              positionQuality={positionQuality}
-              onPositionQualityChange={setPositionQuality}
-              primaryLimitingFactor={primaryLimitingFactor}
-              onPrimaryLimitingFactorChange={setPrimaryLimitingFactor}
-            />
+              <LiftAnalysis
+                barSpeed={barSpeed}
+                onBarSpeedChange={setBarSpeed}
+                positionQuality={positionQuality}
+                onPositionQualityChange={setPositionQuality}
+                primaryLimitingFactor={primaryLimitingFactor}
+                onPrimaryLimitingFactorChange={setPrimaryLimitingFactor}
+              />
 
-            <MissAndPain
-              wasMiss={wasMiss}
-              onWasMissChange={setWasMiss}
-              failLocation={failLocation}
-              onFailLocationChange={setFailLocation}
-              missedWhere={missedWhere}
-              onMissedWhereChange={setMissedWhere}
-              painLevel={painLevel}
-              onPainLevelChange={setPainLevel}
-              painLevelTextMap={painLevelTextMap}
-              wherePain={wherePain}
-              onWherePainChange={setWherePain}
-              wasPain={wasPain}
-              onWasPainChange={setWasPain}
-            />
-            <CustomButton
-              title={isLoading ? "SAVING" : "SAVE"}
-              onPress={handlePress}
-            />
-          </View>
+              <MissAndPain
+                wasMiss={wasMiss}
+                onWasMissChange={setWasMiss}
+                failLocation={failLocation}
+                onFailLocationChange={setFailLocation}
+                missedWhere={missedWhere}
+                onMissedWhereChange={setMissedWhere}
+                painLevel={painLevel}
+                onPainLevelChange={setPainLevel}
+                painLevelTextMap={painLevelTextMap}
+                wherePain={wherePain}
+                onWherePainChange={setWherePain}
+                wasPain={wasPain}
+                onWasPainChange={setWasPain}
+              />
+              <CustomButton
+                title={isLoading ? "SAVING" : "SAVE"}
+                onPress={handlePress}
+              />
+            </View>
+          </Pressable>
         </BottomSheetScrollView>
       </BottomSheetModal>
     );

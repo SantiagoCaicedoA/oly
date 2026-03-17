@@ -36,17 +36,18 @@ export default function Workout() {
   const token = useSelector((state: RootState) => state.auth.token);
 
   const days = useSelector((state: RootState) => state.training.days);
+  const userId = useSelector((state: RootState) => state.auth.user?._id);
 
   const [fetchTraining, { data, isLoading, isError, error }] =
     useLazyGetAiTrainingQuery();
 
   useEffect(() => {
     if (token) {
-      fetchTraining();
+      fetchTraining(undefined, false);
     }
   }, [token]);
   useEffect(() => {
-    if (data) dispatch(setTrainingData(data));
+    if (data) dispatch(setTrainingData(JSON.parse(JSON.stringify(data))));
   }, [data]);
   const DAY_KEYS = [
     "sunday",
@@ -76,10 +77,16 @@ export default function Workout() {
     : (todayData?.key_cues ?? []);
 
   const handlePressItem = async (item: Exercise) => {
-    dispatch(setSelectedExercise(item.exercise_name));
+    dispatch(
+      setSelectedExercise({
+        name: item.exercise_name,
+        dayKey,
+        exercises: JSON.parse(JSON.stringify(todaysTraining)),
+      }),
+    );
 
     const today = new Date().toDateString();
-    const key = `daily_check_in_done_${today}`;
+    const key = `daily_check_in_done_${userId}_${today}`;
     const done = await AsyncStorage.getItem(key);
 
     if (done) {
@@ -89,9 +96,7 @@ export default function Workout() {
       router.push("/athlete/daily-check-in");
     }
   };
-  const handleAddSet = () => {
-    router.push("/athlete/add-exercise");
-  };
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -148,7 +153,7 @@ export default function Workout() {
           </Text>
           <CustomButton
             title="RETRY"
-            onPress={fetchTraining}
+            onPress={() => fetchTraining(undefined, false)}
             style={styles.retryButton}
           />
         </View>
@@ -175,7 +180,6 @@ export default function Workout() {
                 trainings={todaysTraining}
                 onPressItem={handlePressItem}
               />
-              <CustomButton title="ADD EXERCISE" onPress={handleAddSet} />
             </>
           )}
         </ScrollView>

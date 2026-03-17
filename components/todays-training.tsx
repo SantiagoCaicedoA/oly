@@ -43,7 +43,7 @@ export default function TodaysTraining({
     <View>
       <View style={styles.rowContainer}>
         <Text style={styles.heading}>TODAY'S TRAINING</Text>
-        <Text style={styles.start}>START</Text>
+        {/* <Text style={styles.start}>START</Text> */}
       </View>
 
       <View style={styles.container}>

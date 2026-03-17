@@ -1,14 +1,15 @@
 import { Images } from "@/assets";
 import { useTheme } from "@/context/theme-context";
+import { useLikePostMutation, useUnLikePostMutation } from "@/store/api";
 import { Typography } from "@/utils/custom-styles";
 import { getRelativeTime } from "@/utils/time";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { ResizeMode, Video } from "expo-av";
-import React, { useRef, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { scale } from "react-native-size-matters";
 import CommentBottomSheet from "./comment-bottom-sheet";
-
 interface PostCardProps {
   post: {
     _id: string;
@@ -19,19 +20,84 @@ interface PostCardProps {
     createdAt: string;
     username: string;
     name: string;
+    isLiked: boolean;
+    commentCount: number;
+    likeCount: number;
+    country: string;
+    thumbnail_url: string;
   };
   onPress?: (post_id: string) => void;
+  isVisible?: boolean;
 }
 
-export default function PostCard({ post, onPress }: PostCardProps) {
+export default function PostCard({ post, onPress, isVisible }: PostCardProps) {
   const { colors } = useTheme();
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const videoRef = useRef<Video>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [likePost] = useLikePostMutation();
+  const [unlikePost] = useUnLikePostMutation();
+  const [isLiked, setIsLiked] = useState(post.isLiked ?? false);
+  const [likeCount, setLikeCount] = useState(post.likeCount ?? 0);
+  const [videoPressed, setVideoPressed] = useState(false);
 
+  useEffect(() => {
+    setIsLiked(post.isLiked ?? false);
+  }, [post.isLiked]);
   const handlePress = () => {
     if (onPress) {
       onPress(post._id);
+    }
+  };
+
+  useEffect(() => {
+    if (!isVisible && videoRef.current && isPlaying) {
+      videoRef.current.pauseAsync();
+      setIsPlaying(false);
+    }
+  }, [isVisible]);
+  useFocusEffect(
+    React.useCallback(() => {
+      return () => {
+        if (videoRef.current) {
+          videoRef.current.pauseAsync();
+          setIsPlaying(false);
+          setVideoPressed(false);
+        }
+      };
+    }, []),
+  );
+  useEffect(() => {
+    if (!videoRef.current || !videoPressed) return;
+    if (isVisible) {
+      videoRef.current.playAsync();
+      setIsPlaying(true);
+    } else {
+      videoRef.current.pauseAsync();
+      setIsPlaying(false);
+    }
+  }, [isVisible, videoPressed]);
+  const handleLike = async () => {
+    if (isLiked) {
+      setIsLiked(false);
+      setLikeCount((prev) => prev - 1);
+      try {
+        const res = await unlikePost(post._id).unwrap();
+      } catch (error) {
+        console.error("Unlike error:", error);
+        setIsLiked(true);
+        setLikeCount((prev) => prev + 1);
+      }
+    } else {
+      setIsLiked(true);
+      setLikeCount((prev) => prev + 1);
+      try {
+        await likePost(post._id).unwrap();
+      } catch (error) {
+        console.error("Like error:", error);
+        setIsLiked(false);
+        setLikeCount((prev) => prev - 1);
+      }
     }
   };
 
@@ -40,16 +106,25 @@ export default function PostCard({ post, onPress }: PostCardProps) {
   };
 
   const handleVideoPress = async () => {
-    if (videoRef.current) {
+    if (!videoRef.current) return;
+    try {
       if (isPlaying) {
         await videoRef.current.pauseAsync();
+        setIsPlaying(false);
       } else {
         await videoRef.current.playAsync();
+        setIsPlaying(true);
       }
-      setIsPlaying(!isPlaying);
+    } catch (error) {
+      console.error("Video error:", error);
     }
   };
-
+  const handlePlaybackStatusUpdate = (status: any) => {
+    if (status.didJustFinish) {
+      videoRef.current?.setPositionAsync(0);
+      setIsPlaying(false);
+    }
+  };
   const styles = StyleSheet.create({
     container: {
       backgroundColor: colors.background,
@@ -123,6 +198,11 @@ export default function PostCard({ post, onPress }: PostCardProps) {
       letterSpacing: Typography.letterSpacing.normal,
       color: colors.textSecondary,
     },
+    playIcon: {
+      width: scale(50),
+      height: scale(50),
+      alignSelf: "center",
+    },
   });
 
   return (
@@ -137,40 +217,85 @@ export default function PostCard({ post, onPress }: PostCardProps) {
               alignItems: "center",
             }}
           >
-            <Text style={styles.name}>{post.name}</Text>
+            <Text style={styles.name}>{post.username}</Text>
             <Text style={styles.time}>{getRelativeTime(post.createdAt)}</Text>
           </View>
-          <Text style={styles.userName}>{post.username}</Text>
+          <Text style={styles.userName}>{post.country}</Text>
         </View>
         <Image source={Images.arrowforward} style={styles.arrowForward} />
       </View>
       {post.opinion && <Text style={styles.caption}>{post.opinion}</Text>}
 
-      <TouchableOpacity onPress={handleVideoPress} activeOpacity={0.9}>
+      <TouchableOpacity
+        onPress={
+          videoPressed
+            ? handleVideoPress
+            : () => {
+                setVideoPressed(true);
+                setTimeout(() => {
+                  videoRef.current?.playAsync();
+                  setIsPlaying(true);
+                }, 100);
+              }
+        }
+        activeOpacity={0.9}
+      >
+        {!videoPressed && (
+          <View
+            style={[
+              styles.video,
+              {
+                justifyContent: "center",
+                alignItems: "center",
+                position: "absolute",
+                zIndex: 2,
+              },
+            ]}
+          >
+            {post.thumbnail_url && (
+              <Image
+                source={{ uri: post.thumbnail_url }}
+                style={[
+                  styles.video,
+                  { position: "absolute", top: 0, left: 0 },
+                ]}
+                resizeMode="cover"
+              />
+            )}
+            <Image
+              source={Images.videoplay}
+              style={{ width: scale(50), height: scale(50), zIndex: 3 }}
+              resizeMode="contain"
+            />
+          </View>
+        )}
+
         <Video
           ref={videoRef}
           source={{ uri: post.video_url }}
           style={styles.video}
           resizeMode={ResizeMode.COVER}
           shouldPlay={false}
-          isLooping
           useNativeControls={false}
+          onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
         />
       </TouchableOpacity>
-
       <View style={styles.iconContainer}>
-        <TouchableOpacity>
-          <Image source={Images.like} style={styles.icon} />
+        <TouchableOpacity onPress={handleLike}>
+          <Image
+            source={isLiked ? Images.likeicon : Images.like}
+            style={styles.icon}
+          />
         </TouchableOpacity>
-        <Text style={styles.count}>12</Text>
+        <Text style={styles.count}>{likeCount}</Text>
 
         <TouchableOpacity onPress={handleCommentPress}>
           <Image source={Images.comment} style={styles.icon} />
         </TouchableOpacity>
-        <Text style={styles.count}>3</Text>
+        <Text style={styles.count}>{post.commentCount}</Text>
       </View>
 
-      <CommentBottomSheet ref={bottomSheetRef} />
+      <CommentBottomSheet ref={bottomSheetRef} postId={post._id} />
     </TouchableOpacity>
   );
 }

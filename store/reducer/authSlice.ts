@@ -1,7 +1,5 @@
-
 import { Athlete, AuthState, TokenData } from "@/types/api/auth";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-
 
 const initialState: AuthState = {
   user: null,
