@@ -57,7 +57,16 @@ function loadEnv(variant: AppVariant): void {
       const firstEqual = trimmedLine.indexOf("=");
       if (firstEqual !== -1) {
         const key = trimmedLine.substring(0, firstEqual).trim();
-        const value = trimmedLine.substring(firstEqual + 1).trim();
+        let value = trimmedLine.substring(firstEqual + 1).trim();
+
+        // Strip quotes if they exist
+        if (
+          (value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))
+        ) {
+          value = value.substring(1, value.length - 1);
+        }
+
         process.env[key] = value;
         loadedCount++;
       }
