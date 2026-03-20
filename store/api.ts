@@ -76,7 +76,7 @@ const customBaseQuery: BaseQueryFn<
 
     const baseUrl = API_BASE_URL;
 
-    const result = await fetch(`${baseUrl}${url}`, {
+    const result = await fetch(`${baseUrl}/${url.replace(/^\//, '')}`, {
       method,
       headers,
       body,
