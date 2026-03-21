@@ -116,20 +116,52 @@ export const createPostSchema = yup.object({
       },
     ),
 });
+
+/**
+ * Legacy onboarding screen 1 schema — kept for reference.
+ * Replaced by onboardingScreen1Schema below.
+ */
+// export const _legacyOnboardingScreen1Schema = yup.object({
+//   name: yup.string().default(""),
+//   user_name: yup.string().default(""),
+//   country: yup.string().default(""),
+//   age: yup.string().required("Age is required"),
+//   weight: yup.string().required("Body weight is required"),
+//   weightUnit: yup.string().oneOf(["KG", "LB"]).default("KG"),
+//   experience: yup.string().required("Experience is required"),
+//   sex: yup.string().default("male"),
+//   height: yup.string().default(""),
+//   height_unit: yup.string().oneOf(["cm", "ft"]).default("cm"),
+//   measurement_system: yup.string().oneOf(["Metric", "Imperial"]).default("Metric"),
+//   bio: yup.string().default(""),
+// });
+
+/**
+ * Redesigned onboarding screen 1 schema (v2).
+ * DOB replaces age, weightlifting exposure replaces experience counter,
+ * height added with unit toggle, bio & measurement_system removed.
+ */
 export const onboardingScreen1Schema = yup.object({
   name: yup.string().default(""),
-  user_name: yup.string().default(""),
+  user_name: yup
+    .string()
+    .required("Username is required")
+    .min(3, "Username must be at least 3 characters")
+    .matches(
+      /^[a-zA-Z0-9._]+$/,
+      "Only letters, numbers, dots and underscores",
+    ),
   country: yup.string().default(""),
-  age: yup.string().required("Age is required"),
+  dobDay: yup.string().default(""),
+  dobMonth: yup.string().default(""),
+  dobYear: yup.string().default(""),
+  sex: yup.string().default("male"),
   weight: yup.string().required("Body weight is required"),
   weightUnit: yup.string().oneOf(["KG", "LB"]).default("KG"),
-  experience: yup.string().required("Experience is required"),
-  sex: yup.string().default("male"),
   height: yup.string().default(""),
   height_unit: yup.string().oneOf(["cm", "ft"]).default("cm"),
-  measurement_system: yup
+  weightliftingExposure: yup
     .string()
-    .oneOf(["Metric", "Imperial"])
-    .default("Metric"),
-  bio: yup.string().default(""),
+    .required("Please select your experience level")
+    .oneOf(["new", "developing", "experienced", "competitive"]),
 });

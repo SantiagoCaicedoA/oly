@@ -1,67 +1,163 @@
-import CounterInput from "@/components/counter-input";
-import Header from "@/components/header";
-import SegmentedSelector from "@/components/segmented-selector";
-import WeightInput from "@/components/weight-input";
-import CustomInput from "@/constants/custom-input";
-import ActionButtonsRow from "@/constants/custom-row-buttons";
-import { useTheme } from "@/context/theme-context";
+/**
+ * Onboarding Screen 1 — Athlete Profile (Redesigned v2)
+ *
+ * Fields: profile photo, full name, username, country, DOB (DD/MM/YYYY),
+ * sex selector, bodyweight (KG/LB), height (CM/FT),
+ * weightlifting exposure (4-card grid).
+ *
+ * Abdul's onboarding data flow is unchanged — dispatches to
+ * onboardingSlice, image upload via useUploadProfileImageMutation.
+ */
+
+import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
+import { OlyFormField } from "@/src/oly-components/molecules/OlyFormField";
+import { olyTypography, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
+import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olySpacing } from "@/src/oly-theme/oly-spacing";
+import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { useToast } from "@/context/toast-context";
 import { useUploadProfileImageMutation } from "@/store/api";
-
 import { saveOnboardingData } from "@/store/reducer/onboardingSlice";
 import { RootState } from "@/store/store";
-import { getFirstError } from "@/utils/get-error";
 import { onboardingScreen1Schema } from "@/utils/validation-schemas";
 import { Ionicons } from "@expo/vector-icons";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as ImagePicker from "expo-image-picker";
-import { router, Stack } from "expo-router";
+import { Stack } from "expo-router";
 import React, { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   ActivityIndicator,
+  Alert,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { scale } from "react-native-size-matters";
 import { useDispatch, useSelector } from "react-redux";
+
+/* ── Types ───────────────────────────────────────── */
+
 interface OnboardingScreen1Values {
   name: string;
   user_name: string;
   country: string;
-  age: string;
+  dobDay: string;
+  dobMonth: string;
+  dobYear: string;
+  sex: string;
   weight: string;
   weightUnit: "KG" | "LB";
-  experience: string;
-  sex: string;
   height: string;
   height_unit: "cm" | "ft";
-  measurement_system: "Metric" | "Imperial";
-  bio: string;
+  weightliftingExposure: string;
 }
+
 interface OnboardingScreen1Props {
   onComplete?: () => void;
   name?: string;
   email?: string;
 }
+
+/* ── Exposure card data ──────────────────────────── */
+
+const EXPOSURE_OPTIONS = [
+  {
+    value: "new",
+    title: "New",
+    subtitle: "Just starting or CrossFit background",
+  },
+  {
+    value: "developing",
+    title: "Developing",
+    subtitle: "1-2 years, learning the lifts",
+  },
+  {
+    value: "experienced",
+    title: "Experienced",
+    subtitle: "3+ years, consistent training",
+  },
+  {
+    value: "competitive",
+    title: "Competitive",
+    subtitle: "Active or past competition",
+  },
+] as const;
+
+/* ── Component ───────────────────────────────────── */
+
 export default function OnboardingScreen1({
   onComplete,
-  name,
+  name: initialName,
   email,
 }: OnboardingScreen1Props) {
-  const { colors } = useTheme();
   const dispatch = useDispatch();
-  const { showSuccess, showError } = useToast();
+  const { showError } = useToast();
   const [profileImage, setProfileImage] = React.useState<string>("");
-  const [uploadProfileImage, { isLoading: isUploading, error }] =
+  const [uploadProfileImage, { isLoading: isUploading }] =
     useUploadProfileImageMutation();
   const user = useSelector((state: RootState) => state.auth.token);
+
+  /* ── DOB refs for auto-advance ── */
+  const monthRef = React.useRef<TextInput>(null);
+  const yearRef = React.useRef<TextInput>(null);
+
+  /* ── Form ── */
+  const {
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<OnboardingScreen1Values>({
+    resolver: yupResolver(onboardingScreen1Schema) as any,
+    defaultValues: {
+      name: "",
+      user_name: "",
+      country: "",
+      dobDay: "",
+      dobMonth: "",
+      dobYear: "",
+      sex: "male",
+      weight: "",
+      weightUnit: "KG",
+      height: "",
+      height_unit: "cm",
+      weightliftingExposure: "",
+    },
+  });
+
+  /* ── Prefill name from sign-up ── */
+  useEffect(() => {
+    if (initialName) {
+      setValue("name", initialName);
+    }
+  }, [initialName, setValue]);
+
+  /* ── Show first validation error ── */
+  useEffect(() => {
+    const keys = Object.keys(errors) as (keyof OnboardingScreen1Values)[];
+    if (keys.length > 0) {
+      const firstError = errors[keys[0]]?.message;
+      if (firstError) showError(firstError);
+    }
+  }, [errors]);
+
+  /* ── Image picker ── */
+  const handleImagePress = () => {
+    Alert.alert("Profile Photo", "Choose an option", [
+      { text: "Take Photo", onPress: handleTakePhoto },
+      { text: "Choose from Gallery", onPress: handleChooseFromGallery },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  };
 
   const handleTakePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -77,8 +173,10 @@ export default function OnboardingScreen1({
       setProfileImage(result.assets[0].uri);
     }
   };
+
   const handleChooseFromGallery = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const { status } =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") return;
 
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -93,7 +191,9 @@ export default function OnboardingScreen1({
     }
   };
 
+  /* ── Submit ── */
   const onSubmit = async (data: OnboardingScreen1Values) => {
+    // Upload profile image if selected
     if (profileImage) {
       try {
         const formData = new FormData();
@@ -103,350 +203,652 @@ export default function OnboardingScreen1({
           name: "profile.jpg",
         } as any);
 
-        const result = await uploadProfileImage(formData).unwrap();
+        await uploadProfileImage(formData).unwrap();
       } catch (error) {
         console.error("Failed to upload image:", error);
-
         return;
       }
     }
 
-    dispatch(saveOnboardingData(data));
+    // Calculate age from DOB for backwards compat with API payload
+    let age = "";
+    if (data.dobDay && data.dobMonth && data.dobYear) {
+      const birthDate = new Date(
+        parseInt(data.dobYear),
+        parseInt(data.dobMonth) - 1,
+        parseInt(data.dobDay),
+      );
+      const today = new Date();
+      let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (
+        monthDiff < 0 ||
+        (monthDiff === 0 && today.getDate() < birthDate.getDate())
+      ) {
+        calculatedAge--;
+      }
+      age = calculatedAge.toString();
+    }
+
+    // Map exposure to experience years for API compat
+    const experienceMap: Record<string, string> = {
+      new: "0",
+      developing: "1",
+      experienced: "3",
+      competitive: "5",
+    };
+
+    dispatch(
+      saveOnboardingData({
+        ...data,
+        age,
+        experience: experienceMap[data.weightliftingExposure] || "0",
+        measurement_system:
+          data.weightUnit === "KG" ? "Metric" : "Imperial",
+      }),
+    );
 
     if (onComplete) {
       onComplete();
-    } else {
-      router.push("/auth/onboarding/onboarding-screen2");
     }
   };
-  const {
-    control,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { errors },
-  } = useForm<OnboardingScreen1Values>({
-    resolver: yupResolver(onboardingScreen1Schema),
-    defaultValues: {
-      name: "",
-      country: "",
-      age: "",
-      weight: "",
-      weightUnit: "KG",
-      experience: "",
-      sex: "male",
-      height: "",
-      measurement_system: "Metric",
-      bio: "",
-      height_unit: "cm",
-      user_name: "",
-    },
-  });
-  useEffect(() => {
-    const firstError = getFirstError(errors);
-    if (firstError) {
-      showError(firstError);
-    }
-  }, [errors]);
-  useEffect(() => {
-    if (name) {
-      setValue("name", name);
-    }
-  }, [name, setValue]);
 
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    scrollContent: {},
-    formGroup: {
-      marginVertical: scale(20),
-      gap: scale(7),
-      marginBottom: scale(50),
-    },
-    profileImageContainer: {
-      alignItems: "center",
-      marginVertical: scale(20),
-    },
-    profileImagePreview: {
-      width: scale(120),
-      height: scale(120),
-      borderRadius: scale(60),
-      borderWidth: 2,
-      borderColor: colors.primary,
-      marginBottom: scale(12),
-    },
-    profileImagePlaceholder: {
-      width: scale(120),
-      height: scale(120),
-      borderRadius: scale(60),
-      borderWidth: 2,
-      borderStyle: "dashed",
-      borderColor: colors.textSecondary,
-      alignItems: "center",
-      justifyContent: "center",
-      marginBottom: scale(12),
-    },
+  /* ── Watched values ── */
+  const weightUnit = watch("weightUnit");
+  const heightUnit = watch("height_unit");
+  const selectedExposure = watch("weightliftingExposure");
+  const selectedSex = watch("sex");
 
-    imageButtonsRow: {
-      flexDirection: "row",
-      gap: scale(10),
-      width: "100%",
-    },
-    imageButtonSecondary: {
-      backgroundColor: colors.lightBlue,
-      borderColor: colors.primary,
-      flex: 1,
-      borderWidth: scale(1),
-    },
-    imageButton: {
-      backgroundColor: colors.lightBlue,
-      borderColor: colors.primary,
-      borderWidth: scale(1),
-      paddingVertical: scale(10),
-      paddingHorizontal: scale(20),
-      borderRadius: scale(8),
-      flex: 1,
-      alignItems: "center",
-    },
-    imageButtonText: {
-      color: "#fff",
-      fontWeight: "600",
-    },
-    loaderContainer: {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-
-      justifyContent: "center",
-      alignItems: "center",
-      zIndex: 999,
-    },
-  });
   return (
     <>
       <Stack.Screen options={{ gestureEnabled: false }} />
 
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
-          style={styles.container}
           contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Header
-            mainText="Athlete profile"
-            subText="Used to set up your training profile"
-          />
-          <View style={styles.profileImageContainer}>
-            {profileImage ? (
-              <Image
-                source={{ uri: profileImage }}
-                style={styles.profileImagePreview}
-              />
-            ) : (
-              <View style={styles.profileImagePlaceholder}>
-                <Ionicons
-                  name="camera"
-                  size={50}
-                  color={colors.textSecondary}
+          <Pressable onPress={Keyboard.dismiss}>
+            {/* ── Title ── */}
+            <View style={styles.titleBlock}>
+              <Text style={styles.title} maxFontSizeMultiplier={1.2}>
+                Athlete profile
+              </Text>
+              <Text style={styles.subtitle} maxFontSizeMultiplier={1.5}>
+                Used to set up your training profile
+              </Text>
+            </View>
+
+            {/* ── Profile Photo ── */}
+            <TouchableOpacity
+              style={styles.avatarContainer}
+              onPress={handleImagePress}
+              activeOpacity={0.7}
+            >
+              {profileImage ? (
+                <Image
+                  source={{ uri: profileImage }}
+                  style={styles.avatarImage}
                 />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Ionicons
+                    name="person-outline"
+                    size={48}
+                    color={olyColors.text.disabled}
+                  />
+                </View>
+              )}
+              {/* Blue + badge */}
+              <View style={styles.avatarBadge}>
+                <Ionicons name="add" size={16} color={olyPalette.white} />
               </View>
-            )}
+              <Text style={styles.avatarLabel}>Add profile photo</Text>
+            </TouchableOpacity>
 
-            <View style={styles.imageButtonsRow}>
-              <TouchableOpacity
-                style={styles.imageButton}
-                onPress={handleChooseFromGallery}
-              >
-                <Text style={styles.imageButtonText}>Choose Photo</Text>
-              </TouchableOpacity>
+            {/* ── Fields ── */}
+            <View style={styles.fieldContainer}>
+              {/* Full Name */}
+              <Controller
+                control={control}
+                name="name"
+                render={({ field: { onChange, value } }) => (
+                  <OlyFormField
+                    label="FULL NAME"
+                    placeholder="Your name"
+                    value={value}
+                    onChangeText={onChange}
+                    error={errors.name?.message}
+                  />
+                )}
+              />
 
-              <TouchableOpacity
-                style={[styles.imageButton, styles.imageButtonSecondary]}
-                onPress={handleTakePhoto}
-              >
-                <Text style={styles.imageButtonText}>Take Photo</Text>
-              </TouchableOpacity>
+              {/* Username */}
+              <Controller
+                control={control}
+                name="user_name"
+                render={({ field: { onChange, value } }) => (
+                  <OlyFormField
+                    label="USERNAME"
+                    placeholder="@username"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    value={value}
+                    onChangeText={onChange}
+                    error={errors.user_name?.message}
+                  />
+                )}
+              />
+
+              {/* Country */}
+              <Controller
+                control={control}
+                name="country"
+                render={({ field: { onChange, value } }) => (
+                  <OlyFormField
+                    label="COUNTRY"
+                    placeholder="Select your country"
+                    value={value}
+                    onChangeText={onChange}
+                    error={errors.country?.message}
+                  />
+                )}
+              />
+
+              {/* Date of Birth */}
+              <View>
+                <Text style={styles.fieldLabel}>DATE OF BIRTH</Text>
+                <View style={styles.dobRow}>
+                  <Controller
+                    control={control}
+                    name="dobDay"
+                    render={({ field: { onChange, value } }) => (
+                      <View style={styles.dobField}>
+                        <TextInput
+                          style={styles.dobInput}
+                          placeholder="DD"
+                          placeholderTextColor={olyColors.text.disabled}
+                          keyboardType="number-pad"
+                          maxLength={2}
+                          value={value}
+                          onChangeText={(text) => {
+                            onChange(text);
+                            if (text.length === 2) monthRef.current?.focus();
+                          }}
+                        />
+                      </View>
+                    )}
+                  />
+                  <Controller
+                    control={control}
+                    name="dobMonth"
+                    render={({ field: { onChange, value } }) => (
+                      <View style={styles.dobField}>
+                        <TextInput
+                          ref={monthRef}
+                          style={styles.dobInput}
+                          placeholder="MM"
+                          placeholderTextColor={olyColors.text.disabled}
+                          keyboardType="number-pad"
+                          maxLength={2}
+                          value={value}
+                          onChangeText={(text) => {
+                            onChange(text);
+                            if (text.length === 2) yearRef.current?.focus();
+                          }}
+                        />
+                      </View>
+                    )}
+                  />
+                  <Controller
+                    control={control}
+                    name="dobYear"
+                    render={({ field: { onChange, value } }) => (
+                      <View style={[styles.dobField, styles.dobFieldYear]}>
+                        <TextInput
+                          ref={yearRef}
+                          style={styles.dobInput}
+                          placeholder="YYYY"
+                          placeholderTextColor={olyColors.text.disabled}
+                          keyboardType="number-pad"
+                          maxLength={4}
+                          value={value}
+                          onChangeText={onChange}
+                        />
+                      </View>
+                    )}
+                  />
+                </View>
+              </View>
+
+              {/* Sex */}
+              <View>
+                <Text style={styles.fieldLabel}>SEX</Text>
+                <View style={styles.segmentRow}>
+                  {(["male", "female", "other"] as const).map((option) => {
+                    const isActive = selectedSex === option;
+                    return (
+                      <TouchableOpacity
+                        key={option}
+                        style={[
+                          styles.segmentButton,
+                          isActive && styles.segmentButtonActive,
+                        ]}
+                        onPress={() => setValue("sex", option)}
+                        activeOpacity={0.8}
+                      >
+                        <Text
+                          style={[
+                            styles.segmentText,
+                            isActive && styles.segmentTextActive,
+                          ]}
+                        >
+                          {option.charAt(0).toUpperCase() + option.slice(1)}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Bodyweight */}
+              <View>
+                <Text style={styles.fieldLabel}>BODYWEIGHT</Text>
+                <View style={styles.unitInputRow}>
+                  <Controller
+                    control={control}
+                    name="weight"
+                    render={({ field: { onChange, value } }) => (
+                      <TextInput
+                        style={styles.unitInput}
+                        placeholder="0"
+                        placeholderTextColor={olyColors.text.disabled}
+                        keyboardType="numeric"
+                        value={value}
+                        onChangeText={onChange}
+                      />
+                    )}
+                  />
+                  <View style={styles.unitToggle}>
+                    {(["KG", "LB"] as const).map((unit) => {
+                      const isActive = weightUnit === unit;
+                      return (
+                        <TouchableOpacity
+                          key={unit}
+                          style={[
+                            styles.unitToggleButton,
+                            isActive && styles.unitToggleButtonActive,
+                          ]}
+                          onPress={() => setValue("weightUnit", unit)}
+                        >
+                          <Text
+                            style={[
+                              styles.unitToggleText,
+                              isActive && styles.unitToggleTextActive,
+                            ]}
+                          >
+                            {unit}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+                {errors.weight?.message && (
+                  <Text style={styles.errorText}>{errors.weight.message}</Text>
+                )}
+              </View>
+
+              {/* Height */}
+              <View>
+                <Text style={styles.fieldLabel}>HEIGHT</Text>
+                <View style={styles.unitInputRow}>
+                  <Controller
+                    control={control}
+                    name="height"
+                    render={({ field: { onChange, value } }) => (
+                      <TextInput
+                        style={styles.unitInput}
+                        placeholder="0"
+                        placeholderTextColor={olyColors.text.disabled}
+                        keyboardType="numeric"
+                        value={value}
+                        onChangeText={onChange}
+                      />
+                    )}
+                  />
+                  <View style={styles.unitToggle}>
+                    {(["cm", "ft"] as const).map((unit) => {
+                      const isActive = heightUnit === unit;
+                      return (
+                        <TouchableOpacity
+                          key={unit}
+                          style={[
+                            styles.unitToggleButton,
+                            isActive && styles.unitToggleButtonActive,
+                          ]}
+                          onPress={() => setValue("height_unit", unit)}
+                        >
+                          <Text
+                            style={[
+                              styles.unitToggleText,
+                              isActive && styles.unitToggleTextActive,
+                            ]}
+                          >
+                            {unit.toUpperCase()}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              </View>
+
+              {/* Weightlifting Exposure */}
+              <View>
+                <Text style={styles.fieldLabel}>WEIGHTLIFTING EXPOSURE</Text>
+                <View style={styles.exposureGrid}>
+                  {EXPOSURE_OPTIONS.map((option) => {
+                    const isActive = selectedExposure === option.value;
+                    return (
+                      <TouchableOpacity
+                        key={option.value}
+                        style={[
+                          styles.exposureCard,
+                          isActive && styles.exposureCardActive,
+                        ]}
+                        onPress={() =>
+                          setValue("weightliftingExposure", option.value)
+                        }
+                        activeOpacity={0.8}
+                      >
+                        <Text
+                          style={[
+                            styles.exposureTitle,
+                            isActive && styles.exposureTitleActive,
+                          ]}
+                        >
+                          {option.title}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.exposureSubtitle,
+                            isActive && styles.exposureSubtitleActive,
+                          ]}
+                        >
+                          {option.subtitle}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                {errors.weightliftingExposure?.message && (
+                  <Text style={styles.errorText}>
+                    {errors.weightliftingExposure.message}
+                  </Text>
+                )}
+              </View>
             </View>
-          </View>
+          </Pressable>
 
-          <View style={styles.formGroup}>
-            <Controller
-              control={control}
-              name="bio"
-              render={({ field: { onChange, value } }) => (
-                <CustomInput
-                  placeholder="Write a short bio..."
-                  label="ABOUT YOU"
-                  onChangeText={onChange}
-                  value={value}
-                  error={errors.bio?.message}
-                  multiline
-                />
-              )}
-            />
-            <Controller
-              control={control}
-              name="user_name"
-              render={({ field: { onChange, value } }) => (
-                <CustomInput
-                  placeholder="Your name"
-                  label="USER NAME"
-                  onChangeText={onChange}
-                  value={value}
-                  error={errors.user_name?.message}
-                  autoCapitalize="none"
-                />
-              )}
-            />
-            <Controller
-              control={control}
-              name="name"
-              render={({ field: { onChange, value } }) => (
-                <CustomInput
-                  placeholder="Your name"
-                  label="FULL NAME"
-                  onChangeText={onChange}
-                  value={value}
-                  error={errors.name?.message}
-                />
-              )}
-            />
-            <Controller
-              control={control}
-              name="country"
-              render={({ field: { onChange, value } }) => (
-                <CustomInput
-                  placeholder="Select your country"
-                  label="YOUR COUNTRY"
-                  onChangeText={onChange}
-                  value={value}
-                  error={errors.country?.message}
-                />
-              )}
-            />
-
-            <Controller
-              control={control}
-              name="age"
-              render={({ field: { onChange, value } }) => (
-                <CustomInput
-                  label="AGE"
-                  placeholder="Years"
-                  onChangeText={onChange}
-                  value={value}
-                  keyboardType="numeric"
-                  error={errors.age?.message}
-                />
-              )}
-            />
-            <Controller
-              control={control}
-              name="measurement_system"
-              render={({ field: { onChange, value } }) => (
-                <WeightInput
-                  label="UNITS"
-                  value={value}
-                  onChangeText={onChange}
-                  unit={watch("measurement_system")}
-                  onUnitChange={(unit: string) =>
-                    setValue(
-                      "measurement_system",
-                      unit as "Metric" | "Imperial",
-                    )
-                  }
-                  error={errors.measurement_system?.message}
-                  units={["Metric", "Imperial"]}
-                />
-              )}
-            />
-            <Controller
-              control={control}
-              name="weight"
-              render={({ field: { onChange, value } }) => (
-                <WeightInput
-                  label="BODY WEIGHT"
-                  value={value}
-                  onChangeText={onChange}
-                  unit={watch("weightUnit")}
-                  onUnitChange={(unit: string) =>
-                    setValue("weightUnit", unit as "KG" | "LB")
-                  }
-                  error={errors.weight?.message}
-                  units={["KG", "LB"]}
-                  allowManualInput={true}
-                />
-              )}
-            />
-            <Controller
-              control={control}
-              name="height"
-              render={({ field: { onChange, value } }) => (
-                <WeightInput
-                  label="HEIGHT"
-                  value={value}
-                  onChangeText={onChange}
-                  unit={watch("height_unit")}
-                  onUnitChange={(unit: string) =>
-                    setValue("height_unit", unit as "cm" | "ft")
-                  }
-                  error={errors.height?.message}
-                  units={["cm", "ft"]}
-                  allowManualInput={true}
-                />
-              )}
-            />
-
-            <Controller
-              control={control}
-              name="experience"
-              render={({ field: { onChange, value } }) => (
-                <CounterInput
-                  label="EXPERIENCE"
-                  value={value}
-                  onChangeText={onChange}
-                  //  suffix="YEARS"
-                  error={errors.experience?.message}
-                />
-              )}
-            />
-
-            <Controller
-              control={control}
-              name="sex"
-              render={({ field: { onChange, value } }) => (
-                <SegmentedSelector
-                  title="SEX"
-                  selectedValue={value}
-                  onChange={onChange}
-                  options={[
-                    { label: "Female", value: "female" },
-                    { label: "Male", value: "male" },
-                    { label: "Other", value: "other" },
-                  ]}
-                />
-              )}
+          {/* ── Bottom CTA ── */}
+          <View style={styles.bottomCta}>
+            <OlyButton
+              label={isUploading ? "Saving..." : "NEXT"}
+              onPress={handleSubmit(onSubmit)}
+              disabled={isUploading}
+              loading={isUploading}
+              fullWidth
             />
           </View>
-
-          <ActionButtonsRow
-            onPrimaryPress={handleSubmit(onSubmit)}
-            primaryTitle={isUploading ? "Saving..." : "Save"}
-            onSecondaryPress={() => console.log("pressed")}
-          />
-          {isUploading && (
-            <View style={styles.loaderContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
-            </View>
-          )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {isUploading && (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator
+            size="large"
+            color={olyColors.button.primary.bg}
+          />
+        </View>
+      )}
     </>
   );
 }
+
+/* ── Styles ───────────────────────────────────────── */
+
+const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: olySpacing[32],
+  },
+
+  /* ── Title ── */
+  titleBlock: {
+    marginBottom: olySpacing[20],
+  },
+  title: {
+    ...olyTypography.title1,
+    color: olyColors.text.primary,
+  },
+  subtitle: {
+    ...olyTypography.body,
+    color: olyColors.text.secondary,
+    marginTop: olySpacing[4],
+  },
+
+  /* ── Avatar ── */
+  avatarContainer: {
+    alignItems: "center",
+    marginBottom: olySpacing[24],
+  },
+  avatarPlaceholder: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 2,
+    borderStyle: "dashed",
+    borderColor: olyColors.text.disabled,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarImage: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 2,
+    borderColor: olyPalette.primary,
+  },
+  avatarBadge: {
+    position: "absolute",
+    top: 68,
+    right: "38%",
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: olyPalette.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#0D1117",
+  },
+  avatarLabel: {
+    ...olyTypography.caption,
+    color: olyColors.text.secondary,
+    marginTop: olySpacing[8],
+  },
+
+  /* ── Fields ── */
+  fieldContainer: {
+    gap: olySpacing[20],
+  },
+  fieldLabel: {
+    ...olyTypography.label,
+    color: olyColors.text.secondary,
+    letterSpacing: olyLetterSpacing.uppercase,
+    textTransform: "uppercase",
+    marginBottom: olySpacing[8],
+  },
+
+  /* ── Date of Birth ── */
+  dobRow: {
+    flexDirection: "row",
+    gap: olySpacing[12],
+  },
+  dobField: {
+    flex: 1,
+    height: 52,
+    borderRadius: olyRadius.lg,
+    borderWidth: 1,
+    borderColor: olyColors.border.default,
+    backgroundColor: olyPalette.cardElevated,
+    justifyContent: "center",
+    paddingHorizontal: olySpacing[16],
+  },
+  dobFieldYear: {
+    flex: 1.3,
+  },
+  dobInput: {
+    ...olyTypography.body,
+    color: olyColors.text.primary,
+    textAlign: "center",
+  },
+
+  /* ── Sex Selector ── */
+  segmentRow: {
+    flexDirection: "row",
+    gap: olySpacing[8],
+  },
+  segmentButton: {
+    flex: 1,
+    height: 44,
+    borderRadius: olyRadius.full,
+    borderWidth: 1,
+    borderColor: olyColors.border.default,
+    backgroundColor: "transparent",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  segmentButtonActive: {
+    backgroundColor: olyPalette.primary,
+    borderColor: olyPalette.primary,
+  },
+  segmentText: {
+    ...olyTypography.bodySmall,
+    fontFamily: "Ubuntu-Medium",
+    color: olyColors.text.secondary,
+    textTransform: "uppercase",
+  },
+  segmentTextActive: {
+    color: olyPalette.white,
+  },
+
+  /* ── Unit Input (Bodyweight / Height) ── */
+  unitInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 52,
+    borderRadius: olyRadius.lg,
+    borderWidth: 1,
+    borderColor: olyColors.border.default,
+    backgroundColor: olyPalette.cardElevated,
+    paddingHorizontal: olySpacing[16],
+  },
+  unitInput: {
+    flex: 1,
+    ...olyTypography.body,
+    color: olyColors.text.primary,
+  },
+  unitToggle: {
+    flexDirection: "row",
+    backgroundColor: olyPalette.card,
+    borderRadius: olyRadius.sm,
+    padding: 2,
+  },
+  unitToggleButton: {
+    paddingHorizontal: olySpacing[12],
+    paddingVertical: olySpacing[4],
+    borderRadius: olyRadius.sm,
+  },
+  unitToggleButtonActive: {
+    backgroundColor: olyPalette.primary,
+  },
+  unitToggleText: {
+    ...olyTypography.caption,
+    fontFamily: "Ubuntu-Medium",
+    color: olyColors.text.secondary,
+  },
+  unitToggleTextActive: {
+    color: olyPalette.white,
+  },
+
+  /* ── Exposure Grid ── */
+  exposureGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: olySpacing[12],
+  },
+  exposureCard: {
+    width: "47%",
+    borderRadius: olyRadius.lg,
+    borderWidth: 1,
+    borderColor: olyColors.border.default,
+    backgroundColor: "transparent",
+    paddingVertical: olySpacing[16],
+    paddingHorizontal: olySpacing[12],
+  },
+  exposureCardActive: {
+    backgroundColor: olyPalette.primary,
+    borderColor: olyPalette.primary,
+  },
+  exposureTitle: {
+    ...olyTypography.body,
+    fontFamily: "Ubuntu-Medium",
+    color: olyColors.text.primary,
+    marginBottom: olySpacing[4],
+  },
+  exposureTitleActive: {
+    color: olyPalette.white,
+  },
+  exposureSubtitle: {
+    ...olyTypography.caption,
+    color: olyColors.text.secondary,
+    lineHeight: 18,
+  },
+  exposureSubtitleActive: {
+    color: "rgba(255, 255, 255, 0.8)",
+  },
+
+  /* ── Error ── */
+  errorText: {
+    ...olyTypography.caption,
+    color: olyPalette.red,
+    marginTop: olySpacing[4],
+  },
+
+  /* ── Bottom CTA ── */
+  bottomCta: {
+    paddingTop: olySpacing[32],
+  },
+
+  /* ── Loader ── */
+  loaderContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: olyColors.bg.overlay,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 999,
+  },
+});
