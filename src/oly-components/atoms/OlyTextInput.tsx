@@ -4,8 +4,6 @@
  *
  * States: default, focused, error, disabled
  * Supports password visibility toggle when secureTextEntry is true.
- *
- * Figma: oly/input/text/default
  */
 
 import React, { useState } from "react";
@@ -27,17 +25,14 @@ import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyElevation } from "@/src/oly-theme/oly-elevation";
 import { olyLayout } from "@/src/oly-theme/oly-spacing";
 
-// ─── Types ───────────────────────────────────────────────────────────
 interface OlyTextInputProps extends Omit<TextInputProps, "style"> {
-  /** Error message — shows below input when present */
   error?: string;
-  /** Disables the input */
   disabled?: boolean;
-  /** Optional container style override */
   containerStyle?: ViewStyle;
 }
 
-// ─── Component ───────────────────────────────────────────────────────
+const EYE_BUTTON_WIDTH = 48;
+
 export const OlyTextInput: React.FC<OlyTextInputProps> = ({
   error,
   disabled = false,
@@ -78,7 +73,7 @@ export const OlyTextInput: React.FC<OlyTextInputProps> = ({
           }}
           style={[
             styles.input,
-            isPasswordField && { paddingRight: olySpacing[48] || 48 },
+            isPasswordField && { paddingRight: EYE_BUTTON_WIDTH },
           ]}
           placeholderTextColor={olyColors.text.disabled}
           selectionColor={olyColors.border.brand}
@@ -113,7 +108,6 @@ export const OlyTextInput: React.FC<OlyTextInputProps> = ({
   );
 };
 
-// ─── Styles ──────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: "row",
@@ -139,7 +133,7 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-    width: 48,
+    width: EYE_BUTTON_WIDTH,
     justifyContent: "center",
     alignItems: "center",
   },

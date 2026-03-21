@@ -3,56 +3,19 @@
  *
  * Combines exercise header + set log rows into a complete exercise
  * logging block. This is the core UI for the workout screen.
+ *
+ * Now imports from the theme system instead of hardcoding tokens.
  */
 
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
-/* ── tokens ───────────────────────────────────────────────── */
-
-const olyElevation = {
-  level1: {
-    backgroundColor: '#161F2C',
-    borderColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1,
-  },
-};
-
-const olyRadius = { lg: 12 };
-
-const olySpacing = {
-  xs: 4,
-  sm: 8,
-  md: 12,
-  base: 16,
-};
-
-const olyColors = {
-  text: {
-    primary: '#E2E8F0',
-    secondary: 'rgba(226,232,240,0.60)',
-  },
-  intensity: {
-    low: '#FACC15',
-    mid: '#22C55E',
-    high: '#3B82F6',
-  },
-  lift: {
-    made: '#22C55E',
-    missed: '#D24B4B',
-  },
-  border: {
-    subtle: 'rgba(255,255,255,0.06)',
-  },
-};
-
-const olyTypography = {
-  title2: { fontFamily: 'Ubuntu-Medium', fontSize: 18, lineHeight: 24 },
-  bodySmall: { fontFamily: 'Ubuntu-Regular', fontSize: 14, lineHeight: 20 },
-  number: { fontFamily: 'Ubuntu-Medium', fontSize: 20, lineHeight: 24 },
-  label: { fontFamily: 'Ubuntu-Medium', fontSize: 12, lineHeight: 16, letterSpacing: 0.8 },
-};
+import { olyColors } from '@/src/oly-theme/oly-colors';
+import { olyTypography } from '@/src/oly-theme/oly-typography';
+import { olySpacing } from '@/src/oly-theme/oly-spacing';
+import { olyRadius } from '@/src/oly-theme/oly-radius';
+import { olyElevation } from '@/src/oly-theme/oly-elevation';
 
 /* ── types ────────────────────────────────────────────────── */
 
@@ -73,7 +36,7 @@ interface OlyExerciseCardProps {
   onToggleMake?: (setIndex: number) => void;
 }
 
-/* ── column labels ────────────────────────────────────────── */
+/* ── column labels ──────────────────────────────────────── */
 
 const COLUMNS = ['SET', 'REPS', 'WEIGHT', '', ''] as const;
 
@@ -113,7 +76,7 @@ export const OlyExerciseCard: React.FC<OlyExerciseCardProps> = ({
             <Text
               style={[
                 olyTypography.bodySmall,
-                { color: olyColors.text.secondary, marginTop: olySpacing.xs },
+                { color: olyColors.text.secondary, marginTop: olySpacing[4] },
               ]}
               maxFontSizeMultiplier={1.3}
             >
@@ -187,7 +150,7 @@ export const OlyExerciseCard: React.FC<OlyExerciseCardProps> = ({
               <Text
                 style={[
                   olyTypography.label,
-                  { color: olyColors.text.secondary, marginLeft: olySpacing.xs },
+                  { color: olyColors.text.secondary, marginLeft: olySpacing[4] },
                 ]}
                 maxFontSizeMultiplier={1.2}
               >
@@ -243,26 +206,26 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     flex: 1,
-    padding: olySpacing.base,
+    padding: olySpacing[16],
   },
   header: {
-    marginBottom: olySpacing.md,
+    marginBottom: olySpacing[12],
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: olySpacing.xs,
+    paddingVertical: olySpacing[4],
   },
   divider: {
     height: 1,
-    backgroundColor: olyColors.border.subtle,
-    marginVertical: olySpacing.sm,
+    backgroundColor: olyColors.border.default,
+    marginVertical: olySpacing[8],
   },
   setRow: {
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: 56,
-    paddingVertical: olySpacing.sm,
+    paddingVertical: olySpacing[8],
   },
   setCol: {
     width: 40,
@@ -286,6 +249,6 @@ const styles = StyleSheet.create({
   badge: {
     width: 12,
     height: 12,
-    borderRadius: 9999,
+    borderRadius: olyRadius.full,
   },
 });
