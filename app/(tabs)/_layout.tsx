@@ -1,65 +1,61 @@
 import { Images } from "@/assets";
 import { useTheme } from "@/context/theme-context";
-import { Typography } from "@/utils/custom-styles";
+import { olyTypography } from "@/src/oly-theme/oly-typography";
+import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
+import { olyRadius } from "@/src/oly-theme/oly-radius";
+import { olyElevation } from "@/src/oly-theme/oly-elevation";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import { BlurView } from "expo-blur";
 import { router, Tabs } from "expo-router";
 import React, { createContext, useState } from "react";
-import { Image, Platform, Text, TouchableOpacity, View } from "react-native";
+import { Image, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { scale } from "react-native-size-matters";
+
 export const TabBarContext = createContext({
   hideTabBar: () => {},
   showTabBar: () => {},
 });
 
+const ICON_SIZE = 24;
+const FAB_SIZE = 48;
+const TAB_BAR_HEIGHT = 64;
+const TAB_BAR_MARGIN_BOTTOM = 20;
+const TAB_BAR_MARGIN_H = 16;
+
 export default function TabLayout() {
   const { colors } = useTheme();
   const [isTabBarVisible, setIsTabBarVisible] = useState(true);
+
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={styles.root}>
       <BottomSheetModalProvider>
         <Tabs
           screenOptions={{
             headerShown: false,
-
-            tabBarActiveTintColor: colors.primary,
-            tabBarInactiveTintColor: "#8e8e93",
+            tabBarActiveTintColor: olyPalette.primary,
+            tabBarInactiveTintColor: olyColors.text.disabled,
             tabBarStyle: isTabBarVisible
               ? {
                   borderTopWidth: 0,
-                  height: scale(70),
+                  height: TAB_BAR_HEIGHT,
                   position: "absolute",
-                  paddingBottom: Platform.OS === "ios" ? scale(20) : scale(10),
-                  paddingTop: scale(10),
+                  paddingBottom: Platform.OS === "ios" ? 12 : 8,
+                  paddingTop: 8,
                   elevation: 0,
-                  marginHorizontal: scale(15),
-                  marginBottom: scale(20),
-                  borderRadius: scale(45),
+                  marginHorizontal: TAB_BAR_MARGIN_H,
+                  marginBottom: TAB_BAR_MARGIN_BOTTOM,
+                  borderRadius: olyRadius.lg,
                   overflow: "visible",
+                  backgroundColor: olyElevation.level1.backgroundColor,
+                  borderColor: olyElevation.level1.borderColor,
+                  borderWidth: olyElevation.level1.borderWidth,
                 }
               : { display: "none" },
-            tabBarBackground: () => (
-              <BlurView
-                intensity={Platform.OS === "android" ? 70 : 40}
-                experimentalBlurMethod="dimezisBlurView"
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  //backgroundColor: colors.background,
-                  borderRadius: scale(45),
-                  overflow: "hidden",
-                }}
-              />
-            ),
             tabBarLabelStyle: {
-              fontSize: Typography.fontSize.xs,
-              fontWeight: Typography.fontWeight.bold,
+              ...olyTypography.caption,
               textTransform: "uppercase",
+              letterSpacing: 0.5,
             },
             tabBarShowLabel: true,
             animation: "none",
@@ -73,8 +69,8 @@ export default function TabLayout() {
                 <Image
                   source={Images.home}
                   style={{
-                    width: scale(24),
-                    height: scale(24),
+                    width: ICON_SIZE,
+                    height: ICON_SIZE,
                     tintColor: color,
                   }}
                 />
@@ -90,8 +86,8 @@ export default function TabLayout() {
                 <Image
                   source={Images.workout}
                   style={{
-                    width: scale(24),
-                    height: scale(24),
+                    width: ICON_SIZE,
+                    height: ICON_SIZE,
                     tintColor: color,
                   }}
                 />
@@ -104,43 +100,18 @@ export default function TabLayout() {
             options={{
               title: "UPLOAD",
               tabBarButton: (props) => (
-                <View style={{ alignItems: "center", top: scale(-25) }}>
+                <View style={styles.fabWrapper}>
                   <TouchableOpacity
                     onPress={() => router.push("/athlete/create-new-post")}
-                    style={{
-                      justifyContent: "center",
-                      alignItems: "center",
-                    }}
+                    style={styles.fabTouchable}
+                    accessibilityRole="button"
+                    accessibilityLabel="Upload new post"
                   >
-                    <View
-                      style={{
-                        width: scale(45),
-                        height: scale(45),
-                        borderRadius: scale(30),
-                        backgroundColor: colors.primary,
-                        justifyContent: "center",
-                        alignItems: "center",
-                        shadowColor: colors.primary,
-                        shadowOffset: { width: 0, height: 4 },
-                        shadowOpacity: 0.3,
-                        shadowRadius: 8,
-                        elevation: 8,
-                      }}
-                    >
-                      <Ionicons name="add" size={scale(32)} color="#fff" />
+                    <View style={styles.fab}>
+                      <Ionicons name="add" size={28} color={olyColors.text.onBrand} />
                     </View>
                   </TouchableOpacity>
-                  <Text
-                    style={{
-                      fontSize: Typography.fontSize.xs,
-                      fontWeight: Typography.fontWeight.bold,
-                      color: "#8e8e93",
-                      marginTop: scale(4),
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    UPLOAD
-                  </Text>
+                  <Text style={styles.fabLabel}>UPLOAD</Text>
                 </View>
               ),
             }}
@@ -154,8 +125,8 @@ export default function TabLayout() {
                 <Image
                   source={Images.rank}
                   style={{
-                    width: scale(24),
-                    height: scale(24),
+                    width: ICON_SIZE,
+                    height: ICON_SIZE,
                     tintColor: color,
                   }}
                 />
@@ -171,8 +142,8 @@ export default function TabLayout() {
                 <Image
                   source={Images.analytics}
                   style={{
-                    width: scale(24),
-                    height: scale(24),
+                    width: ICON_SIZE,
+                    height: ICON_SIZE,
                     tintColor: color,
                   }}
                 />
@@ -184,3 +155,33 @@ export default function TabLayout() {
     </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+  fabWrapper: {
+    alignItems: "center",
+    top: -24,
+  },
+  fabTouchable: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  fab: {
+    width: FAB_SIZE,
+    height: FAB_SIZE,
+    borderRadius: olyRadius.full,
+    backgroundColor: olyPalette.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    // No shadow — Design Bible: elevation via surface brightness only
+  },
+  fabLabel: {
+    ...olyTypography.caption,
+    color: olyColors.text.disabled,
+    marginTop: 4,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+});
