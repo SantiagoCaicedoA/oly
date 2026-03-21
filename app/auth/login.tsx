@@ -27,7 +27,6 @@ import React from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   ActivityIndicator,
-  Image,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -37,11 +36,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Animated, { FadeIn, useReducedMotion } from "react-native-reanimated";
 import { useDispatch } from "react-redux";
 
 /* ── Nav bar logo ── */
-const NavLogo = () => (
-  <Image
+const NavLogo = ({ reduceMotion }: { reduceMotion: boolean }) => (
+  <Animated.Image
+    entering={reduceMotion ? undefined : FadeIn.duration(400)}
     source={require('@/assets/images/oly-logo.webp')}
     style={{ width: 40, height: 40 }}
     resizeMode="contain"
@@ -49,6 +50,7 @@ const NavLogo = () => (
 );
 
 export default function Login() {
+  const reduceMotion = useReducedMotion();
   const dispatch = useDispatch();
   const { showSuccess, showError } = useToast();
   const [login, { isLoading }] = useLoginMutation();
@@ -99,7 +101,7 @@ export default function Login() {
     <OlyScreenWrapper>
       <OlyNavBar
         onBack={() => router.back()}
-        centerElement={<NavLogo />}
+        centerElement={<NavLogo reduceMotion={!!reduceMotion} />}
       />
 
       <KeyboardAvoidingView

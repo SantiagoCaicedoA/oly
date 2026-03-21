@@ -9,12 +9,13 @@
 
 import React from 'react';
 import {
-  Image,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
+import { Keyframe } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack } from 'expo-router';
@@ -24,6 +25,13 @@ import { olyColors, olyPalette } from '@/src/oly-theme/oly-colors';
 import { olyTypography, olyLetterSpacing } from '@/src/oly-theme/oly-typography';
 import { olySpacing } from '@/src/oly-theme/oly-spacing';
 import { olyRadius } from '@/src/oly-theme/oly-radius';
+
+/* ── entrance animations ──────────────────────────────── */
+
+const logoEntering = new Keyframe({
+  0: { opacity: 0, transform: [{ scale: 0.92 }] },
+  100: { opacity: 1, transform: [{ scale: 1 }] },
+}).duration(700);
 
 /* ── gradients from Figma ───────────────────────────────── */
 
@@ -44,6 +52,8 @@ const SIGNUP_GRADIENT = {
 /* ── component ──────────────────────────────────────────── */
 
 export default function Welcome() {
+  const reduceMotion = useReducedMotion();
+
   const handleSignUp = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push('/auth/sign-up');
@@ -68,21 +78,26 @@ export default function Welcome() {
         <SafeAreaView style={styles.safe}>
           {/* ── Logo + tagline (centered) ── */}
           <View style={styles.centerContent}>
-            <Image
+            <Animated.Image
+              entering={reduceMotion ? undefined : logoEntering}
               source={require('@/assets/images/oly-logo.webp')}
               style={styles.logo}
               resizeMode="contain"
             />
-            <Text
+            <Animated.Text
+              entering={reduceMotion ? undefined : FadeIn.duration(500).delay(300)}
               style={styles.tagline}
               maxFontSizeMultiplier={1.5}
             >
               Programming that adapts to you
-            </Text>
+            </Animated.Text>
           </View>
 
           {/* ── Bottom buttons ── */}
-          <View style={styles.bottomSection}>
+          <Animated.View
+            entering={reduceMotion ? undefined : FadeIn.duration(500).delay(500)}
+            style={styles.bottomSection}
+          >
             {/* Sign Up — gradient button */}
             <Pressable
               onPress={handleSignUp}
@@ -128,7 +143,7 @@ export default function Welcome() {
               {' & '}
               <Text style={styles.termsLink}>Privacy Policy</Text>
             </Text>
-          </View>
+          </Animated.View>
         </SafeAreaView>
       </LinearGradient>
     </>
