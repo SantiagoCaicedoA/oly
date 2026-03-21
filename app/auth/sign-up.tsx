@@ -117,8 +117,8 @@ export default function SignUp() {
       style={styles.gradient}
     >
       <SafeAreaView style={styles.safe}>
-        {/* ── Back navigation ── */}
-        <OlyNavBar onBack={() => router.back()} />
+        {/* ── Back to Welcome ── */}
+        <OlyNavBar onBack={() => router.replace('/auth/welcome')} />
 
         <KeyboardAvoidingView
           style={styles.flex}
@@ -148,7 +148,7 @@ export default function SignUp() {
                       render={({ field: { onChange, value } }) => (
                         <OlyFormField
                           label="FIRST NAME"
-                          placeholder="Santiago"
+                          placeholder="First name"
                           autoCapitalize="words"
                           value={value}
                           onChangeText={onChange}
@@ -165,7 +165,7 @@ export default function SignUp() {
                       render={({ field: { onChange, value } }) => (
                         <OlyFormField
                           label="LAST NAME"
-                          placeholder="Caicedo"
+                          placeholder="Last name"
                           autoCapitalize="words"
                           value={value}
                           onChangeText={onChange}
@@ -182,7 +182,7 @@ export default function SignUp() {
                   render={({ field: { onChange, value } }) => (
                     <OlyFormField
                       label="EMAIL"
-                      placeholder="alex@gmail.com"
+                      placeholder="your@email.com"
                       autoCapitalize="none"
                       keyboardType="email-address"
                       value={value}
@@ -198,7 +198,7 @@ export default function SignUp() {
                   render={({ field: { onChange, value } }) => (
                     <OlyFormField
                       label="PASSWORD"
-                      placeholder="Min 7 characters"
+                      placeholder="Min 7 characters, 1 uppercase, 1 number"
                       autoCapitalize="none"
                       secureTextEntry
                       value={value}
@@ -214,7 +214,7 @@ export default function SignUp() {
                   render={({ field: { onChange, value } }) => (
                     <OlyFormField
                       label="CONFIRM PASSWORD"
-                      placeholder="Re-enter your password"
+                      placeholder="Re-enter password"
                       autoCapitalize="none"
                       secureTextEntry
                       value={value}
@@ -226,7 +226,7 @@ export default function SignUp() {
               </View>
 
               <OlyButton
-                label={isLoading ? "CREATING ACCOUNT" : "SIGN UP"}
+                label={isLoading ? "CREATING ACCOUNT" : "CREATE ACCOUNT"}
                 onPress={handleSubmit(onSubmit)}
                 disabled={isLoading}
                 loading={isLoading}

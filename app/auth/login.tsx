@@ -1,7 +1,14 @@
+/**
+ * Login Screen — Redesigned
+ *
+ * Uses the Welcome screen's gradient background for visual continuity.
+ * OlyNavBar back button navigates to Welcome screen.
+ * All logic/API calls untouched from Abdul's implementation.
+ */
+
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
 import { OlyFormField } from "@/src/oly-components/molecules/OlyFormField";
-import { OlyScreenWrapper } from "@/src/oly-components/organisms/OlyScreenWrapper";
-import { useTheme } from "@/context/theme-context";
+import { OlyNavBar } from "@/src/oly-components/organisms/OlyNavBar";
 import { useToast } from "@/context/toast-context";
 import { useLoginMutation } from "@/store/api";
 import { loginSuccess } from "@/store/reducer/authSlice";
@@ -11,7 +18,7 @@ import { olyColors } from "@/src/oly-theme/oly-colors";
 import { olySpacing } from "@/src/oly-theme/oly-spacing";
 import { loginSchema } from "@/utils/validation-schemas";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { router, Stack } from "expo-router";
+import { router } from "expo-router";
 import React from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
@@ -25,10 +32,20 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch } from "react-redux";
 
+/* ── Welcome-screen gradient (Figma node 3591-1116) ──── */
+
+const BG_GRADIENT = {
+  colors: ['#1A2533', '#0F1A24', '#1E3348', '#0C1620'],
+  locations: [0, 0.3, 0.6, 1] as [number, number, number, number],
+  start: { x: 0.5, y: 0 },
+  end: { x: 0.5, y: 1 },
+};
+
 export default function Login() {
-  const { colors } = useTheme();
   const dispatch = useDispatch();
   const { showSuccess, showError } = useToast();
   const [login, { isLoading }] = useLoginMutation();
@@ -76,13 +93,21 @@ export default function Login() {
   };
 
   return (
-    <>
-      <Stack.Screen options={{ gestureEnabled: false }} />
+    <LinearGradient
+      colors={BG_GRADIENT.colors}
+      locations={BG_GRADIENT.locations}
+      start={BG_GRADIENT.start}
+      end={BG_GRADIENT.end}
+      style={styles.gradient}
+    >
+      <SafeAreaView style={styles.safe}>
+        {/* ── Back to Welcome ── */}
+        <OlyNavBar onBack={() => router.replace('/auth/welcome')} />
 
-      <OlyScreenWrapper>
         <KeyboardAvoidingView
           style={styles.flex}
-          behavior={Platform.OS === "ios" ? "padding" : "padding"}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
         >
           <TouchableWithoutFeedback
             onPress={Keyboard.dismiss}
@@ -93,7 +118,7 @@ export default function Login() {
                 style={styles.title}
                 maxFontSizeMultiplier={1.2}
               >
-                LOGIN
+                WELCOME BACK
               </Text>
 
               <View style={styles.fieldContainer}>
@@ -103,7 +128,7 @@ export default function Login() {
                   render={({ field: { onChange, value } }) => (
                     <OlyFormField
                       label="EMAIL"
-                      placeholder="alex@gmail.com"
+                      placeholder="your@email.com"
                       autoCapitalize="none"
                       keyboardType="email-address"
                       value={value}
@@ -131,7 +156,7 @@ export default function Login() {
               </View>
 
               <OlyButton
-                label={isLoading ? "LOGGING IN" : "LOGIN"}
+                label={isLoading ? "LOGGING IN" : "LOG IN"}
                 onPress={handleSubmit(onSubmit)}
                 disabled={isLoading}
                 loading={isLoading}
@@ -146,28 +171,35 @@ export default function Login() {
               </View>
             </View>
           </TouchableWithoutFeedback>
-
-          {isLoading && (
-            <View style={styles.loaderContainer}>
-              <ActivityIndicator
-                size="large"
-                color={olyColors.button.primary.bg}
-              />
-            </View>
-          )}
         </KeyboardAvoidingView>
-      </OlyScreenWrapper>
-    </>
+
+        {isLoading && (
+          <View style={styles.loaderContainer}>
+            <ActivityIndicator
+              size="large"
+              color={olyColors.button.primary.bg}
+            />
+          </View>
+        )}
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  gradient: {
+    flex: 1,
+  },
+  safe: {
+    flex: 1,
+  },
   flex: {
     flex: 1,
   },
   container: {
     flex: 1,
     justifyContent: "center",
+    paddingHorizontal: olySpacing[16],
     paddingBottom: olySpacing[32],
   },
   title: {
