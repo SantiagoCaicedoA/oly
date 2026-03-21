@@ -1,20 +1,24 @@
 /**
- * Sign Up Screen — Redesigned
+ * Sign Up Screen — Redesigned (v2)
  *
- * Uses the Welcome screen's gradient background for visual continuity.
- * Split first/last name, confirm password, back navigation via OlyNavBar.
+ * Left-aligned title, subtitle, bottom-anchored CTA.
+ * Uses OlyScreenWrapper (standard app gradient).
+ * Password fields have eye toggle for visibility.
+ * Button uses sentence case per approved prototype.
+ *
  * Abdul's SignUpPayload (name, email, password) is unchanged —
  * firstName + lastName are concatenated before the API call.
  */
 
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
 import { OlyFormField } from "@/src/oly-components/molecules/OlyFormField";
+import { OlyScreenWrapper } from "@/src/oly-components/organisms/OlyScreenWrapper";
 import { OlyNavBar } from "@/src/oly-components/organisms/OlyNavBar";
 import { useToast } from "@/context/toast-context";
 import { useSignupMutation } from "@/store/api";
 import { loginSuccess } from "@/store/reducer/authSlice";
 import { SignUpPayload, SignUpFormValues } from "@/types/api/auth";
-import { olyTypography, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
+import { olyTypography } from "@/src/oly-theme/oly-typography";
 import { olyColors } from "@/src/oly-theme/oly-colors";
 import { olySpacing } from "@/src/oly-theme/oly-spacing";
 import { signUpFormSchema } from "@/utils/validation-schemas";
@@ -34,18 +38,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch } from "react-redux";
-
-/* ── Welcome-screen gradient (Figma node 3591-1116) ──── */
-
-const BG_GRADIENT = {
-  colors: ['#1A2533', '#0F1A24', '#1E3348', '#0C1620'],
-  locations: [0, 0.3, 0.6, 1] as [number, number, number, number],
-  start: { x: 0.5, y: 0 },
-  end: { x: 0.5, y: 1 },
-};
 
 export default function SignUp() {
   const { showSuccess, showError } = useToast();
@@ -67,7 +60,6 @@ export default function SignUp() {
   });
 
   const onSubmit = async (data: SignUpFormValues) => {
-    // Concatenate into single `name` for Abdul's backend contract
     const fullName = `${data.firstName.trim()} ${data.lastName.trim()}`.trim();
 
     const payload: SignUpPayload = {
@@ -109,181 +101,180 @@ export default function SignUp() {
   };
 
   return (
-    <LinearGradient
-      colors={BG_GRADIENT.colors}
-      locations={BG_GRADIENT.locations}
-      start={BG_GRADIENT.start}
-      end={BG_GRADIENT.end}
-      style={styles.gradient}
-    >
-      <SafeAreaView style={styles.safe}>
-        {/* ── Back to Welcome ── */}
-        <OlyNavBar onBack={() => router.replace('/auth/welcome')} />
+    <OlyScreenWrapper>
+      {/* Nav bar: back + centered OLY */}
+      <OlyNavBar
+        onBack={() => router.replace('/auth/welcome')}
+        title="OLY"
+      />
 
-        <KeyboardAvoidingView
-          style={styles.flex}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
-        >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-            <ScrollView
-              contentContainerStyle={styles.scrollContent}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              <Text
-                style={styles.title}
-                maxFontSizeMultiplier={1.2}
-              >
-                CREATE ACCOUNT
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* ── Title block (left-aligned) ── */}
+            <View style={styles.titleBlock}>
+              <Text style={styles.title} maxFontSizeMultiplier={1.2}>
+                Create account
               </Text>
+              <Text style={styles.subtitle} maxFontSizeMultiplier={1.5}>
+                Start your training journey
+              </Text>
+            </View>
 
-              <View style={styles.fieldContainer}>
-                {/* ── Name row: first + last side by side ── */}
-                <View style={styles.nameRow}>
-                  <View style={styles.nameField}>
-                    <Controller
-                      control={control}
-                      name="firstName"
-                      render={({ field: { onChange, value } }) => (
-                        <OlyFormField
-                          label="FIRST NAME"
-                          placeholder="First name"
-                          autoCapitalize="words"
-                          value={value}
-                          onChangeText={onChange}
-                          error={errors.firstName?.message}
-                        />
-                      )}
-                    />
-                  </View>
-
-                  <View style={styles.nameField}>
-                    <Controller
-                      control={control}
-                      name="lastName"
-                      render={({ field: { onChange, value } }) => (
-                        <OlyFormField
-                          label="LAST NAME"
-                          placeholder="Last name"
-                          autoCapitalize="words"
-                          value={value}
-                          onChangeText={onChange}
-                          error={errors.lastName?.message}
-                        />
-                      )}
-                    />
-                  </View>
+            {/* ── Fields ── */}
+            <View style={styles.fieldContainer}>
+              <View style={styles.nameRow}>
+                <View style={styles.nameField}>
+                  <Controller
+                    control={control}
+                    name="firstName"
+                    render={({ field: { onChange, value } }) => (
+                      <OlyFormField
+                        label="FIRST NAME"
+                        placeholder=""
+                        autoCapitalize="words"
+                        value={value}
+                        onChangeText={onChange}
+                        error={errors.firstName?.message}
+                      />
+                    )}
+                  />
                 </View>
-
-                <Controller
-                  control={control}
-                  name="email"
-                  render={({ field: { onChange, value } }) => (
-                    <OlyFormField
-                      label="EMAIL"
-                      placeholder="your@email.com"
-                      autoCapitalize="none"
-                      keyboardType="email-address"
-                      value={value}
-                      onChangeText={onChange}
-                      error={errors.email?.message}
-                    />
-                  )}
-                />
-
-                <Controller
-                  control={control}
-                  name="password"
-                  render={({ field: { onChange, value } }) => (
-                    <OlyFormField
-                      label="PASSWORD"
-                      placeholder="Min 7 characters, 1 uppercase, 1 number"
-                      autoCapitalize="none"
-                      secureTextEntry
-                      value={value}
-                      onChangeText={onChange}
-                      error={errors.password?.message}
-                    />
-                  )}
-                />
-
-                <Controller
-                  control={control}
-                  name="confirmPassword"
-                  render={({ field: { onChange, value } }) => (
-                    <OlyFormField
-                      label="CONFIRM PASSWORD"
-                      placeholder="Re-enter password"
-                      autoCapitalize="none"
-                      secureTextEntry
-                      value={value}
-                      onChangeText={onChange}
-                      error={errors.confirmPassword?.message}
-                    />
-                  )}
-                />
+                <View style={styles.nameField}>
+                  <Controller
+                    control={control}
+                    name="lastName"
+                    render={({ field: { onChange, value } }) => (
+                      <OlyFormField
+                        label="LAST NAME"
+                        placeholder=""
+                        autoCapitalize="words"
+                        value={value}
+                        onChangeText={onChange}
+                        error={errors.lastName?.message}
+                      />
+                    )}
+                  />
+                </View>
               </View>
 
+              <Controller
+                control={control}
+                name="email"
+                render={({ field: { onChange, value } }) => (
+                  <OlyFormField
+                    label="EMAIL ADDRESS"
+                    placeholder=""
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    value={value}
+                    onChangeText={onChange}
+                    error={errors.email?.message}
+                  />
+                )}
+              />
+
+              <Controller
+                control={control}
+                name="password"
+                render={({ field: { onChange, value } }) => (
+                  <OlyFormField
+                    label="PASSWORD"
+                    placeholder=""
+                    autoCapitalize="none"
+                    secureTextEntry
+                    value={value}
+                    onChangeText={onChange}
+                    error={errors.password?.message}
+                  />
+                )}
+              />
+
+              <Controller
+                control={control}
+                name="confirmPassword"
+                render={({ field: { onChange, value } }) => (
+                  <OlyFormField
+                    label="CONFIRM PASSWORD"
+                    placeholder=""
+                    autoCapitalize="none"
+                    secureTextEntry
+                    value={value}
+                    onChangeText={onChange}
+                    error={errors.confirmPassword?.message}
+                  />
+                )}
+              />
+            </View>
+
+            {/* spacer to push CTA down */}
+            <View style={styles.flex} />
+
+            {/* ── Bottom CTA ── */}
+            <View style={styles.bottomCta}>
               <OlyButton
-                label={isLoading ? "CREATING ACCOUNT" : "CREATE ACCOUNT"}
+                label={isLoading ? "Creating Account" : "Create Account"}
                 onPress={handleSubmit(onSubmit)}
                 disabled={isLoading}
                 loading={isLoading}
                 fullWidth
+                preserveCase
               />
 
               <View style={styles.rowContainer}>
-                <Text style={styles.text}>Already have an account?</Text>
+                <Text style={styles.footerText}>Already have an account?</Text>
                 <TouchableOpacity onPress={handleLoginPress}>
-                  <Text style={styles.link}>LOG IN</Text>
+                  <Text style={styles.footerLink}>Log in</Text>
                 </TouchableOpacity>
               </View>
-            </ScrollView>
-          </TouchableWithoutFeedback>
-        </KeyboardAvoidingView>
+            </View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
 
-        {isLoading && (
-          <View style={styles.loaderContainer}>
-            <ActivityIndicator
-              size="large"
-              color={olyColors.button.primary.bg}
-            />
-          </View>
-        )}
-      </SafeAreaView>
-    </LinearGradient>
+      {isLoading && (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator
+            size="large"
+            color={olyColors.button.primary.bg}
+          />
+        </View>
+      )}
+    </OlyScreenWrapper>
   );
 }
 
-/* ── styles ─────────────────────────────────────────────── */
-
 const styles = StyleSheet.create({
-  gradient: {
-    flex: 1,
-  },
-  safe: {
-    flex: 1,
-  },
   flex: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: "center",
-    paddingHorizontal: olySpacing[16],
     paddingBottom: olySpacing[32],
+  },
+  titleBlock: {
+    marginTop: olySpacing[4],
+    marginBottom: olySpacing[28] || 28,
   },
   title: {
     ...olyTypography.title1,
     color: olyColors.text.primary,
-    textAlign: "center",
-    letterSpacing: olyLetterSpacing.uppercase,
+  },
+  subtitle: {
+    ...olyTypography.body,
+    color: olyColors.text.secondary,
+    marginTop: olySpacing[4],
   },
   fieldContainer: {
-    marginTop: olySpacing[24],
     gap: olySpacing[16],
-    marginBottom: olySpacing[24],
   },
   nameRow: {
     flexDirection: "row",
@@ -292,21 +283,23 @@ const styles = StyleSheet.create({
   nameField: {
     flex: 1,
   },
+  bottomCta: {
+    paddingTop: olySpacing[24],
+  },
   rowContainer: {
     flexDirection: "row",
     gap: olySpacing[8],
-    marginTop: olySpacing[20],
+    marginTop: olySpacing[16],
     justifyContent: "center",
   },
-  text: {
-    ...olyTypography.body,
+  footerText: {
+    ...olyTypography.bodySmall,
     color: olyColors.text.secondary,
   },
-  link: {
-    ...olyTypography.body,
+  footerLink: {
+    ...olyTypography.bodySmall,
     fontFamily: "Ubuntu-Medium",
     color: olyColors.text.primary,
-    letterSpacing: olyLetterSpacing.uppercase,
   },
   loaderContainer: {
     position: "absolute",

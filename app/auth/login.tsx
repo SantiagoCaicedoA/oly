@@ -1,19 +1,23 @@
 /**
- * Login Screen — Redesigned
+ * Login Screen — Redesigned (v2)
  *
- * Uses the Welcome screen's gradient background for visual continuity.
- * OlyNavBar back button navigates to Welcome screen.
+ * Left-aligned title, subtitle, bottom-anchored CTA.
+ * Uses OlyScreenWrapper (standard app gradient).
+ * Password field has eye toggle. "Forgot password?" link.
+ * Button uses sentence case per approved prototype.
+ *
  * All logic/API calls untouched from Abdul's implementation.
  */
 
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
 import { OlyFormField } from "@/src/oly-components/molecules/OlyFormField";
+import { OlyScreenWrapper } from "@/src/oly-components/organisms/OlyScreenWrapper";
 import { OlyNavBar } from "@/src/oly-components/organisms/OlyNavBar";
 import { useToast } from "@/context/toast-context";
 import { useLoginMutation } from "@/store/api";
 import { loginSuccess } from "@/store/reducer/authSlice";
 import { LoginPayload, LoginValues } from "@/types/api/auth";
-import { olyTypography, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
+import { olyTypography } from "@/src/oly-theme/oly-typography";
 import { olyColors } from "@/src/oly-theme/oly-colors";
 import { olySpacing } from "@/src/oly-theme/oly-spacing";
 import { loginSchema } from "@/utils/validation-schemas";
@@ -32,18 +36,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch } from "react-redux";
-
-/* ── Welcome-screen gradient (Figma node 3591-1116) ──── */
-
-const BG_GRADIENT = {
-  colors: ['#1A2533', '#0F1A24', '#1E3348', '#0C1620'],
-  locations: [0, 0.3, 0.6, 1] as [number, number, number, number],
-  start: { x: 0.5, y: 0 },
-  end: { x: 0.5, y: 1 },
-};
 
 export default function Login() {
   const dispatch = useDispatch();
@@ -93,141 +86,157 @@ export default function Login() {
   };
 
   return (
-    <LinearGradient
-      colors={BG_GRADIENT.colors}
-      locations={BG_GRADIENT.locations}
-      start={BG_GRADIENT.start}
-      end={BG_GRADIENT.end}
-      style={styles.gradient}
-    >
-      <SafeAreaView style={styles.safe}>
-        {/* ── Back to Welcome ── */}
-        <OlyNavBar onBack={() => router.replace('/auth/welcome')} />
+    <OlyScreenWrapper>
+      {/* Nav bar: back + centered OLY */}
+      <OlyNavBar
+        onBack={() => router.replace('/auth/welcome')}
+        title="OLY"
+      />
 
-        <KeyboardAvoidingView
-          style={styles.flex}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      >
+        <TouchableWithoutFeedback
+          onPress={Keyboard.dismiss}
+          accessible={false}
         >
-          <TouchableWithoutFeedback
-            onPress={Keyboard.dismiss}
-            accessible={false}
-          >
-            <View style={styles.container}>
-              <Text
-                style={styles.title}
-                maxFontSizeMultiplier={1.2}
-              >
-                WELCOME BACK
+          <View style={styles.container}>
+            {/* ── Title block (left-aligned) ── */}
+            <View style={styles.titleBlock}>
+              <Text style={styles.title} maxFontSizeMultiplier={1.2}>
+                Welcome back
               </Text>
+              <Text style={styles.subtitle} maxFontSizeMultiplier={1.5}>
+                Log in to continue training
+              </Text>
+            </View>
 
-              <View style={styles.fieldContainer}>
-                <Controller
-                  control={control}
-                  name="email"
-                  render={({ field: { onChange, value } }) => (
-                    <OlyFormField
-                      label="EMAIL"
-                      placeholder="your@email.com"
-                      autoCapitalize="none"
-                      keyboardType="email-address"
-                      value={value}
-                      onChangeText={onChange}
-                      error={errors.email?.message}
-                    />
-                  )}
-                />
+            {/* ── Fields ── */}
+            <View style={styles.fieldContainer}>
+              <Controller
+                control={control}
+                name="email"
+                render={({ field: { onChange, value } }) => (
+                  <OlyFormField
+                    label="EMAIL"
+                    placeholder=""
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    value={value}
+                    onChangeText={onChange}
+                    error={errors.email?.message}
+                  />
+                )}
+              />
 
-                <Controller
-                  control={control}
-                  name="password"
-                  render={({ field: { onChange, value } }) => (
-                    <OlyFormField
-                      label="PASSWORD"
-                      placeholder="Enter your password"
-                      autoCapitalize="none"
-                      secureTextEntry
-                      value={value}
-                      onChangeText={onChange}
-                      error={errors.password?.message}
-                    />
-                  )}
-                />
-              </View>
+              <Controller
+                control={control}
+                name="password"
+                render={({ field: { onChange, value } }) => (
+                  <OlyFormField
+                    label="PASSWORD"
+                    placeholder=""
+                    autoCapitalize="none"
+                    secureTextEntry
+                    value={value}
+                    onChangeText={onChange}
+                    error={errors.password?.message}
+                  />
+                )}
+              />
 
+              <TouchableOpacity style={styles.forgotContainer}>
+                <Text style={styles.forgotText}>Forgot password?</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* spacer */}
+            <View style={styles.flex} />
+
+            {/* ── Bottom CTA ── */}
+            <View style={styles.bottomCta}>
               <OlyButton
-                label={isLoading ? "LOGGING IN" : "LOG IN"}
+                label={isLoading ? "Logging in..." : "Log In"}
                 onPress={handleSubmit(onSubmit)}
                 disabled={isLoading}
                 loading={isLoading}
                 fullWidth
+                preserveCase
               />
 
               <View style={styles.rowContainer}>
-                <Text style={styles.text}>Don't have an account?</Text>
+                <Text style={styles.footerText}>Don't have an account?</Text>
                 <TouchableOpacity onPress={handleSignUpPress}>
-                  <Text style={styles.link}>SIGN UP</Text>
+                  <Text style={styles.footerLink}>Sign up</Text>
                 </TouchableOpacity>
               </View>
             </View>
-          </TouchableWithoutFeedback>
-        </KeyboardAvoidingView>
-
-        {isLoading && (
-          <View style={styles.loaderContainer}>
-            <ActivityIndicator
-              size="large"
-              color={olyColors.button.primary.bg}
-            />
           </View>
-        )}
-      </SafeAreaView>
-    </LinearGradient>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+
+      {isLoading && (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator
+            size="large"
+            color={olyColors.button.primary.bg}
+          />
+        </View>
+      )}
+    </OlyScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  gradient: {
-    flex: 1,
-  },
-  safe: {
-    flex: 1,
-  },
   flex: {
     flex: 1,
   },
   container: {
     flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: olySpacing[16],
     paddingBottom: olySpacing[32],
+  },
+  titleBlock: {
+    marginTop: olySpacing[4],
+    marginBottom: olySpacing[32],
   },
   title: {
     ...olyTypography.title1,
     color: olyColors.text.primary,
-    textAlign: "center",
-    letterSpacing: olyLetterSpacing.uppercase,
+  },
+  subtitle: {
+    ...olyTypography.body,
+    color: olyColors.text.secondary,
+    marginTop: olySpacing[4],
   },
   fieldContainer: {
-    marginTop: olySpacing[24],
     gap: olySpacing[16],
-    marginBottom: olySpacing[24],
+  },
+  forgotContainer: {
+    alignSelf: "flex-end",
+  },
+  forgotText: {
+    ...olyTypography.bodySmall,
+    color: olyColors.text.secondary,
+  },
+  bottomCta: {
+    paddingTop: olySpacing[24],
   },
   rowContainer: {
     flexDirection: "row",
     gap: olySpacing[8],
-    marginTop: olySpacing[20],
+    marginTop: olySpacing[16],
     justifyContent: "center",
   },
-  text: {
-    ...olyTypography.body,
+  footerText: {
+    ...olyTypography.bodySmall,
     color: olyColors.text.secondary,
   },
-  link: {
-    ...olyTypography.body,
+  footerLink: {
+    ...olyTypography.bodySmall,
     fontFamily: "Ubuntu-Medium",
     color: olyColors.text.primary,
-    letterSpacing: olyLetterSpacing.uppercase,
   },
   loaderContainer: {
     position: "absolute",

@@ -25,12 +25,12 @@ import { olySpacing } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyLayout } from "@/src/oly-theme/oly-spacing";
 
-// ─── Types ───────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────
 type OlyButtonVariant = "primary" | "secondary" | "destructive";
 type OlyButtonSize = "large" | "medium";
 
 interface OlyButtonProps {
-  /** Button label — will be rendered ALL-CAPS automatically */
+  /** Button label — ALL-CAPS by default, use preserveCase to keep as-is */
   label: string;
   onPress: () => void;
   variant?: OlyButtonVariant;
@@ -39,10 +39,12 @@ interface OlyButtonProps {
   loading?: boolean;
   /** Full width stretches to fill container */
   fullWidth?: boolean;
+  /** When true, label is rendered as-is without toUpperCase() */
+  preserveCase?: boolean;
   style?: ViewStyle;
 }
 
-// ─── Component ───────────────────────────────────────────────────
+// ─── Component ───────────────────────────────────────────────────────
 export const OlyButton: React.FC<OlyButtonProps> = ({
   label,
   onPress,
@@ -51,6 +53,7 @@ export const OlyButton: React.FC<OlyButtonProps> = ({
   disabled = false,
   loading = false,
   fullWidth = false,
+  preserveCase = false,
   style,
 }) => {
   const isDisabled = disabled || loading;
@@ -60,6 +63,8 @@ export const OlyButton: React.FC<OlyButtonProps> = ({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress();
   };
+
+  const displayLabel = preserveCase ? label : label.toUpperCase();
 
   return (
     <Pressable
@@ -91,19 +96,20 @@ export const OlyButton: React.FC<OlyButtonProps> = ({
         <Text
           style={[
             styles.label,
+            !preserveCase && { letterSpacing: olyLetterSpacing.uppercase, textTransform: "uppercase" },
             isDisabled && styles.disabledText,
             variant === "secondary" && !isDisabled && styles.secondaryText,
           ]}
           maxFontSizeMultiplier={1.3}
         >
-          {label.toUpperCase()}
+          {displayLabel}
         </Text>
       )}
     </Pressable>
   );
 };
 
-// ─── Styles ──────────────────────────────────────────────────────
+// ─── Styles ──────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   base: {
     borderRadius: olyRadius.full,
@@ -118,8 +124,6 @@ const styles = StyleSheet.create({
   label: {
     ...olyTypography.button,
     color: olyColors.text.primary,
-    letterSpacing: olyLetterSpacing.uppercase,
-    textTransform: "uppercase",
   },
   disabled: {
     backgroundColor: olyColors.button.disabled.bg,
@@ -134,7 +138,7 @@ const styles = StyleSheet.create({
 
 const sizeStyles: Record<OlyButtonSize, ViewStyle> = {
   large: {
-    height: 50,
+    height: 52,
     paddingHorizontal: olySpacing[24],
   },
   medium: {
