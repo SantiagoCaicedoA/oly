@@ -14,12 +14,12 @@ export default function Index() {
     if (isLoggedIn && token) {
       router.replace("/(tabs)/home");
     } else {
-      router.replace("/auth/login");
+      router.replace("/auth/welcome");
     }
     setChecked(true);
   }, [isLoggedIn, token, router]);
 
   if (!checked) return null;
 
-  return <Redirect href="/auth/login" />;
+  return <Redirect href="/auth/welcome" />;
 }
