@@ -3,20 +3,6 @@
  *
  * Combines exercise header + set log rows into a complete exercise
  * logging block. This is the core UI for the workout screen.
- *
- * Usage:
- *   <OlyExerciseCard
- *     exerciseName="Back Squat"
- *     prescription="4 × 3 @ 80%"
- *     intensity="high"
- *     sets={setsArray}
- *     onToggleMake={(setIndex) => …}
- *   />
- *
- * Tokens used:
- *   olyElevation.level1  → card background + border
- *   olyRadius.lg         → 12px card corners
- *   olySpacing           → internal padding + gaps
  */
 
 import React from 'react';
@@ -93,14 +79,13 @@ const COLUMNS = ['SET', 'REPS', 'WEIGHT', '', ''] as const;
 
 /* ── component ────────────────────────────────────────────── */
 
-export default function OlyExerciseCard({
+export const OlyExerciseCard: React.FC<OlyExerciseCardProps> = ({
   exerciseName,
   prescription,
   intensity = 'mid',
   sets,
   onToggleMake,
-}: OlyExerciseCardProps) {
-
+}) => {
   const handleToggle = (index: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onToggleMake?.(index);
@@ -108,7 +93,6 @@ export default function OlyExerciseCard({
 
   return (
     <View style={styles.card} accessibilityRole="summary">
-      {/* Intensity bar on left edge */}
       <View
         style={[
           styles.intensityBar,
@@ -117,7 +101,6 @@ export default function OlyExerciseCard({
       />
 
       <View style={styles.cardContent}>
-        {/* ── Header ── */}
         <View style={styles.header}>
           <Text
             style={[olyTypography.title2, { color: olyColors.text.primary }]}
@@ -139,7 +122,6 @@ export default function OlyExerciseCard({
           ) : null}
         </View>
 
-        {/* ── Column headers ── */}
         <View style={styles.row}>
           {COLUMNS.map((label, i) => (
             <View
@@ -167,10 +149,8 @@ export default function OlyExerciseCard({
           ))}
         </View>
 
-        {/* ── Divider ── */}
         <View style={styles.divider} />
 
-        {/* ── Set rows ── */}
         {sets.map((set, index) => (
           <Pressable
             key={set.setNumber}
@@ -243,7 +223,9 @@ export default function OlyExerciseCard({
       </View>
     </View>
   );
-}
+};
+
+export default OlyExerciseCard;
 
 /* ── styles ───────────────────────────────────────────────── */
 
@@ -279,7 +261,7 @@ const styles = StyleSheet.create({
   setRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 56, // gym touch target
+    minHeight: 56,
     paddingVertical: olySpacing.sm,
   },
   setCol: {

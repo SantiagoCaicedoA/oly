@@ -5,17 +5,6 @@
  *   - Back button (left)
  *   - Centered title
  *   - Optional right action (icon or text button)
- *
- * Usage:
- *   <OlyNavBar title="Workout Log" onBack={() => router.back()} />
- *   <OlyNavBar title="Profile" rightLabel="Edit" onRight={() => …} />
- *
- * Tokens used:
- *   olyLayout.navBarHeight  → 56px
- *   olyTypography.title2    → title style
- *   olyColors.text          → text colors
- *   olyColors.button        → back/action tint
- *   olySpacing              → horizontal padding
  */
 
 import React from 'react';
@@ -47,30 +36,24 @@ const olyTypography = {
 /* ── types ────────────────────────────────────────────────── */
 
 interface OlyNavBarProps {
-  /** Screen title — centered */
   title?: string;
-  /** Show back arrow and call this on press */
   onBack?: () => void;
-  /** Right-side text label (e.g. "Edit", "Save") */
   rightLabel?: string;
-  /** Right-side icon name from Ionicons */
   rightIcon?: keyof typeof Ionicons.glyphMap;
-  /** Called when right action is pressed */
   onRight?: () => void;
 }
 
 /* ── component ────────────────────────────────────────────── */
 
-export default function OlyNavBar({
+export const OlyNavBar: React.FC<OlyNavBarProps> = ({
   title,
   onBack,
   rightLabel,
   rightIcon,
   onRight,
-}: OlyNavBarProps) {
+}) => {
   return (
     <View style={styles.container} accessibilityRole="toolbar">
-      {/* ── Left: Back button ── */}
       <View style={styles.side}>
         {onBack ? (
           <Pressable
@@ -89,7 +72,6 @@ export default function OlyNavBar({
         ) : null}
       </View>
 
-      {/* ── Center: Title ── */}
       <View style={styles.center}>
         {title ? (
           <Text
@@ -102,7 +84,6 @@ export default function OlyNavBar({
         ) : null}
       </View>
 
-      {/* ── Right: Action ── */}
       <View style={[styles.side, styles.rightSide]}>
         {(rightLabel || rightIcon) && onRight ? (
           <Pressable
@@ -134,7 +115,9 @@ export default function OlyNavBar({
       </View>
     </View>
   );
-}
+};
+
+export default OlyNavBar;
 
 /* ── styles ───────────────────────────────────────────────── */
 

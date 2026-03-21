@@ -21,7 +21,6 @@ import {
   View,
   StyleSheet,
   StatusBar,
-  AccessibilityInfo,
   ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -40,8 +39,8 @@ const olyLayout = {
   screenPadding: 16,
 };
 
-const olyColors = {
-  bg: { base: '#0D1117' },
+const olyColorsBg = {
+  base: '#0D1117',
 };
 
 /* ── types ────────────────────────────────────────────────── */
@@ -58,12 +57,12 @@ interface OlyScreenWrapperProps {
 
 /* ── component ────────────────────────────────────────────── */
 
-export default function OlyScreenWrapper({
+export const OlyScreenWrapper: React.FC<OlyScreenWrapperProps> = ({
   children,
   padded = true,
   style,
   statusBarStyle = 'light',
-}: OlyScreenWrapperProps) {
+}) => {
   return (
     <LinearGradient
       colors={[...olyGradient.colors]}
@@ -90,14 +89,16 @@ export default function OlyScreenWrapper({
       </SafeAreaView>
     </LinearGradient>
   );
-}
+};
+
+export default OlyScreenWrapper;
 
 /* ── styles ───────────────────────────────────────────────── */
 
 const styles = StyleSheet.create({
   gradient: {
     flex: 1,
-    backgroundColor: olyColors.bg.base, // fallback
+    backgroundColor: olyColorsBg.base,
   },
   safe: {
     flex: 1,
