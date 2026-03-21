@@ -62,6 +62,7 @@ export const OlyTextInput: React.FC<OlyTextInputProps> = ({
         <TextInput
           {...textInputProps}
           secureTextEntry={shouldHideText}
+          textContentType={isPasswordField ? "oneTimeCode" : textInputProps.textContentType}
           editable={!disabled}
           onFocus={(e) => {
             setIsFocused(true);
