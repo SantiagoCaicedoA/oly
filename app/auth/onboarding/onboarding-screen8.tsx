@@ -1,29 +1,27 @@
-import Header from "@/components/header";
-import ActionButtonsRow from "@/constants/custom-row-buttons";
-import { useTheme } from "@/context/theme-context";
+import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
+import { OlyScreenWrapper } from "@/src/oly-components/organisms/OlyScreenWrapper";
+import { useToast } from "@/context/toast-context";
 import { useLoadingMessages } from "@/hooks/useLoadingMessage";
 import { useSubmitProfileMutation } from "@/store/api";
 import { setUser } from "@/store/reducer/authSlice";
-
 import { selectOnboardingData } from "@/store/reducer/onboardingSlice";
 import { RootState } from "@/store/store";
 import { OnboardingApiPayload } from "@/types/api/onboarding";
-import { Typography } from "@/utils/custom-styles";
+import { olyTypography } from "@/src/oly-theme/oly-typography";
+import { olyColors } from "@/src/oly-theme/oly-colors";
+import { olySpacing } from "@/src/oly-theme/oly-spacing";
 import { router } from "expo-router";
 import React from "react";
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
-import { scale } from "react-native-size-matters";
 import { useDispatch, useSelector } from "react-redux";
 
 export default function OnboardingScreen8() {
-  const { colors } = useTheme();
   const allData = useSelector(selectOnboardingData);
-
   const [submitProfile, { isLoading }] = useSubmitProfileMutation();
-
   const dispatch = useDispatch();
   const token = useSelector((state: RootState) => state.auth.token);
   const loadingMessage = useLoadingMessages(isLoading, 25000);
+
   const onSubmit = async () => {
     try {
       const apiPayload: OnboardingApiPayload = {
@@ -135,57 +133,72 @@ export default function OnboardingScreen8() {
     }
   };
 
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-      paddingVertical: scale(60),
-      paddingHorizontal: scale(20),
-      alignItems: "center",
-      justifyContent: "center",
-      gap: scale(15),
-    },
-    loadingContainer: {
-      marginVertical: scale(20),
-    },
-    loaderContainer: {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: "rgba(0, 0, 0, 0.35)",
-      justifyContent: "center",
-      alignItems: "center",
-      zIndex: 999,
-    },
-    generatingText: {
-      fontSize: Typography.fontSize.md,
-      fontWeight: Typography.fontWeight.normal,
-      color: colors.textSecondary,
-      letterSpacing: Typography.letterSpacing.normal,
-    },
-  });
   if (isLoading) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size={"large"} color={colors.primary} />
-        <Text style={styles.generatingText}>{loadingMessage}</Text>
-      </View>
+      <OlyScreenWrapper>
+        <View style={styles.centerContainer}>
+          <ActivityIndicator
+            size="large"
+            color={olyColors.button.primary.bg}
+          />
+          <Text style={styles.loadingText}>{loadingMessage}</Text>
+        </View>
+      </OlyScreenWrapper>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Header
-        mainText="Are you ready to start training?"
-        subText="You'll be able to update the past personal data in your profile settings"
-      />
+    <OlyScreenWrapper>
+      <View style={styles.centerContainer}>
+        <View style={styles.headerBlock}>
+          <Text
+            style={styles.mainText}
+            maxFontSizeMultiplier={1.2}
+          >
+            Are you ready to start training?
+          </Text>
+          <Text
+            style={styles.subText}
+            maxFontSizeMultiplier={1.5}
+          >
+            You'll be able to update the past personal data in your profile
+            settings
+          </Text>
+        </View>
 
-      <ActionButtonsRow
-        onPrimaryPress={onSubmit}
-        primaryTitle={isLoading ? "SAVING..." : "SAVE"}
-      />
-    </View>
+        <OlyButton
+          label={isLoading ? "SAVING..." : "SAVE"}
+          onPress={onSubmit}
+          disabled={isLoading}
+          loading={isLoading}
+          fullWidth
+        />
+      </View>
+    </OlyScreenWrapper>
   );
 }
+
+const styles = StyleSheet.create({
+  centerContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: olySpacing[16],
+  },
+  headerBlock: {
+    marginBottom: olySpacing[24],
+  },
+  mainText: {
+    ...olyTypography.title1,
+    color: olyColors.text.primary,
+  },
+  subText: {
+    ...olyTypography.body,
+    color: olyColors.text.secondary,
+    marginTop: olySpacing[8],
+  },
+  loadingText: {
+    ...olyTypography.body,
+    color: olyColors.text.secondary,
+  },
+});
