@@ -49,19 +49,21 @@ export interface LoginValues {
   password: string;
 }
 
-export interface LoginPayload {
-  email: string;
-  password: string;
-}
-
 export interface SignUpValues {
   name: string;
   email: string;
   password: string;
 }
 
-export interface SignUpPayload {
-  name: string;
+/**
+ * Form-level values for the redesigned Sign Up screen.
+ * firstName + lastName get concatenated into `name` before
+ * being sent as a SignUpPayload — backend contract unchanged.
+ */
+export interface SignUpFormValues {
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
+  confirmPassword: string;
 }

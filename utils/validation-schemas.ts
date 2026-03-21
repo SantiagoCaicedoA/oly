@@ -1,4 +1,4 @@
-import { LoginValues, SignUpValues } from "@/types/api/auth";
+import { LoginValues, SignUpFormValues, SignUpValues } from "@/types/api/auth";
 import * as Yup from "yup";
 import * as yup from "yup";
 
@@ -14,6 +14,10 @@ export const loginSchema = Yup.object({
   password: Yup.string().required("Password is required"),
 }) as Yup.ObjectSchema<LoginValues>;
 
+/**
+ * Legacy schema — kept for backwards compatibility.
+ * New sign-up screen uses signUpFormSchema below.
+ */
 export const signUpSchema = Yup.object({
   name: Yup.string()
     .required("Name is required")
@@ -35,6 +39,40 @@ export const signUpSchema = Yup.object({
       "Password must contain at least one uppercase letter and one number",
     ),
 }) as Yup.ObjectSchema<SignUpValues>;
+
+/**
+ * Redesigned sign-up form schema.
+ * Split name → firstName + lastName, added confirmPassword.
+ */
+export const signUpFormSchema = Yup.object({
+  firstName: Yup.string()
+    .required("First name is required")
+    .min(2, "First name must be at least 2 characters"),
+
+  lastName: Yup.string()
+    .required("Last name is required")
+    .min(2, "Last name must be at least 2 characters"),
+
+  email: Yup.string()
+    .transform((value) => value?.trim())
+    .required("Email is required")
+    .matches(
+      /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/,
+      "Please enter a valid email address",
+    ),
+
+  password: Yup.string()
+    .required("Password is required")
+    .min(7, "Password must be at least 7 characters")
+    .matches(
+      /^(?=.*[A-Z])(?=.*\d).+$/,
+      "Must contain at least one uppercase letter and one number",
+    ),
+
+  confirmPassword: Yup.string()
+    .required("Please confirm your password")
+    .oneOf([Yup.ref("password")], "Passwords do not match"),
+}) as Yup.ObjectSchema<SignUpFormValues>;
 
 export const createPostSchema = yup.object({
   video: yup.string().required("Video is required"),
