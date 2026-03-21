@@ -9,6 +9,7 @@ export interface ThemeColors {
   warning: string;
   info: string;
   primary: string;
+  secondary: string;
   surface: string;
   lightBlue: string;
   headerBackground: string;

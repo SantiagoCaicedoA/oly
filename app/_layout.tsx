@@ -24,7 +24,8 @@ function AppContent() {
   const [loaded] = useFonts({
     "Ubuntu-Regular": require("../assets/fonts/Ubuntu-Regular.ttf"),
     "Ubuntu-Medium": require("../assets/fonts/Ubuntu-Medium.ttf"),
-    "Ubuntu-Bold": require("../assets/fonts/Ubuntu-Bold.ttf"),
+    // Ubuntu-Bold removed — Design Bible forbids 700 weight.
+    // Only Regular (400) and Medium (500) are allowed.
   });
 
   //if (!loaded) return null;
