@@ -1,42 +1,28 @@
 /**
  * OlyNavBar — Organism
  *
- * Top navigation bar for all screens. Supports:
- *   - Back button (left, flush with screen edge)
- *   - Centered title OR custom center element (e.g. logo image)
- *   - Optional right action (icon or text button)
- *
- * Default chevron color: olyPalette.white (#E2E8F0)
- * Override with `tintColor` prop if needed.
+ * Top navigation bar. Back button flush-left (no padding).
+ * Supports centered title OR custom center element (e.g. logo).
+ * Optional right action.
  */
 
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { olyColors, olyPalette } from '@/src/oly-theme/oly-colors';
-import { olySpacing } from '@/src/oly-theme/oly-spacing';
-
-/* ── layout constants ─────────────────────────────────────── */
 
 const NAV_BAR_HEIGHT = 56;
 const MIN_TOUCH = 44;
-const SIDE_WIDTH = 48;
-
-/* ── types ────────────────────────────────────────────────── */
 
 interface OlyNavBarProps {
   title?: string;
-  /** Custom center element (e.g. logo Image). Takes precedence over title. */
   centerElement?: React.ReactNode;
   onBack?: () => void;
-  /** Override the default chevron / action color */
   tintColor?: string;
   rightLabel?: string;
   rightIcon?: keyof typeof Ionicons.glyphMap;
   onRight?: () => void;
 }
-
-/* ── component ────────────────────────────────────────────── */
 
 export const OlyNavBar: React.FC<OlyNavBarProps> = ({
   title,
@@ -49,15 +35,15 @@ export const OlyNavBar: React.FC<OlyNavBarProps> = ({
 }) => {
   return (
     <View style={styles.container} accessibilityRole="toolbar">
-      {/* Left side */}
+      {/* Left — back button, flush to left edge */}
       <View style={styles.side}>
         {onBack ? (
           <Pressable
             onPress={onBack}
-            style={styles.touchTarget}
+            style={styles.backButton}
             accessibilityRole="button"
             accessibilityLabel="Go back"
-            hitSlop={8}
+            hitSlop={{ top: 8, bottom: 8, right: 16 }}
           >
             <Ionicons
               name="chevron-back"
@@ -88,12 +74,12 @@ export const OlyNavBar: React.FC<OlyNavBarProps> = ({
         ) : null}
       </View>
 
-      {/* Right side */}
+      {/* Right */}
       <View style={[styles.side, styles.rightSide]}>
         {(rightLabel || rightIcon) && onRight ? (
           <Pressable
             onPress={onRight}
-            style={styles.touchTarget}
+            style={styles.rightButton}
             accessibilityRole="button"
             accessibilityLabel={rightLabel || 'Action'}
             hitSlop={8}
@@ -128,16 +114,15 @@ export const OlyNavBar: React.FC<OlyNavBarProps> = ({
 
 export default OlyNavBar;
 
-/* ── styles ───────────────────────────────────────────────── */
-
 const styles = StyleSheet.create({
   container: {
     height: NAV_BAR_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',
+    // NO padding — back button must be flush with screen edge
   },
   side: {
-    width: SIDE_WIDTH,
+    width: MIN_TOUCH,
     justifyContent: 'center',
   },
   rightSide: {
@@ -147,7 +132,13 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
-  touchTarget: {
+  backButton: {
+    minWidth: MIN_TOUCH,
+    minHeight: MIN_TOUCH,
+    justifyContent: 'center',
+    alignItems: 'flex-start',   // chevron hugs the left edge
+  },
+  rightButton: {
     minWidth: MIN_TOUCH,
     minHeight: MIN_TOUCH,
     justifyContent: 'center',

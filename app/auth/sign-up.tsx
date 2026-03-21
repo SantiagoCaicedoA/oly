@@ -4,7 +4,6 @@
  * Left-aligned title, subtitle, bottom-anchored CTA.
  * Uses OlyScreenWrapper (standard app gradient).
  * Password fields have eye toggle for visibility.
- * Button uses sentence case per approved prototype.
  * OLY logo asset centered in nav bar.
  *
  * Abdul's SignUpPayload (name, email, password) is unchanged —
@@ -33,17 +32,16 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { useDispatch } from "react-redux";
 
-/* ── Nav bar logo ─────────────────────────────────────── */
-
+/* ── Nav bar logo ── */
 const NavLogo = () => (
   <Image
     source={require('@/assets/images/oly-logo.webp')}
@@ -114,7 +112,6 @@ export default function SignUp() {
 
   return (
     <OlyScreenWrapper>
-      {/* Nav bar: back + centered logo */}
       <OlyNavBar
         onBack={() => router.back()}
         centerElement={<NavLogo />}
@@ -125,13 +122,14 @@ export default function SignUp() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            {/* ── Title block (left-aligned) ── */}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Tap to dismiss keyboard on empty areas */}
+          <Pressable onPress={Keyboard.dismiss} style={styles.flex}>
+            {/* ── Title block ── */}
             <View style={styles.titleBlock}>
               <Text style={styles.title} maxFontSizeMultiplier={1.2}>
                 Create account
@@ -227,29 +225,29 @@ export default function SignUp() {
               />
             </View>
 
-            {/* spacer to push CTA down */}
+            {/* spacer */}
             <View style={styles.flex} />
+          </Pressable>
 
-            {/* ── Bottom CTA ── */}
-            <View style={styles.bottomCta}>
-              <OlyButton
-                label={isLoading ? "Creating Account" : "Create Account"}
-                onPress={handleSubmit(onSubmit)}
-                disabled={isLoading}
-                loading={isLoading}
-                fullWidth
-                preserveCase
-              />
+          {/* ── Bottom CTA (outside Pressable so it's always tappable) ── */}
+          <View style={styles.bottomCta}>
+            <OlyButton
+              label={isLoading ? "Creating Account" : "Create Account"}
+              onPress={handleSubmit(onSubmit)}
+              disabled={isLoading}
+              loading={isLoading}
+              fullWidth
+              preserveCase
+            />
 
-              <View style={styles.rowContainer}>
-                <Text style={styles.footerText}>Already have an account?</Text>
-                <TouchableOpacity onPress={handleLoginPress}>
-                  <Text style={styles.footerLink}>Log in</Text>
-                </TouchableOpacity>
-              </View>
+            <View style={styles.rowContainer}>
+              <Text style={styles.footerText}>Already have an account?</Text>
+              <TouchableOpacity onPress={handleLoginPress}>
+                <Text style={styles.footerLink}>Log in</Text>
+              </TouchableOpacity>
             </View>
-          </ScrollView>
-        </TouchableWithoutFeedback>
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
 
       {isLoading && (
@@ -273,8 +271,8 @@ const styles = StyleSheet.create({
     paddingBottom: olySpacing[32],
   },
   titleBlock: {
-    marginTop: olySpacing[4],
-    marginBottom: olySpacing[28] || 28,
+    marginTop: 24,
+    marginBottom: 28,
   },
   title: {
     ...olyTypography.title1,
