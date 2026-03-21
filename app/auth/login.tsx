@@ -5,6 +5,7 @@
  * Uses OlyScreenWrapper (standard app gradient).
  * Password field has eye toggle. "Forgot password?" link.
  * Button uses sentence case per approved prototype.
+ * OLY logo asset centered in nav bar.
  *
  * All logic/API calls untouched from Abdul's implementation.
  */
@@ -27,6 +28,7 @@ import React from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   ActivityIndicator,
+  Image,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -37,6 +39,16 @@ import {
   View,
 } from "react-native";
 import { useDispatch } from "react-redux";
+
+/* ── Nav bar logo ─────────────────────────────────────── */
+
+const NavLogo = () => (
+  <Image
+    source={require('@/assets/images/oly-logo.webp')}
+    style={{ width: 40, height: 40 }}
+    resizeMode="contain"
+  />
+);
 
 export default function Login() {
   const dispatch = useDispatch();
@@ -87,10 +99,10 @@ export default function Login() {
 
   return (
     <OlyScreenWrapper>
-      {/* Nav bar: back + centered OLY */}
+      {/* Nav bar: back + centered logo */}
       <OlyNavBar
-        onBack={() => router.replace('/auth/welcome')}
-        title="OLY"
+        onBack={() => router.back()}
+        centerElement={<NavLogo />}
       />
 
       <KeyboardAvoidingView

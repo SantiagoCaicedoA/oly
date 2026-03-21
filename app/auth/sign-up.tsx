@@ -5,6 +5,7 @@
  * Uses OlyScreenWrapper (standard app gradient).
  * Password fields have eye toggle for visibility.
  * Button uses sentence case per approved prototype.
+ * OLY logo asset centered in nav bar.
  *
  * Abdul's SignUpPayload (name, email, password) is unchanged —
  * firstName + lastName are concatenated before the API call.
@@ -28,6 +29,7 @@ import React from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   ActivityIndicator,
+  Image,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -39,6 +41,16 @@ import {
   View,
 } from "react-native";
 import { useDispatch } from "react-redux";
+
+/* ── Nav bar logo ─────────────────────────────────────── */
+
+const NavLogo = () => (
+  <Image
+    source={require('@/assets/images/oly-logo.webp')}
+    style={{ width: 40, height: 40 }}
+    resizeMode="contain"
+  />
+);
 
 export default function SignUp() {
   const { showSuccess, showError } = useToast();
@@ -102,10 +114,10 @@ export default function SignUp() {
 
   return (
     <OlyScreenWrapper>
-      {/* Nav bar: back + centered OLY */}
+      {/* Nav bar: back + centered logo */}
       <OlyNavBar
-        onBack={() => router.replace('/auth/welcome')}
-        title="OLY"
+        onBack={() => router.back()}
+        centerElement={<NavLogo />}
       />
 
       <KeyboardAvoidingView

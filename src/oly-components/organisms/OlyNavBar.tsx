@@ -2,8 +2,8 @@
  * OlyNavBar — Organism
  *
  * Top navigation bar for all screens. Supports:
- *   - Back button (left)
- *   - Centered title
+ *   - Back button (left, flush with screen edge)
+ *   - Centered title OR custom center element (e.g. logo image)
  *   - Optional right action (icon or text button)
  *
  * Default chevron color: olyPalette.white (#E2E8F0)
@@ -20,11 +20,14 @@ import { olySpacing } from '@/src/oly-theme/oly-spacing';
 
 const NAV_BAR_HEIGHT = 56;
 const MIN_TOUCH = 44;
+const SIDE_WIDTH = 48;
 
 /* ── types ────────────────────────────────────────────────── */
 
 interface OlyNavBarProps {
   title?: string;
+  /** Custom center element (e.g. logo Image). Takes precedence over title. */
+  centerElement?: React.ReactNode;
   onBack?: () => void;
   /** Override the default chevron / action color */
   tintColor?: string;
@@ -37,6 +40,7 @@ interface OlyNavBarProps {
 
 export const OlyNavBar: React.FC<OlyNavBarProps> = ({
   title,
+  centerElement,
   onBack,
   tintColor = olyPalette.white,
   rightLabel,
@@ -45,6 +49,7 @@ export const OlyNavBar: React.FC<OlyNavBarProps> = ({
 }) => {
   return (
     <View style={styles.container} accessibilityRole="toolbar">
+      {/* Left side */}
       <View style={styles.side}>
         {onBack ? (
           <Pressable
@@ -63,8 +68,11 @@ export const OlyNavBar: React.FC<OlyNavBarProps> = ({
         ) : null}
       </View>
 
+      {/* Center */}
       <View style={styles.center}>
-        {title ? (
+        {centerElement ? (
+          centerElement
+        ) : title ? (
           <Text
             style={{
               fontFamily: 'Ubuntu-Medium',
@@ -80,6 +88,7 @@ export const OlyNavBar: React.FC<OlyNavBarProps> = ({
         ) : null}
       </View>
 
+      {/* Right side */}
       <View style={[styles.side, styles.rightSide]}>
         {(rightLabel || rightIcon) && onRight ? (
           <Pressable
@@ -126,10 +135,9 @@ const styles = StyleSheet.create({
     height: NAV_BAR_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: olySpacing[16],
   },
   side: {
-    width: 56,
+    width: SIDE_WIDTH,
     justifyContent: 'center',
   },
   rightSide: {
