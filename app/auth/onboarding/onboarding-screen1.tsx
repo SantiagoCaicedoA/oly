@@ -678,7 +678,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
-    borderColor: "#0D1117",
+    borderColor: olyPalette.card,
   },
   avatarLabel: {
     ...olyTypography.caption,
@@ -824,7 +824,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   exposureSubtitleActive: {
-    color: "rgba(255, 255, 255, 0.8)",
+    color: olyColors.text.secondary,
   },
 
   /* ── Error ── */
