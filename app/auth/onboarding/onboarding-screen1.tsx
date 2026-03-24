@@ -11,7 +11,7 @@
 
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
 import { OlyFormField } from "@/src/oly-components/molecules/OlyFormField";
-import { olyTypography, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
+import { olyTypography, olyFonts, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
 import { olySpacing } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
@@ -24,14 +24,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as ImagePicker from "expo-image-picker";
 import { Stack } from "expo-router";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   Image,
   Keyboard,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -43,7 +45,7 @@ import {
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 
-/* ── Types ───────────────────────────────────────── */
+/* ── Types ─────────────────────────────────────────────── */
 
 interface OnboardingScreen1Values {
   name: string;
@@ -66,7 +68,7 @@ interface OnboardingScreen1Props {
   email?: string;
 }
 
-/* ── Exposure card data ──────────────────────────── */
+/* ── Exposure card data ────────────────────────────────── */
 
 const EXPOSURE_OPTIONS = [
   {
@@ -91,7 +93,45 @@ const EXPOSURE_OPTIONS = [
   },
 ] as const;
 
-/* ── Component ───────────────────────────────────── */
+/* ── Country list (ISO 3166-1) ─────────────────────────── */
+
+const COUNTRIES = [
+  "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda",
+  "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas",
+  "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin",
+  "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei",
+  "Bulgaria", "Burkina Faso", "Burundi", "Cabo Verde", "Cambodia", "Cameroon",
+  "Canada", "Central African Republic", "Chad", "Chile", "China", "Colombia",
+  "Comoros", "Congo", "Costa Rica", "Croatia", "Cuba", "Cyprus",
+  "Czech Republic", "Denmark", "Djibouti", "Dominica", "Dominican Republic",
+  "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia",
+  "Eswatini", "Ethiopia", "Fiji", "Finland", "France", "Gabon", "Gambia",
+  "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea",
+  "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hungary", "Iceland", "India",
+  "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Jamaica", "Japan",
+  "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Kosovo", "Kuwait", "Kyrgyzstan",
+  "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein",
+  "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives",
+  "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico",
+  "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco",
+  "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands",
+  "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Korea",
+  "North Macedonia", "Norway", "Oman", "Pakistan", "Palau", "Palestine",
+  "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland",
+  "Portugal", "Puerto Rico", "Qatar", "Romania", "Russia", "Rwanda",
+  "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines",
+  "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal",
+  "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia",
+  "Solomon Islands", "Somalia", "South Africa", "South Korea", "South Sudan",
+  "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria",
+  "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Timor-Leste", "Togo",
+  "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu",
+  "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom",
+  "United States", "Uruguay", "Uzbekistan", "Vanuatu", "Vatican City",
+  "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe",
+] as const;
+
+/* ── Component ─────────────────────────────────────────── */
 
 export default function OnboardingScreen1({
   onComplete,
@@ -101,6 +141,8 @@ export default function OnboardingScreen1({
   const dispatch = useDispatch();
   const { showError } = useToast();
   const [profileImage, setProfileImage] = React.useState<string>("");
+  const [showCountryModal, setShowCountryModal] = useState(false);
+  const [countrySearch, setCountrySearch] = useState("");
   const [uploadProfileImage, { isLoading: isUploading }] =
     useUploadProfileImageMutation();
   const user = useSelector((state: RootState) => state.auth.token);
@@ -334,7 +376,7 @@ export default function OnboardingScreen1({
                 render={({ field: { onChange, value } }) => (
                   <OlyFormField
                     label="USERNAME"
-                    placeholder="@username"
+                    placeholder="username"
                     autoCapitalize="none"
                     autoCorrect={false}
                     value={value}
@@ -349,13 +391,123 @@ export default function OnboardingScreen1({
                 control={control}
                 name="country"
                 render={({ field: { onChange, value } }) => (
-                  <OlyFormField
-                    label="COUNTRY"
-                    placeholder="Select your country"
-                    value={value}
-                    onChangeText={onChange}
-                    error={errors.country?.message}
-                  />
+                  <View>
+                    <Text style={styles.fieldLabel}>COUNTRY</Text>
+                    <TouchableOpacity
+                      style={styles.countrySelector}
+                      onPress={() => {
+                        setCountrySearch(value || "");
+                        setShowCountryModal(true);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[
+                          styles.countrySelectorText,
+                          !value && styles.countrySelectorPlaceholder,
+                        ]}
+                      >
+                        {value || "Select your country"}
+                      </Text>
+                      <Ionicons
+                        name="chevron-down"
+                        size={18}
+                        color={olyColors.text.secondary}
+                      />
+                    </TouchableOpacity>
+                    {errors.country?.message && (
+                      <Text style={styles.errorText}>
+                        {errors.country.message}
+                      </Text>
+                    )}
+
+                    {/* Country search modal */}
+                    <Modal
+                      visible={showCountryModal}
+                      transparent
+                      animationType="slide"
+                      onRequestClose={() => setShowCountryModal(false)}
+                    >
+                      <View style={styles.countryModalOverlay}>
+                        <View style={styles.countryModalContent}>
+                          {/* Search bar */}
+                          <View style={styles.countrySearchRow}>
+                            <Ionicons
+                              name="search"
+                              size={18}
+                              color={olyColors.text.secondary}
+                            />
+                            <TextInput
+                              style={styles.countrySearchInput}
+                              placeholder="Search countries..."
+                              placeholderTextColor={olyColors.text.disabled}
+                              value={countrySearch}
+                              onChangeText={setCountrySearch}
+                              autoFocus
+                              autoCorrect={false}
+                            />
+                            <TouchableOpacity
+                              onPress={() => setShowCountryModal(false)}
+                              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            >
+                              <Ionicons
+                                name="close"
+                                size={22}
+                                color={olyColors.text.secondary}
+                              />
+                            </TouchableOpacity>
+                          </View>
+
+                          {/* Country list */}
+                          <FlatList
+                            data={COUNTRIES.filter((c) =>
+                              c.toLowerCase().includes(countrySearch.toLowerCase()),
+                            )}
+                            keyExtractor={(item) => item}
+                            keyboardShouldPersistTaps="handled"
+                            renderItem={({ item }) => {
+                              const isSelected = value === item;
+                              return (
+                                <TouchableOpacity
+                                  style={[
+                                    styles.countryItem,
+                                    isSelected && styles.countryItemSelected,
+                                  ]}
+                                  onPress={() => {
+                                    onChange(item);
+                                    setShowCountryModal(false);
+                                  }}
+                                >
+                                  <Text
+                                    style={[
+                                      styles.countryItemText,
+                                      isSelected && styles.countryItemTextSelected,
+                                    ]}
+                                  >
+                                    {item}
+                                  </Text>
+                                  {isSelected && (
+                                    <Ionicons
+                                      name="checkmark"
+                                      size={18}
+                                      color={olyPalette.primary}
+                                    />
+                                  )}
+                                </TouchableOpacity>
+                              );
+                            }}
+                            ListEmptyComponent={
+                              <View style={styles.countryEmptyState}>
+                                <Text style={styles.countryEmptyText}>
+                                  No countries found
+                                </Text>
+                              </View>
+                            }
+                          />
+                        </View>
+                      </View>
+                    </Modal>
+                  </View>
                 )}
               />
 
@@ -620,7 +772,7 @@ export default function OnboardingScreen1({
   );
 }
 
-/* ── Styles ───────────────────────────────────────── */
+/* ── Styles ─────────────────────────────────────────────── */
 
 const styles = StyleSheet.create({
   flex: {
@@ -824,6 +976,81 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   exposureSubtitleActive: {
+    color: olyColors.text.secondary,
+  },
+
+  /* ── Country Selector ── */
+  countrySelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    height: 52,
+    borderRadius: olyRadius.lg,
+    borderWidth: 1,
+    borderColor: olyColors.border.default,
+    backgroundColor: olyPalette.cardElevated,
+    paddingHorizontal: olySpacing[16],
+  },
+  countrySelectorText: {
+    ...olyTypography.body,
+    color: olyColors.text.primary,
+    flex: 1,
+  },
+  countrySelectorPlaceholder: {
+    color: olyColors.text.disabled,
+  },
+  countryModalOverlay: {
+    flex: 1,
+    backgroundColor: olyColors.bg.overlay,
+    justifyContent: "flex-end",
+  },
+  countryModalContent: {
+    backgroundColor: olyPalette.card,
+    borderTopLeftRadius: olyRadius.lg,
+    borderTopRightRadius: olyRadius.lg,
+    maxHeight: "70%",
+    paddingBottom: olySpacing[32],
+  },
+  countrySearchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: olySpacing[8],
+    paddingHorizontal: olySpacing[16],
+    paddingVertical: olySpacing[12],
+    borderBottomWidth: 0.5,
+    borderBottomColor: olyColors.border.default,
+  },
+  countrySearchInput: {
+    flex: 1,
+    ...olyTypography.body,
+    color: olyColors.text.primary,
+    paddingVertical: olySpacing[4],
+  },
+  countryItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: olySpacing[12],
+    paddingHorizontal: olySpacing[16],
+    minHeight: 44,
+  },
+  countryItemSelected: {
+    backgroundColor: olyPalette.cardElevated,
+  },
+  countryItemText: {
+    ...olyTypography.body,
+    color: olyColors.text.primary,
+  },
+  countryItemTextSelected: {
+    color: olyPalette.white,
+    fontFamily: olyFonts.medium,
+  },
+  countryEmptyState: {
+    padding: olySpacing[24],
+    alignItems: "center",
+  },
+  countryEmptyText: {
+    ...olyTypography.body,
     color: olyColors.text.secondary,
   },
 
