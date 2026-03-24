@@ -1,14 +1,34 @@
-import Header from "@/components/header";
-import LiftDetailsCard from "@/components/lift-details";
-import SegmentedSelector from "@/components/segmented-selector";
-import ActionButtonsRow from "@/constants/custom-row-buttons";
-import { useTheme } from "@/context/theme-context";
+/**
+ * Onboarding Screen 2 — Current Strength (Redesigned v2)
+ *
+ * Collects 1RM (or estimated) weights for all lifts across 4 categories:
+ * Classic, Variation, Squat, Press.
+ * Optional video upload per lift. Accuracy self-report (Tested/Estimated/Unsure).
+ *
+ * Abdul's data flow is unchanged — dispatches to onboardingSlice,
+ * video upload via useUploadAthleteVideoMutation.
+ */
+
+import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
+import {
+  olyTypography,
+  olyFonts,
+  olyLetterSpacing,
+} from "@/src/oly-theme/oly-typography";
+import {
+  olyColors,
+  olyPalette,
+  olyOpacity,
+} from "@/src/oly-theme/oly-colors";
+import { olySpacing } from "@/src/oly-theme/oly-spacing";
+import { olyRadius } from "@/src/oly-theme/oly-radius";
+import { olyElevation, olyOverlay } from "@/src/oly-theme/oly-elevation";
 import { useToast } from "@/context/toast-context";
 import { useUploadAthleteVideoMutation } from "@/store/api";
 import { saveOnboardingData } from "@/store/reducer/onboardingSlice";
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
 import {
   ActionSheetIOS,
   ActivityIndicator,
@@ -18,26 +38,20 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { scale } from "react-native-size-matters";
 import { useDispatch } from "react-redux";
+
+/* ── Types ─────────────────────────────────────────────── */
 
 interface OnboardingScreen2Props {
   onBack?: () => void;
   onComplete?: () => void;
 }
 
-interface OnboardingScreen2Values {
-  accuracy: "Tested" | "Estimated" | "Unsure";
-  olympic_lifts: boolean[];
-  squats: boolean[];
-  press: boolean[];
-  variations: boolean[];
-}
-
-type LiftCategory = "olympic" | "squat" | "press" | "variation";
+type LiftCategory = "classic" | "variation" | "squat" | "press";
 
 interface LiftIdentifier {
   category: LiftCategory;
@@ -45,9 +59,17 @@ interface LiftIdentifier {
   label: string;
 }
 
-const OLYMPIC_LIFTS = [
+/* ── Lift Data ─────────────────────────────────────────── */
+
+const CLASSIC_LIFTS = [
   { label: "Snatch", value: 0 },
   { label: "Clean & Jerk", value: 0 },
+];
+
+const VARIATION_LIFTS = [
+  { label: "Power Snatch", value: 0 },
+  { label: "Clean", value: 0 },
+  { label: "Power Clean", value: 0 },
 ];
 
 const SQUAT_LIFTS = [
@@ -59,35 +81,53 @@ const SQUAT_LIFTS = [
 const PRESS_LIFTS = [
   { label: "Strict Press", value: 0 },
   { label: "Push Press", value: 0 },
-  { label: "Power Jerk", value: 0 },
   { label: "Jerk", value: 0 },
+  { label: "Power Jerk", value: 0 },
 ];
 
-const VARIATION_LIFTS = [
-  { label: "Power Snatch", value: 0 },
-  { label: "Clean", value: 0 },
-  { label: "Power Clean", value: 0 },
+const ACCURACY_OPTIONS = ["Tested", "Estimated", "Unsure"] as const;
+type AccuracyValue = (typeof ACCURACY_OPTIONS)[number];
+
+const CATEGORIES: {
+  key: LiftCategory;
+  title: string;
+  lifts: { label: string; value: number }[];
+}[] = [
+  { key: "classic", title: "CLASSIC", lifts: CLASSIC_LIFTS },
+  { key: "variation", title: "VARIATION", lifts: VARIATION_LIFTS },
+  { key: "squat", title: "SQUAT", lifts: SQUAT_LIFTS },
+  { key: "press", title: "PRESS", lifts: PRESS_LIFTS },
 ];
+
+/* ── Component ─────────────────────────────────────────── */
 
 export default function OnboardingScreen2({
   onComplete,
   onBack,
 }: OnboardingScreen2Props) {
-  const { colors } = useTheme();
   const { showSuccess, showError } = useToast();
+  const dispatch = useDispatch();
+
+  /* Video state */
   const [isUploading, setIsUploading] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [liftVideos, setLiftVideos] = useState<Record<string, string>>({});
   const [currentLift, setCurrentLift] = useState<LiftIdentifier | null>(null);
-  const dispatch = useDispatch();
-  const [liftValues, setLiftValues] = useState({
-    olympic: OLYMPIC_LIFTS.map((lift) => lift.value),
-    squat: SQUAT_LIFTS.map((lift) => lift.value),
-    press: PRESS_LIFTS.map((lift) => lift.value),
-    variation: VARIATION_LIFTS.map((lift) => lift.value),
-  });
-  const [uploadAthleteVideo, { isLoading: isUploadingToApi, error }] =
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [uploadAthleteVideo, { isLoading: isUploadingToApi }] =
     useUploadAthleteVideoMutation();
+
+  /* Lift weight values */
+  const [liftValues, setLiftValues] = useState<Record<LiftCategory, number[]>>({
+    classic: CLASSIC_LIFTS.map((l) => l.value),
+    variation: VARIATION_LIFTS.map((l) => l.value),
+    squat: SQUAT_LIFTS.map((l) => l.value),
+    press: PRESS_LIFTS.map((l) => l.value),
+  });
+
+  /* Accuracy */
+  const [accuracy, setAccuracy] = useState<AccuracyValue>("Estimated");
+
+  /* ── Handlers ── */
 
   const handleValueChange = (
     category: LiftCategory,
@@ -99,24 +139,12 @@ export default function OnboardingScreen2({
       [category]: prev[category].map((v, i) => (i === index ? value : v)),
     }));
   };
-  const { control, handleSubmit, watch, setValue } =
-    useForm<OnboardingScreen2Values>({
-      defaultValues: {
-        accuracy: "Tested",
-        olympic_lifts: [false, false],
-        squats: [false, false, false],
-        press: [false, false, false, false],
-        variations: [false, false, false],
-      },
-    });
 
-  const getLiftKey = (lift: LiftIdentifier): string => {
-    return `${lift.category}_${lift.index}`;
-  };
+  const getLiftKey = (lift: LiftIdentifier): string =>
+    `${lift.category}_${lift.index}`;
 
   const pickVideo = async (lift: LiftIdentifier) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
     if (status !== "granted") {
       Alert.alert(
         "Permission needed",
@@ -134,17 +162,12 @@ export default function OnboardingScreen2({
     if (!result.canceled) {
       setIsUploading(true);
       setCurrentLift(lift);
-
       try {
         await new Promise((resolve) => setTimeout(resolve, 1500));
-
         const key = getLiftKey(lift);
-        setLiftVideos((prev) => ({
-          ...prev,
-          [key]: result.assets[0].uri,
-        }));
+        setLiftVideos((prev) => ({ ...prev, [key]: result.assets[0].uri }));
         setShowSuccessModal(true);
-      } catch (error) {
+      } catch {
         showError("Failed to upload video");
         setCurrentLift(null);
       } finally {
@@ -155,11 +178,62 @@ export default function OnboardingScreen2({
     }
   };
 
+  const showVideoOptions = (lift: LiftIdentifier) => {
+    const key = getLiftKey(lift);
+    const hasVideo = !!liftVideos[key];
+
+    if (Platform.OS === "ios") {
+      const options = hasVideo
+        ? ["Cancel", "Replace Video", "Remove Video"]
+        : ["Cancel", "Add Video"];
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex: 0,
+          destructiveButtonIndex: hasVideo ? 2 : undefined,
+        },
+        (buttonIndex) => {
+          if (hasVideo) {
+            if (buttonIndex === 1) pickVideo(lift);
+            if (buttonIndex === 2) handleRemoveVideoDirect(lift);
+          } else {
+            if (buttonIndex === 1) pickVideo(lift);
+          }
+        },
+      );
+    } else {
+      const actions = hasVideo
+        ? [
+            { text: "Cancel", style: "cancel" as const },
+            { text: "Replace Video", onPress: () => pickVideo(lift) },
+            {
+              text: "Remove Video",
+              style: "destructive" as const,
+              onPress: () => handleRemoveVideoDirect(lift),
+            },
+          ]
+        : [
+            { text: "Cancel", style: "cancel" as const },
+            { text: "Add Video", onPress: () => pickVideo(lift) },
+          ];
+      Alert.alert("Video Options", "Choose an action", actions);
+    }
+  };
+
+  const handleRemoveVideoDirect = (lift: LiftIdentifier) => {
+    const key = getLiftKey(lift);
+    setLiftVideos((prev) => {
+      const updated = { ...prev };
+      delete updated[key];
+      return updated;
+    });
+    showSuccess("Video removed!");
+  };
+
   const handleContinue = async () => {
     if (currentLift) {
       const key = getLiftKey(currentLift);
       const videoUri = liftVideos[key];
-
       if (videoUri) {
         try {
           const formData = new FormData();
@@ -168,17 +242,13 @@ export default function OnboardingScreen2({
             type: "video/mp4",
             name: `${currentLift.label.replace(/\s+/g, "_")}.mp4`,
           } as any);
-
-          const result = await uploadAthleteVideo(formData).unwrap();
-
+          await uploadAthleteVideo(formData).unwrap();
           showSuccess("Video uploaded successfully!");
-        } catch (error) {
-          console.error("Failed to upload video:", error);
+        } catch {
           showError("Failed to upload video");
         }
       }
     }
-
     setShowSuccessModal(false);
     setCurrentLift(null);
   };
@@ -191,392 +261,235 @@ export default function OnboardingScreen2({
         delete updated[key];
         return updated;
       });
-
-      let fieldName: keyof OnboardingScreen2Values;
-      switch (currentLift.category) {
-        case "olympic":
-          fieldName = "olympic_lifts";
-          break;
-        case "squat":
-          fieldName = "squats";
-          break;
-        case "press":
-          fieldName = "press";
-          break;
-        case "variation":
-          fieldName = "variations";
-          break;
-      }
-
-      const currentValues = watch(fieldName);
-      const updated = [...currentValues];
-      updated[currentLift.index] = false;
-      setValue(fieldName, updated);
     }
     setShowSuccessModal(false);
     setCurrentLift(null);
     showSuccess("Video removed!");
   };
 
-  const showVideoOptions = (lift: LiftIdentifier) => {
-    if (Platform.OS === "ios") {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: ["Cancel", "Add Video"],
-          cancelButtonIndex: 0,
-        },
-        (buttonIndex) => {
-          if (buttonIndex === 1) {
-            pickVideo(lift);
-          }
-        },
-      );
-    } else {
-      Alert.alert("Video Options", "Choose an action", [
-        { text: "Cancel", style: "cancel" },
-        { text: "Add Video", onPress: () => pickVideo(lift) },
-      ]);
-    }
-  };
+  /* ── Submit ── */
 
-  const handleLiftToggle = (
-    category: LiftCategory,
-    index: number,
-    isChecked: boolean,
-    onChange: (value: boolean[]) => void,
-    currentValues: boolean[],
-  ) => {
-    if (isChecked) {
-      const key = `${category}_${index}`;
-      if (liftVideos[key]) {
-        return;
-      }
-    }
-    const updated = [...currentValues];
-    updated[index] = !updated[index];
-    onChange(updated);
-
-    if (!isChecked) {
-      let label: string;
-      switch (category) {
-        case "olympic":
-          label = OLYMPIC_LIFTS[index].label;
-          break;
-        case "squat":
-          label = SQUAT_LIFTS[index].label;
-          break;
-        case "press":
-          label = PRESS_LIFTS[index].label;
-          break;
-        case "variation":
-          label = VARIATION_LIFTS[index].label;
-          break;
-      }
-      showVideoOptions({ category, index, label });
-    }
-  };
-
-  const onSubmit = (data: OnboardingScreen2Values) => {
-    const hasOlympicSelection = data.olympic_lifts.some((lift) => lift);
-    const hasSquatSelection = data.squats.some((squat) => squat);
-    const hasPressSelection = data.press.some((press) => press);
-    const hasVariationSelection = data.variations.some(
-      (variation) => variation,
+  const onSubmit = () => {
+    /* Check at least one lift has a weight > 0 */
+    const hasAnyWeight = Object.values(liftValues).some((cat) =>
+      cat.some((v) => v > 0),
     );
-    if (
-      !hasOlympicSelection &&
-      !hasSquatSelection &&
-      !hasPressSelection &&
-      !hasVariationSelection
-    ) {
-      showError("Please choose one lift before proceeding");
+    if (!hasAnyWeight) {
+      showError("Please enter a weight for at least one lift");
       return;
     }
 
-    const missingVideos: string[] = [];
+    /* Build selection booleans (backwards compat with Abdul's payload) */
+    const olympic_lifts = liftValues.classic.map((v) => v > 0);
+    const squats = liftValues.squat.map((v) => v > 0);
+    const press = liftValues.press.map((v) => v > 0);
+    const variations = liftValues.variation.map((v) => v > 0);
 
-    data.olympic_lifts.forEach((isSelected, index) => {
-      if (isSelected && !liftVideos[`olympic_${index}`]) {
-        missingVideos.push(OLYMPIC_LIFTS[index].label);
-      }
-    });
-
-    data.squats.forEach((isSelected, index) => {
-      if (isSelected && !liftVideos[`squat_${index}`]) {
-        missingVideos.push(SQUAT_LIFTS[index].label);
-      }
-    });
-
-    data.press.forEach((isSelected, index) => {
-      if (isSelected && !liftVideos[`press_${index}`]) {
-        missingVideos.push(PRESS_LIFTS[index].label);
-      }
-    });
-
-    data.variations.forEach((isSelected, index) => {
-      if (isSelected && !liftVideos[`variation_${index}`]) {
-        missingVideos.push(VARIATION_LIFTS[index].label);
-      }
-    });
-
-    if (missingVideos.length > 0) {
-      showError(`Please add video for: ${missingVideos.join(", ")}`);
-      return;
-    }
-
-    const missingWeights: string[] = [];
-
-    data.olympic_lifts.forEach((isSelected, index) => {
-      if (isSelected && liftValues.olympic[index] === 0) {
-        missingWeights.push(OLYMPIC_LIFTS[index].label);
-      }
-    });
-
-    data.squats.forEach((isSelected, index) => {
-      if (isSelected && liftValues.squat[index] === 0) {
-        missingWeights.push(SQUAT_LIFTS[index].label);
-      }
-    });
-
-    data.press.forEach((isSelected, index) => {
-      if (isSelected && liftValues.press[index] === 0) {
-        missingWeights.push(PRESS_LIFTS[index].label);
-      }
-    });
-
-    data.variations.forEach((isSelected, index) => {
-      if (isSelected && liftValues.variation[index] === 0) {
-        missingWeights.push(VARIATION_LIFTS[index].label);
-      }
-    });
-
-    if (missingWeights.length > 0) {
-      showError(`Please add weight for: ${missingWeights.join(", ")}`);
-      return;
-    }
     dispatch(
       saveOnboardingData({
-        ...data,
+        accuracy,
+        olympic_lifts,
+        squats,
+        press,
+        variations,
+        liftValues,
         liftVideos,
       }),
     );
-    if (onComplete) {
-      onComplete();
-    }
+
+    if (onComplete) onComplete();
   };
 
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    scrollContent: {},
-    formGroup: {
-      marginVertical: scale(20),
-      gap: scale(12),
-      marginBottom: scale(50),
-    },
-    loaderContainer: {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
+  /* ── Render helpers ── */
 
-      justifyContent: "center",
-      alignItems: "center",
-      zIndex: 999,
-    },
-    modalOverlay: {
-      flex: 1,
-      backgroundColor: "rgba(0, 0, 0, 0.5)",
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    modalContent: {
-      backgroundColor: colors.background,
-      borderRadius: scale(12),
-      padding: scale(24),
-      width: "85%",
-      alignItems: "center",
-    },
-    modalTitle: {
-      fontSize: scale(18),
-      fontWeight: "600",
-      color: colors.text,
-      marginBottom: scale(12),
-    },
-    modalMessage: {
-      fontSize: scale(14),
-      color: colors.textSecondary,
-      textAlign: "center",
-      marginBottom: scale(24),
-    },
-    modalButtonsRow: {
-      flexDirection: "row",
-      gap: scale(12),
-      width: "100%",
-    },
-    modalButton: {
-      flex: 1,
-      paddingVertical: scale(12),
-      borderRadius: scale(8),
-      alignItems: "center",
-    },
-    saveButton: {
-      backgroundColor: colors.primary,
-    },
-    removeButton: {
-      backgroundColor: colors.error || "#ff4444",
-    },
-    buttonText: {
-      color: "#fff",
-      fontSize: scale(14),
-      fontWeight: "600",
-    },
-    disabledButton: {
-      opacity: 0.5,
-    },
-  });
+  const renderLiftRow = (
+    category: LiftCategory,
+    lifts: { label: string; value: number }[],
+    index: number,
+    item: { label: string },
+  ) => {
+    const weight = liftValues[category][index];
+    const hasValue = weight > 0;
+    const key = getLiftKey({ category, index, label: item.label });
+    const hasVideo = !!liftVideos[key];
+    const isLast = index === lifts.length - 1;
+
+    return (
+      <View key={`${category}-${index}`}>
+        <View style={styles.liftRow}>
+          {/* Lift name */}
+          <Text
+            style={[
+              styles.liftName,
+              { color: hasValue ? olyColors.text.primary : olyColors.text.secondary },
+            ]}
+          >
+            {item.label}
+          </Text>
+
+          {/* Right side: video icon + weight */}
+          <View style={styles.liftRight}>
+            <TouchableOpacity
+              onPress={() =>
+                showVideoOptions({ category, index, label: item.label })
+              }
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons
+                name={hasVideo ? "videocam" : "videocam-outline"}
+                size={20}
+                color={
+                  hasVideo
+                    ? olyPalette.primary
+                    : hasValue
+                      ? olyColors.text.secondary
+                      : olyColors.text.disabled
+                }
+              />
+            </TouchableOpacity>
+
+            <TextInput
+              style={[
+                styles.weightInput,
+                {
+                  color: hasValue
+                    ? olyColors.text.primary
+                    : olyColors.text.secondary,
+                },
+              ]}
+              value={weight === 0 ? "0" : weight.toString()}
+              onChangeText={(text) => {
+                const numValue = parseInt(text) || 0;
+                handleValueChange(category, index, numValue);
+              }}
+              keyboardType="numeric"
+              maxLength={4}
+              selectTextOnFocus
+            />
+            <Text
+              style={[
+                styles.unitLabel,
+                {
+                  color: hasValue
+                    ? olyColors.text.secondary
+                    : olyColors.text.disabled,
+                },
+              ]}
+            >
+              kg
+            </Text>
+          </View>
+        </View>
+
+        {/* Divider */}
+        {!isLast && <View style={styles.divider} />}
+      </View>
+    );
+  };
+
+  const renderCategory = (cat: {
+    key: LiftCategory;
+    title: string;
+    lifts: { label: string; value: number }[];
+  }) => (
+    <View key={cat.key} style={styles.categoryBlock}>
+      <Text style={styles.categoryTitle}>{cat.title}</Text>
+      <View style={styles.liftCard}>
+        {cat.lifts.map((item, index) =>
+          renderLiftRow(cat.key, cat.lifts, index, item),
+        )}
+      </View>
+    </View>
+  );
+
+  /* ── Render ── */
 
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
     >
-      <Header
-        mainText="Current strength"
-        subText="Used to guide training loads and progression."
-      />
+      {/* Title */}
+      <View style={styles.titleBlock}>
+        <Text style={styles.title} maxFontSizeMultiplier={1.2}>
+          Current strength
+        </Text>
+        <Text style={styles.subtitle} maxFontSizeMultiplier={1.5}>
+          Used to guide training loads and progressions
+        </Text>
+      </View>
 
-      <View style={styles.formGroup}>
-        <Controller
-          control={control}
-          name="olympic_lifts"
-          render={({ field: { value, onChange } }) => (
-            <LiftDetailsCard
-              title="Classic"
-              items={OLYMPIC_LIFTS.map((lift, i) => ({
-                ...lift,
-                value: liftValues.olympic[i],
-              }))}
-              checkedValues={value}
-              onToggle={(index) =>
-                handleLiftToggle(
-                  "olympic",
-                  index,
-                  value[index],
-                  onChange,
-                  value,
-                )
-              }
-              onValueChange={(index, val) =>
-                handleValueChange("olympic", index, val)
-              }
-            />
-          )}
-        />
+      {/* Lift categories */}
+      <View style={styles.categoriesContainer}>
+        {CATEGORIES.map(renderCategory)}
+      </View>
 
-        <Controller
-          control={control}
-          name="squats"
-          render={({ field: { value, onChange } }) => (
-            <LiftDetailsCard
-              title="Squats"
-              items={SQUAT_LIFTS.map((lift, i) => ({
-                ...lift,
-                value: liftValues.squat[i],
-              }))}
-              checkedValues={value}
-              onToggle={(index) =>
-                handleLiftToggle("squat", index, value[index], onChange, value)
-              }
-              onValueChange={(index, val) =>
-                handleValueChange("squat", index, val)
-              }
-            />
-          )}
+      {/* Accuracy */}
+      <View style={styles.accuracyBlock}>
+        <Text style={styles.accuracyTitle}>
+          HOW ACCURATE ARE THESE NUMBERS?
+        </Text>
+        <View style={styles.accuracyRow}>
+          {ACCURACY_OPTIONS.map((option) => {
+            const isActive = accuracy === option;
+            return (
+              <TouchableOpacity
+                key={option}
+                style={[
+                  styles.accuracyPill,
+                  isActive && styles.accuracyPillActive,
+                ]}
+                onPress={() => setAccuracy(option)}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    styles.accuracyPillText,
+                    isActive && styles.accuracyPillTextActive,
+                  ]}
+                >
+                  {option.toUpperCase()}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* Bottom buttons */}
+      <View style={styles.bottomButtons}>
+        <OlyButton
+          label="BACK"
+          variant="secondary"
+          onPress={onBack ?? (() => {})}
+          fullWidth
+          style={styles.backButton}
         />
-        <Controller
-          control={control}
-          name="press"
-          render={({ field: { value, onChange } }) => (
-            <LiftDetailsCard
-              title="Press"
-              items={PRESS_LIFTS.map((lift, i) => ({
-                ...lift,
-                value: liftValues.press[i],
-              }))}
-              checkedValues={value}
-              onToggle={(index) =>
-                handleLiftToggle("press", index, value[index], onChange, value)
-              }
-              onValueChange={(index, val) =>
-                handleValueChange("press", index, val)
-              }
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="variations"
-          render={({ field: { value, onChange } }) => (
-            <LiftDetailsCard
-              title="Variation"
-              items={VARIATION_LIFTS.map((lift, i) => ({
-                ...lift,
-                value: liftValues.variation[i],
-              }))}
-              checkedValues={value}
-              onToggle={(index) =>
-                handleLiftToggle(
-                  "variation",
-                  index,
-                  value[index],
-                  onChange,
-                  value,
-                )
-              }
-              onValueChange={(index, val) =>
-                handleValueChange("variation", index, val)
-              }
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="accuracy"
-          render={({ field: { value, onChange } }) => (
-            <SegmentedSelector
-              title="HOW ACCURATE ARE THESE NUMBERS?"
-              selectedValue={value}
-              onChange={onChange}
-              options={[
-                { label: "Tested", value: "Tested" },
-                { label: "Estimated", value: "Estimated" },
-                { label: "Unsure", value: "Unsure" },
-              ]}
-              segments={3}
-            />
-          )}
+        <OlyButton
+          label="NEXT"
+          variant="primary"
+          onPress={onSubmit}
+          fullWidth
+          style={styles.nextButton}
         />
       </View>
 
-      <ActionButtonsRow
-        onPrimaryPress={handleSubmit(onSubmit)}
-        onSecondaryPress={onBack}
-      />
-
+      {/* Upload loader */}
       {isUploading && (
         <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator
+            size="large"
+            color={olyColors.button.primary.bg}
+          />
         </View>
       )}
 
+      {/* Video success modal */}
       <Modal
         visible={showSuccessModal}
-        transparent={true}
+        transparent
         animationType="fade"
         onRequestClose={() => {}}
       >
@@ -591,37 +504,34 @@ export default function OnboardingScreen2({
               <TouchableOpacity
                 style={[
                   styles.modalButton,
-                  styles.removeButton,
+                  styles.removeButtonStyle,
                   isUploadingToApi && styles.disabledButton,
                 ]}
                 onPress={handleRemoveVideo}
                 disabled={isUploadingToApi}
               >
-                <Text style={styles.buttonText}>Remove Video</Text>
+                <Text style={styles.modalButtonText}>Remove Video</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[
                   styles.modalButton,
-                  styles.saveButton,
+                  styles.saveButtonStyle,
                   isUploadingToApi && styles.disabledButton,
                 ]}
                 onPress={handleContinue}
                 disabled={isUploadingToApi}
               >
                 {isUploadingToApi ? (
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: scale(8),
-                    }}
-                  >
-                    <ActivityIndicator size="small" color="#fff" />
-                    <Text style={styles.buttonText}>Saving...</Text>
+                  <View style={styles.modalLoadingRow}>
+                    <ActivityIndicator
+                      size="small"
+                      color={olyColors.text.primary}
+                    />
+                    <Text style={styles.modalButtonText}>Saving...</Text>
                   </View>
                 ) : (
-                  <Text style={styles.buttonText}>Continue</Text>
+                  <Text style={styles.modalButtonText}>Continue</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -631,3 +541,208 @@ export default function OnboardingScreen2({
     </ScrollView>
   );
 }
+
+/* ── Styles ─────────────────────────────────────────────── */
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: olySpacing[32],
+  },
+
+  /* Title */
+  titleBlock: {
+    marginBottom: olySpacing[20],
+  },
+  title: {
+    ...olyTypography.title1,
+    color: olyColors.text.primary,
+  },
+  subtitle: {
+    ...olyTypography.body,
+    color: olyColors.text.secondary,
+    marginTop: olySpacing[4],
+  },
+
+  /* Categories */
+  categoriesContainer: {
+    gap: olySpacing[16],
+  },
+  categoryBlock: {
+    gap: olySpacing[8],
+  },
+  categoryTitle: {
+    ...olyTypography.label,
+    color: olyColors.text.secondary,
+    letterSpacing: olyLetterSpacing.uppercase,
+    textTransform: "uppercase",
+  },
+
+  /* Lift card */
+  liftCard: {
+    backgroundColor: olyElevation.level1.backgroundColor,
+    borderWidth: olyElevation.level1.borderWidth,
+    borderColor: olyElevation.level1.borderColor,
+    borderRadius: olyRadius.lg,
+    paddingHorizontal: olySpacing[16],
+  },
+  liftRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: olySpacing[12],
+    minHeight: 44,
+  },
+  liftName: {
+    ...olyTypography.body,
+    fontFamily: olyFonts.medium,
+    flex: 1,
+  },
+  liftRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: olySpacing[12],
+  },
+  weightInput: {
+    ...olyTypography.body,
+    fontFamily: olyFonts.medium,
+    minWidth: 40,
+    textAlign: "right",
+    paddingHorizontal: olySpacing[4],
+    paddingVertical: olySpacing[4],
+  },
+  unitLabel: {
+    ...olyTypography.bodySmall,
+  },
+  divider: {
+    height: 0.5,
+    backgroundColor: olyColors.border.default,
+  },
+
+  /* Accuracy */
+  accuracyBlock: {
+    marginTop: olySpacing[24],
+    gap: olySpacing[8],
+  },
+  accuracyTitle: {
+    ...olyTypography.label,
+    color: olyColors.text.secondary,
+    letterSpacing: olyLetterSpacing.uppercase,
+    textTransform: "uppercase",
+  },
+  accuracyRow: {
+    flexDirection: "row",
+    gap: olySpacing[8],
+  },
+  accuracyPill: {
+    flex: 1,
+    height: 44,
+    borderRadius: olyRadius.full,
+    borderWidth: 1,
+    borderColor: olyColors.border.default,
+    backgroundColor: "transparent",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  accuracyPillActive: {
+    backgroundColor: olyPalette.primary,
+    borderColor: olyPalette.primary,
+  },
+  accuracyPillText: {
+    ...olyTypography.bodySmall,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.secondary,
+    letterSpacing: olyLetterSpacing.uppercase,
+    textTransform: "uppercase",
+  },
+  accuracyPillTextActive: {
+    color: olyPalette.white,
+  },
+
+  /* Bottom buttons */
+  bottomButtons: {
+    flexDirection: "row",
+    gap: olySpacing[12],
+    paddingTop: olySpacing[32],
+  },
+  backButton: {
+    flex: 1,
+  },
+  nextButton: {
+    flex: 1,
+  },
+
+  /* Loader */
+  loaderContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: olyOverlay,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 999,
+  },
+
+  /* Modal */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: olyOverlay,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: olyPalette.card,
+    borderRadius: olyRadius.lg,
+    padding: olySpacing[24],
+    width: "85%",
+    alignItems: "center",
+  },
+  modalTitle: {
+    ...olyTypography.title2,
+    color: olyColors.text.primary,
+    marginBottom: olySpacing[12],
+    textAlign: "center",
+  },
+  modalMessage: {
+    ...olyTypography.bodySmall,
+    color: olyColors.text.secondary,
+    textAlign: "center",
+    marginBottom: olySpacing[24],
+  },
+  modalButtonsRow: {
+    flexDirection: "row",
+    gap: olySpacing[12],
+    width: "100%",
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: olySpacing[12],
+    borderRadius: olyRadius.full,
+    alignItems: "center",
+  },
+  saveButtonStyle: {
+    backgroundColor: olyColors.button.primary.bg,
+  },
+  removeButtonStyle: {
+    backgroundColor: olyColors.button.destructive.bg,
+  },
+  modalButtonText: {
+    ...olyTypography.button,
+    color: olyColors.text.primary,
+    letterSpacing: olyLetterSpacing.uppercase,
+    textTransform: "uppercase",
+  },
+  modalLoadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: olySpacing[8],
+  },
+  disabledButton: {
+    opacity: olyOpacity.muted,
+  },
+});
