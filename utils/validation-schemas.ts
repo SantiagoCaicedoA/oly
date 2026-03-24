@@ -116,7 +116,6 @@ export const createPostSchema = yup.object({
       },
     ),
 });
-
 /**
  * Legacy onboarding screen 1 schema — kept for reference.
  * Replaced by onboardingScreen1Schema below.
@@ -151,10 +150,32 @@ export const onboardingScreen1Schema = yup.object({
       /^[a-zA-Z0-9._]+$/,
       "Only letters, numbers, dots and underscores",
     ),
-  country: yup.string().default(""),
-  dobDay: yup.string().default(""),
-  dobMonth: yup.string().default(""),
-  dobYear: yup.string().default(""),
+  country: yup.string().required("Country is required"),
+  dobDay: yup
+    .string()
+    .required("Day is required")
+    .matches(/^\d{1,2}$/, "Invalid day")
+    .test("valid-day", "Day must be 1-31", (v) => {
+      const n = parseInt(v || "", 10);
+      return n >= 1 && n <= 31;
+    }),
+  dobMonth: yup
+    .string()
+    .required("Month is required")
+    .matches(/^\d{1,2}$/, "Invalid month")
+    .test("valid-month", "Month must be 1-12", (v) => {
+      const n = parseInt(v || "", 10);
+      return n >= 1 && n <= 12;
+    }),
+  dobYear: yup
+    .string()
+    .required("Year is required")
+    .matches(/^\d{4}$/, "Enter a 4-digit year")
+    .test("valid-year-range", "You must be between 10 and 110 years old", (v) => {
+      const year = parseInt(v || "", 10);
+      const now = new Date().getFullYear();
+      return year >= now - 110 && year <= now - 10;
+    }),
   sex: yup.string().default("male"),
   weight: yup.string().required("Body weight is required"),
   weightUnit: yup.string().oneOf(["KG", "LB"]).default("KG"),
@@ -164,4 +185,28 @@ export const onboardingScreen1Schema = yup.object({
     .string()
     .required("Please select your experience level")
     .oneOf(["new", "developing", "experienced", "competitive"]),
-});
+}).test(
+  "valid-date",
+  "Please enter a valid date of birth",
+  function (values) {
+    const { dobDay, dobMonth, dobYear } = values;
+    if (!dobDay || !dobMonth || !dobYear) return true; // individual field validators handle empty
+    const day = parseInt(dobDay, 10);
+    const month = parseInt(dobMonth, 10);
+    const year = parseInt(dobYear, 10);
+    if (isNaN(day) || isNaN(month) || isNaN(year)) return true;
+    const date = new Date(year, month - 1, day);
+    // Check the date constructor didn't roll over (e.g. Aug 32 → Sep 1)
+    const isRealDate =
+      date.getFullYear() === year &&
+      date.getMonth() === month - 1 &&
+      date.getDate() === day;
+    if (!isRealDate) {
+      return this.createError({
+        path: "dobDay",
+        message: "This date doesn't exist",
+      });
+    }
+    return true;
+  },
+);

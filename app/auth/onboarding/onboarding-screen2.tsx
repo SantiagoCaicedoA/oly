@@ -698,14 +698,17 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: olyPalette.card,
     borderRadius: olyRadius.lg,
-    padding: olySpacing[24],
+    paddingHorizontal: olySpacing[20],
+    paddingTop: olySpacing[24],
+    paddingBottom: olySpacing[20],
     width: "85%",
     alignItems: "center",
   },
   modalTitle: {
-    ...olyTypography.title2,
+    ...olyTypography.body,
+    fontFamily: olyFonts.medium,
     color: olyColors.text.primary,
-    marginBottom: olySpacing[12],
+    marginBottom: olySpacing[8],
     textAlign: "center",
   },
   modalMessage: {
@@ -721,9 +724,10 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     flex: 1,
-    paddingVertical: olySpacing[12],
+    height: 44,
     borderRadius: olyRadius.full,
     alignItems: "center",
+    justifyContent: "center",
   },
   saveButtonStyle: {
     backgroundColor: olyColors.button.primary.bg,

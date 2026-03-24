@@ -29,20 +29,23 @@ export const OlyProgressDots: React.FC<OlyProgressDotsProps> = ({
 }) => {
   return (
     <View style={styles.container} accessibilityRole="progressbar">
-      {Array.from({ length: totalSteps }, (_, index) => (
-        <View
-          key={index}
-          style={[
-            styles.dot,
-            {
-              backgroundColor:
-                index === currentStep
+      {Array.from({ length: totalSteps }, (_, index) => {
+        const isActive = index === currentStep;
+        return (
+          <View
+            key={index}
+            style={[
+              styles.dot,
+              isActive && styles.dotActive,
+              {
+                backgroundColor: isActive
                   ? olyPalette.primary
                   : olyColors.text.disabled,
-            },
-          ]}
-        />
-      ))}
+              },
+            ]}
+          />
+        );
+      })}
     </View>
   );
 };
@@ -57,6 +60,11 @@ const styles = StyleSheet.create({
   },
   dot: {
     width: 8,
+    height: 8,
+    borderRadius: olyRadius.full,
+  },
+  dotActive: {
+    width: 24,
     height: 8,
     borderRadius: olyRadius.full,
   },
