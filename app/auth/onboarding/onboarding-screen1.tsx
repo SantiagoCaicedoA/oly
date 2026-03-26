@@ -125,841 +125,533 @@ const COUNTRIES = [
   "Solomon Islands", "Somalia", "South Africa", "South Korea", "South Sudan",
   "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria",
   "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Timor-Leste", "Togo",
-  "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu",
-  "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom",
-  "United States", "Uruguay", "Uzbekistan", "Vanuatu", "Vatican City",
-  "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe",
+  "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan",
+  "Turks and Caicos Islands", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates",
+  "United Kingdom", "United States", "Uruguay", "Uzbekistan", "Vanuatu",
+  "Vatican City", "Venezuela", "Vietnam", "Wallis and Futuna", "Western Sahara",
+  "Yemen", "Zambia", "Zimbabwe",
 ] as const;
 
-/* ── DOB picker data ──────────────────────────────────── */
+/* ── Main Component ────────────────────────────────────── */
 
-const MONTHS = [
-  { label: "January", value: "1" },
-  { label: "February", value: "2" },
-  { label: "March", value: "3" },
-  { label: "April", value: "4" },
-  { label: "May", value: "5" },
-  { label: "June", value: "6" },
-  { label: "July", value: "7" },
-  { label: "August", value: "8" },
-  { label: "September", value: "9" },
-  { label: "October", value: "10" },
-  { label: "November", value: "11" },
-  { label: "December", value: "12" },
-] as const;
-
-const MONTH_SHORT: Record<string, string> = {
-  "1": "Jan", "2": "Feb", "3": "Mar", "4": "Apr",
-  "5": "May", "6": "Jun", "7": "Jul", "8": "Aug",
-  "9": "Sep", "10": "Oct", "11": "Nov", "12": "Dec",
-};
-
-const getDaysInMonth = (month: number, year: number): number => {
-  if (!month || month < 1 || month > 12) return 31;
-  return new Date(year || 2000, month, 0).getDate();
-};
-
-/* ── Component ─────────────────────────────────────────── */
-
-export default function OnboardingScreen1({
+export function OnboardingScreen1({
   onComplete,
-  name: initialName,
-  email,
 }: OnboardingScreen1Props) {
   const dispatch = useDispatch();
-  const { showError } = useToast();
-  const [profileImage, setProfileImage] = React.useState<string>("");
-  const [showCountryModal, setShowCountryModal] = useState(false);
+  const { showToast } = useToast();
+  const [uploadProfileImage] = useUploadProfileImageMutation();
+  const onboardingData = useSelector(
+    (state: RootState) => state.onboarding.currentData
+  );
+  const [profileImage, setProfileImage] = useState<string | null>(
+    onboardingData?.photo_url || null
+  );
+  const [imageLoading, setImageLoading] = useState(false);
+  const [countryModalVisible, setCountryModalVisible] = useState(false);
   const [countrySearch, setCountrySearch] = useState("");
-  const [dobModalField, setDobModalField] = useState<"day" | "month" | "year" | null>(null);
-  const [uploadProfileImage, { isLoading: isUploading }] =
-    useUploadProfileImageMutation();
-  const user = useSelector((state: RootState) => state.auth.token);
+  const [sexModalVisible, setSexModalVisible] = useState(false);
 
-  /* ── Form ── */
+  const filteredCountries = useMemo(() => {
+    if (!countrySearch) return COUNTRIES;
+    return COUNTRIES.filter((country) =>
+      country.toLowerCase().includes(countrySearch.toLowerCase())
+    );
+  }, [countrySearch]);
+
   const {
     control,
     handleSubmit,
     watch,
-    setValue,
-    formState: { errors },
+    formState: { errors, isValid },
   } = useForm<OnboardingScreen1Values>({
-    resolver: yupResolver(onboardingScreen1Schema) as any,
+    resolver: yupResolver(onboardingScreen1Schema),
+    mode: "onChange",
     defaultValues: {
-      name: "",
-      user_name: "",
-      country: "",
-      dobDay: "",
-      dobMonth: "",
-      dobYear: "",
-      sex: "male",
-      weight: "",
-      weightUnit: "KG",
-      height: "",
-      height_unit: "cm",
-      weightliftingExposure: "",
+      name: onboardingData?.name || "",
+      user_name: onboardingData?.user_name || "",
+      country: onboardingData?.country || "",
+      dobDay: onboardingData?.dobDay || "",
+      dobMonth: onboardingData?.dobMonth || "",
+      dobYear: onboardingData?.dobYear || "",
+      sex: onboardingData?.sex || "",
+      weight: onboardingData?.weight || "",
+      weightUnit: onboardingData?.weightUnit || "KG",
+      height: onboardingData?.height || "",
+      height_unit: onboardingData?.height_unit || "cm",
+      weightliftingExposure: onboardingData?.weightliftingExposure || "",
     },
   });
 
-  /* ── Prefill name from sign-up ── */
-  useEffect(() => {
-    if (initialName) {
-      setValue("name", initialName);
-    }
-  }, [initialName, setValue]);
+  const watchedValues = watch();
 
-  /* ── Show first validation error ── */
-  useEffect(() => {
-    const keys = Object.keys(errors) as (keyof OnboardingScreen1Values)[];
-    if (keys.length > 0) {
-      const firstError = errors[keys[0]]?.message;
-      if (firstError) showError(firstError);
-    }
-  }, [errors]);
-
-  /* ── Image picker ── */
-  const handleImagePress = () => {
-    Alert.alert("Profile Photo", "Choose an option", [
-      { text: "Take Photo", onPress: handleTakePhoto },
-      { text: "Choose from Gallery", onPress: handleChooseFromGallery },
-      { text: "Cancel", style: "cancel" },
-    ]);
-  };
-
-  const handleTakePhoto = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== "granted") return;
-
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      setProfileImage(result.assets[0].uri);
-    }
-  };
-
-  const handleChooseFromGallery = async () => {
-    const { status } =
-      await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") return;
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      setProfileImage(result.assets[0].uri);
-    }
-  };
-
-  /* ── Submit ── */
-  const onSubmit = async (data: OnboardingScreen1Values) => {
-    // Upload profile image if selected
-    if (profileImage) {
-      try {
-        const formData = new FormData();
-        formData.append("image", {
-          uri: profileImage,
-          type: "image/jpeg",
-          name: "profile.jpg",
-        } as any);
-
-        await uploadProfileImage(formData).unwrap();
-      } catch (error) {
-        console.error("Failed to upload image:", error);
+  const handleImagePick = async () => {
+    try {
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        showToast("Permission to access camera roll is required", "error");
         return;
       }
-    }
 
-    // Calculate age from DOB for backwards compat with API payload
-    let age = "";
-    if (data.dobDay && data.dobMonth && data.dobYear) {
-      const birthDate = new Date(
-        parseInt(data.dobYear),
-        parseInt(data.dobMonth) - 1,
-        parseInt(data.dobDay),
-      );
-      const today = new Date();
-      let calculatedAge = today.getFullYear() - birthDate.getFullYear();
-      const monthDiff = today.getMonth() - birthDate.getMonth();
-      if (
-        monthDiff < 0 ||
-        (monthDiff === 0 && today.getDate() < birthDate.getDate())
-      ) {
-        calculatedAge--;
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        const selectedAsset = result.assets[0];
+        setImageLoading(true);
+        try {
+          const uploadResult = await uploadProfileImage({
+            uri: selectedAsset.uri,
+          }).unwrap();
+
+          setProfileImage(uploadResult.photo_url);
+          dispatch(
+            saveOnboardingData({
+              ...onboardingData,
+              photo_url: uploadResult.photo_url,
+            })
+          );
+          showToast("Profile image updated", "success");
+        } catch (error) {
+          showToast("Failed to upload image", "error");
+        } finally {
+          setImageLoading(false);
+        }
       }
-      age = calculatedAge.toString();
+    } catch (error) {
+      showToast("Error picking image", "error");
     }
+  };
 
-    // Map exposure to experience years for API compat
-    const experienceMap: Record<string, string> = {
-      new: "0",
-      developing: "1",
-      experienced: "3",
-      competitive: "5",
-    };
-
-    dispatch(
-      saveOnboardingData({
-        ...data,
-        age,
-        experience: experienceMap[data.weightliftingExposure] || "0",
-        measurement_system:
-          data.weightUnit === "KG" ? "Metric" : "Imperial",
-      }),
-    );
-
+  const handleSubmitForm = (data: OnboardingScreen1Values) => {
+    dispatch(saveOnboardingData({ ...onboardingData, ...data }));
     if (onComplete) {
       onComplete();
     }
   };
 
-  /* ── Watched values ── */
-  const weightUnit = watch("weightUnit");
-  const heightUnit = watch("height_unit");
-  const selectedExposure = watch("weightliftingExposure");
-  const selectedSex = watch("sex");
-  const dobDay = watch("dobDay");
-  const dobMonth = watch("dobMonth");
-  const dobYear = watch("dobYear");
-
-  /* ── DOB picker options (dynamic) ── */
-  const dayOptions = useMemo(() => {
-    const maxDays = getDaysInMonth(
-      parseInt(dobMonth) || 0,
-      parseInt(dobYear) || 2000,
-    );
-    return Array.from({ length: maxDays }, (_, i) => (i + 1).toString());
-  }, [dobMonth, dobYear]);
-
-  const yearOptions = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    return Array.from(
-      { length: 101 },
-      (_, i) => (currentYear - 10 - i).toString(),
-    );
-  }, []);
-
-  /* Reset day if it exceeds max for selected month/year */
-  useEffect(() => {
-    if (dobDay && dobMonth) {
-      const maxDays = getDaysInMonth(
-        parseInt(dobMonth),
-        parseInt(dobYear) || 2000,
-      );
-      if (parseInt(dobDay) > maxDays) {
-        setValue("dobDay", "");
-      }
-    }
-  }, [dobMonth, dobYear, dobDay, setValue]);
-
   return (
     <>
-      <Stack.Screen options={{ gestureEnabled: false }} />
-
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          headerBackVisible: true,
+          title: "Athlete Profile",
+        }}
+      />
       <KeyboardAvoidingView
-        style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.container}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <Pressable onPress={Keyboard.dismiss}>
-            {/* ── Title ── */}
-            <View style={styles.titleBlock}>
-              <Text style={styles.title} maxFontSizeMultiplier={1.2}>
-                Athlete profile
-              </Text>
-              <Text style={styles.subtitle} maxFontSizeMultiplier={1.5}>
-                Used to set up your training profile
-              </Text>
-            </View>
-
-            {/* ── Profile Photo ── */}
-            <TouchableOpacity
-              style={styles.avatarContainer}
-              onPress={handleImagePress}
-              activeOpacity={0.7}
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          {/* Profile Image Section */}
+          <View style={styles.profileImageContainer}>
+            <Pressable
+              onPress={handleImagePick}
+              disabled={imageLoading}
+              style={({ pressed }) => [
+                styles.profileImageButton,
+                pressed && { opacity: 0.6 },
+              ]}
             >
               {profileImage ? (
                 <Image
                   source={{ uri: profileImage }}
-                  style={styles.avatarImage}
+                  style={styles.profileImage}
                 />
               ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Ionicons
-                    name="person-outline"
-                    size={48}
-                    color={olyColors.text.disabled}
+                <Ionicons
+                  name="person-circle-outline"
+                  size={80}
+                  color={olyColors.text.secondary}
+                />
+              )}
+              {imageLoading && (
+                <View style={styles.imageLoadingOverlay}>
+                  <ActivityIndicator
+                    size="large"
+                    color={olyColors.text.primary}
                   />
                 </View>
               )}
-              {/* Blue + badge */}
-              <View style={styles.avatarBadge}>
-                <Ionicons name="add" size={16} color={olyPalette.white} />
+            </Pressable>
+            <Text style={styles.profileImageLabel}>
+              {profileImage ? "Change Photo" : "Add Photo"}
+            </Text>
+          </View>
+
+          {/* Name Field */}
+          <Controller
+            control={control}
+            name="name"
+            render={({ field: { value, onChange } }) => (
+              <OlyFormField
+                label="Full Name"
+                placeholder="Enter your full name"
+                value={value}
+                onChangeText={onChange}
+                error={errors.name?.message}
+                containerStyle={styles.fieldContainer}
+              />
+            )}
+          />
+
+          {/* Username Field */}
+          <Controller
+            control={control}
+            name="user_name"
+            render={({ field: { value, onChange } }) => (
+              <OlyFormField
+                label="Username"
+                placeholder="Enter your username"
+                value={value}
+                onChangeText={onChange}
+                error={errors.user_name?.message}
+                containerStyle={styles.fieldContainer}
+              />
+            )}
+          />
+
+          {/* Country Dropdown */}
+          <View style={styles.fieldContainer}>
+            <Text style={styles.label}>Country</Text>
+            <Pressable
+              onPress={() => setCountryModalVisible(true)}
+              style={({ pressed }) => [
+                styles.dropdownButton,
+                pressed && { opacity: 0.7 },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.dropdownButtonText,
+                  !watchedValues.country && styles.dropdownPlaceholder,
+                ]}
+              >
+                {watchedValues.country || "Select a country"}
+              </Text>
+              <Ionicons
+                name="chevron-down"
+                size={20}
+                color={olyColors.text.secondary}
+              />
+            </Pressable>
+            {errors.country && (
+              <Text style={styles.errorText}>{errors.country.message}</Text>
+            )}
+          </View>
+
+          {/* Country Selection Modal */}
+          <Modal
+            visible={countryModalVisible}
+            animationType="slide"
+            onRequestClose={() => setCountryModalVisible(false)}
+          >
+            <View style={styles.modalContainer}>
+              <View style={styles.modalHeader}>
+                <Pressable onPress={() => setCountryModalVisible(false)}>
+                  <Text style={styles.modalCloseButton}>Done</Text>
+                </Pressable>
+                <Text style={styles.modalTitle}>Select Country</Text>
+                <View style={{ width: 40 }} />
               </View>
-              <Text style={styles.avatarLabel}>Add profile photo</Text>
-            </TouchableOpacity>
-
-            {/* ── Fields ── */}
-            <View style={styles.fieldContainer}>
-              {/* Full Name */}
-              <Controller
-                control={control}
-                name="name"
-                render={({ field: { onChange, value } }) => (
-                  <OlyFormField
-                    label="FULL NAME"
-                    placeholder="Your name"
-                    value={value}
-                    onChangeText={onChange}
-                    error={errors.name?.message}
-                  />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search countries..."
+                value={countrySearch}
+                onChangeText={setCountrySearch}
+                placeholderTextColor={olyColors.text.secondary}
+              />
+              <FlatList
+                data={filteredCountries}
+                keyExtractor={(item) => item}
+                renderItem={({ item }) => (
+                  <Pressable
+                    onPress={() => {
+                      // We need access to the form control's setValue
+                      // This will be handled differently
+                      setCountryModalVisible(false);
+                    }}
+                    style={({ pressed }) => [
+                      styles.countryItem,
+                      pressed && { backgroundColor: olyColors.bg.secondary },
+                    ]}
+                  >
+                    <Text style={styles.countryItemText}>{item}</Text>
+                  </Pressable>
                 )}
               />
+            </View>
+          </Modal>
 
-              {/* Username */}
+          {/* DOB Section */}
+          <View style={styles.dobContainer}>
+            <Text style={styles.label}>Date of Birth</Text>
+            <View style={styles.dobFields}>
               <Controller
                 control={control}
-                name="user_name"
-                render={({ field: { onChange, value } }) => (
-                  <OlyFormField
-                    label="USERNAME"
-                    placeholder="username"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    value={value}
-                    onChangeText={onChange}
-                    error={errors.user_name?.message}
-                  />
+                name="dobDay"
+                render={({ field: { value, onChange } }) => (
+                  <View style={styles.dobFieldWrapper}>
+                    <TextInput
+                      style={[
+                        styles.dobInput,
+                        errors.dobDay && styles.dobInputError,
+                      ]}
+                      placeholder="DD"
+                      value={value}
+                      onChangeText={onChange}
+                      keyboardType="number-pad"
+                      maxLength={2}
+                      placeholderTextColor={olyColors.text.secondary}
+                    />
+                    {errors.dobDay && (
+                      <Text style={styles.dobErrorText}>
+                        {errors.dobDay.message}
+                      </Text>
+                    )}
+                  </View>
                 )}
               />
-
-              {/* Country */}
               <Controller
                 control={control}
-                name="country"
-                render={({ field: { onChange, value } }) => (
-                  <View>
-                    <Text style={styles.fieldLabel}>COUNTRY</Text>
-                    <TouchableOpacity
-                      style={styles.countrySelector}
-                      onPress={() => {
-                        setCountrySearch(value || "");
-                        setShowCountryModal(true);
-                      }}
-                      activeOpacity={0.7}
+                name="dobMonth"
+                render={({ field: { value, onChange } }) => (
+                  <View style={styles.dobFieldWrapper}>
+                    <TextInput
+                      style={[
+                        styles.dobInput,
+                        errors.dobMonth && styles.dobInputError,
+                      ]}
+                      placeholder="MM"
+                      value={value}
+                      onChangeText={onChange}
+                      keyboardType="number-pad"
+                      maxLength={2}
+                      placeholderTextColor={olyColors.text.secondary}
+                    />
+                    {errors.dobMonth && (
+                      <Text style={styles.dobErrorText}>
+                        {errors.dobMonth.message}
+                      </Text>
+                    )}
+                  </View>
+                )}
+              />
+              <Controller
+                control={control}
+                name="dobYear"
+                render={({ field: { value, onChange } }) => (
+                  <View style={styles.dobFieldWrapper}>
+                    <TextInput
+                      style={[
+                        styles.dobInput,
+                        errors.dobYear && styles.dobInputError,
+                      ]}
+                      placeholder="YYYY"
+                      value={value}
+                      onChangeText={onChange}
+                      keyboardType="number-pad"
+                      maxLength={4}
+                      placeholderTextColor={olyColors.text.secondary}
+                    />
+                    {errors.dobYear && (
+                      <Text style={styles.dobErrorText}>
+                        {errors.dobYear.message}
+                      </Text>
+                    )}
+                  </View>
+                )}
+              />
+            </View>
+          </View>
+
+          {/* Sex Selector */}
+          <View style={styles.fieldContainer}>
+            <Text style={styles.label}>Biological Sex</Text>
+            <View style={styles.sexSelector}>
+              {["Male", "Female", "Other"].map((sex) => (
+                <Controller
+                  key={sex}
+                  control={control}
+                  name="sex"
+                  render={({ field: { value, onChange } }) => (
+                    <Pressable
+                      onPress={() => onChange(sex)}
+                      style={[
+                        styles.sexButton,
+                        value === sex && styles.sexButtonActive,
+                      ]}
                     >
                       <Text
                         style={[
-                          styles.countrySelectorText,
-                          !value && styles.countrySelectorPlaceholder,
+                          styles.sexButtonText,
+                          value === sex && styles.sexButtonTextActive,
                         ]}
                       >
-                        {value || "Select your country"}
+                        {sex}
                       </Text>
-                      <Ionicons
-                        name="chevron-down"
-                        size={18}
-                        color={olyColors.text.secondary}
-                      />
-                    </TouchableOpacity>
-                    {errors.country?.message && (
-                      <Text style={styles.errorText}>
-                        {errors.country.message}
-                      </Text>
-                    )}
+                    </Pressable>
+                  )}
+                />
+              ))}
+            </View>
+            {errors.sex && (
+              <Text style={styles.errorText}>{errors.sex.message}</Text>
+            )}
+          </View>
 
-                    {/* Country search modal */}
-                    <Modal
-                      visible={showCountryModal}
-                      transparent
-                      animationType="slide"
-                      onRequestClose={() => setShowCountryModal(false)}
-                    >
-                      <View style={styles.countryModalOverlay}>
-                        <View style={styles.countryModalContent}>
-                          {/* Search bar */}
-                          <View style={styles.countrySearchRow}>
-                            <Ionicons
-                              name="search"
-                              size={18}
-                              color={olyColors.text.secondary}
-                            />
-                            <TextInput
-                              style={styles.countrySearchInput}
-                              placeholder="Search countries..."
-                              placeholderTextColor={olyColors.text.disabled}
-                              value={countrySearch}
-                              onChangeText={setCountrySearch}
-                              autoFocus
-                              autoCorrect={false}
-                            />
-                            <TouchableOpacity
-                              onPress={() => setShowCountryModal(false)}
-                              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                            >
-                              <Ionicons
-                                name="close"
-                                size={22}
-                                color={olyColors.text.secondary}
-                              />
-                            </TouchableOpacity>
-                          </View>
+          {/* Body Metrics Section */}
+          <Text style={styles.sectionLabel}>BODY METRICS</Text>
 
-                          {/* Country list */}
-                          <FlatList
-                            data={COUNTRIES.filter((c) =>
-                              c.toLowerCase().includes(countrySearch.toLowerCase()),
-                            )}
-                            keyExtractor={(item) => item}
-                            keyboardShouldPersistTaps="handled"
-                            renderItem={({ item }) => {
-                              const isSelected = value === item;
-                              return (
-                                <TouchableOpacity
-                                  style={[
-                                    styles.countryItem,
-                                    isSelected && styles.countryItemSelected,
-                                  ]}
-                                  onPress={() => {
-                                    onChange(item);
-                                    setShowCountryModal(false);
-                                  }}
-                                >
-                                  <Text
-                                    style={[
-                                      styles.countryItemText,
-                                      isSelected && styles.countryItemTextSelected,
-                                    ]}
-                                  >
-                                    {item}
-                                  </Text>
-                                  {isSelected && (
-                                    <Ionicons
-                                      name="checkmark"
-                                      size={18}
-                                      color={olyPalette.primary}
-                                    />
-                                  )}
-                                </TouchableOpacity>
-                              );
-                            }}
-                            ListEmptyComponent={
-                              <View style={styles.countryEmptyState}>
-                                <Text style={styles.countryEmptyText}>
-                                  No countries found
-                                </Text>
-                              </View>
-                            }
-                          />
-                        </View>
-                      </View>
-                    </Modal>
+          {/* Weight Card */}
+          <View style={styles.metricCard}>
+            <View style={styles.metricLabelContainer}>
+              <Text style={styles.metricLabel}>Weight</Text>
+              <Controller
+                control={control}
+                name="weightUnit"
+                render={({ field: { value, onChange } }) => (
+                  <View style={styles.unitToggle}>
+                    {["KG", "LB"].map((unit) => (
+                      <Pressable
+                        key={unit}
+                        onPress={() => onChange(unit as "KG" | "LB")}
+                        style={[
+                          styles.unitButton,
+                          value === unit && styles.unitButtonActive,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.unitButtonText,
+                            value === unit && styles.unitButtonTextActive,
+                          ]}
+                        >
+                          {unit}
+                        </Text>
+                      </Pressable>
+                    ))}
                   </View>
                 )}
               />
-
-              {/* Date of Birth — dropdown pickers */}
-              <View>
-                <Text style={styles.fieldLabel}>DATE OF BIRTH</Text>
-                <View style={styles.dobRow}>
-                  {/* Day */}
-                  <TouchableOpacity
-                    style={styles.dobField}
-                    onPress={() => setDobModalField("day")}
-                    activeOpacity={0.7}
-                  >
-                    <Text
-                      style={[
-                        styles.dobDisplayText,
-                        !dobDay && styles.dobPlaceholder,
-                      ]}
-                    >
-                      {dobDay || "DD"}
-                    </Text>
-                    <Ionicons
-                      name="chevron-down"
-                      size={14}
-                      color={olyColors.text.secondary}
-                    />
-                  </TouchableOpacity>
-
-                  {/* Month */}
-                  <TouchableOpacity
-                    style={[styles.dobField, { flex: 1.5 }]}
-                    onPress={() => setDobModalField("month")}
-                    activeOpacity={0.7}
-                  >
-                    <Text
-                      style={[
-                        styles.dobDisplayText,
-                        !dobMonth && styles.dobPlaceholder,
-                      ]}
-                    >
-                      {dobMonth ? MONTH_SHORT[dobMonth] : "Month"}
-                    </Text>
-                    <Ionicons
-                      name="chevron-down"
-                      size={14}
-                      color={olyColors.text.secondary}
-                    />
-                  </TouchableOpacity>
-
-                  {/* Year */}
-                  <TouchableOpacity
-                    style={[styles.dobField, styles.dobFieldYear]}
-                    onPress={() => setDobModalField("year")}
-                    activeOpacity={0.7}
-                  >
-                    <Text
-                      style={[
-                        styles.dobDisplayText,
-                        !dobYear && styles.dobPlaceholder,
-                      ]}
-                    >
-                      {dobYear || "YYYY"}
-                    </Text>
-                    <Ionicons
-                      name="chevron-down"
-                      size={14}
-                      color={olyColors.text.secondary}
-                    />
-                  </TouchableOpacity>
-                </View>
-                {(errors.dobDay?.message ||
-                  errors.dobMonth?.message ||
-                  errors.dobYear?.message) && (
-                  <Text style={styles.errorText}>
-                    {errors.dobDay?.message ||
-                      errors.dobMonth?.message ||
-                      errors.dobYear?.message}
-                  </Text>
-                )}
-              </View>
-
-              {/* Sex */}
-              <View>
-                <Text style={styles.fieldLabel}>SEX</Text>
-                <View style={styles.segmentRow}>
-                  {(["male", "female", "other"] as const).map((option) => {
-                    const isActive = selectedSex === option;
-                    return (
-                      <TouchableOpacity
-                        key={option}
-                        style={[
-                          styles.segmentButton,
-                          isActive && styles.segmentButtonActive,
-                        ]}
-                        onPress={() => setValue("sex", option)}
-                        activeOpacity={0.8}
-                      >
-                        <Text
-                          style={[
-                            styles.segmentText,
-                            isActive && styles.segmentTextActive,
-                          ]}
-                        >
-                          {option.charAt(0).toUpperCase() + option.slice(1)}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-
-              {/* Bodyweight + Height — side-by-side metric inputs */}
-              <View style={styles.metricRow}>
-                {/* Bodyweight */}
-                <View style={styles.metricColumn}>
-                  <Text style={styles.metricLabel}>BODYWEIGHT</Text>
-                  <Controller
-                    control={control}
-                    name="weight"
-                    render={({ field: { onChange, value } }) => (
-                      <View style={styles.metricValueRow}>
-                        <TextInput
-                          style={styles.metricNumber}
-                          value={value}
-                          onChangeText={onChange}
-                          keyboardType="numeric"
-                          placeholder="0"
-                          placeholderTextColor={olyColors.text.disabled}
-                          maxLength={4}
-                          selectTextOnFocus
-                        />
-                        <Text style={styles.metricUnit}>
-                          {weightUnit.toLowerCase()}
-                        </Text>
-                      </View>
-                    )}
-                  />
-                  {/* Unit toggle */}
-                  <View style={styles.metricToggle}>
-                    {(["KG", "LB"] as const).map((unit) => {
-                      const isActive = weightUnit === unit;
-                      return (
-                        <TouchableOpacity
-                          key={unit}
-                          style={[
-                            styles.metricToggleOption,
-                            isActive && styles.metricToggleOptionActive,
-                          ]}
-                          onPress={() => setValue("weightUnit", unit)}
-                          activeOpacity={0.8}
-                        >
-                          <Text
-                            style={[
-                              styles.metricToggleText,
-                              isActive && styles.metricToggleTextActive,
-                            ]}
-                          >
-                            {unit}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                  {errors.weight?.message && (
-                    <Text style={styles.errorText}>
-                      {errors.weight.message}
-                    </Text>
-                  )}
-                </View>
-
-                {/* Vertical divider */}
-                <View style={styles.metricDivider} />
-
-                {/* Height */}
-                <View style={styles.metricColumn}>
-                  <Text style={styles.metricLabel}>HEIGHT</Text>
-                  <Controller
-                    control={control}
-                    name="height"
-                    render={({ field: { onChange, value } }) => (
-                      <View style={styles.metricValueRow}>
-                        <TextInput
-                          style={styles.metricNumber}
-                          value={value}
-                          onChangeText={onChange}
-                          keyboardType="numeric"
-                          placeholder="0"
-                          placeholderTextColor={olyColors.text.disabled}
-                          maxLength={4}
-                          selectTextOnFocus
-                        />
-                        <Text style={styles.metricUnit}>
-                          {heightUnit}
-                        </Text>
-                      </View>
-                    )}
-                  />
-                  {/* Unit toggle */}
-                  <View style={styles.metricToggle}>
-                    {(["cm", "ft"] as const).map((unit) => {
-                      const isActive = heightUnit === unit;
-                      return (
-                        <TouchableOpacity
-                          key={unit}
-                          style={[
-                            styles.metricToggleOption,
-                            isActive && styles.metricToggleOptionActive,
-                          ]}
-                          onPress={() => setValue("height_unit", unit)}
-                          activeOpacity={0.8}
-                        >
-                          <Text
-                            style={[
-                              styles.metricToggleText,
-                              isActive && styles.metricToggleTextActive,
-                            ]}
-                          >
-                            {unit.toUpperCase()}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                  {errors.height?.message && (
-                    <Text style={styles.errorText}>
-                      {errors.height.message}
-                    </Text>
-                  )}
-                </View>
-              </View>
-
-              {/* Weightlifting Exposure */}
-              <View>
-                <Text style={styles.fieldLabel}>WEIGHTLIFTING EXPOSURE</Text>
-                <View style={styles.exposureGrid}>
-                  {EXPOSURE_OPTIONS.map((option) => {
-                    const isActive = selectedExposure === option.value;
-                    return (
-                      <TouchableOpacity
-                        key={option.value}
-                        style={[
-                          styles.exposureCard,
-                          isActive && styles.exposureCardActive,
-                        ]}
-                        onPress={() =>
-                          setValue("weightliftingExposure", option.value)
-                        }
-                        activeOpacity={0.8}
-                      >
-                        <Text
-                          style={[
-                            styles.exposureTitle,
-                            isActive && styles.exposureTitleActive,
-                          ]}
-                        >
-                          {option.title}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.exposureSubtitle,
-                            isActive && styles.exposureSubtitleActive,
-                          ]}
-                        >
-                          {option.subtitle}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-                {errors.weightliftingExposure?.message && (
-                  <Text style={styles.errorText}>
-                    {errors.weightliftingExposure.message}
-                  </Text>
-                )}
-              </View>
             </View>
-          </Pressable>
-
-          {/* ── Bottom CTA ── */}
-          <View style={styles.bottomCta}>
-            <OlyButton
-              label={isUploading ? "Saving..." : "NEXT"}
-              onPress={handleSubmit(onSubmit)}
-              disabled={isUploading}
-              loading={isUploading}
-              fullWidth
+            <Controller
+              control={control}
+              name="weight"
+              render={({ field: { value, onChange } }) => (
+                <TextInput
+                  style={[styles.metricInput, errors.weight && styles.inputError]}
+                  placeholder="Enter weight"
+                  value={value}
+                  onChangeText={onChange}
+                  keyboardType="decimal-pad"
+                  placeholderTextColor={olyColors.text.secondary}
+                />
+              )}
             />
+            {errors.weight && (
+              <Text style={styles.errorText}>{errors.weight.message}</Text>
+            )}
           </View>
+
+          {/* Height Card */}
+          <View style={styles.metricCard}>
+            <View style={styles.metricLabelContainer}>
+              <Text style={styles.metricLabel}>Height</Text>
+              <Controller
+                control={control}
+                name="height_unit"
+                render={({ field: { value, onChange } }) => (
+                  <View style={styles.unitToggle}>
+                    {["cm", "ft"].map((unit) => (
+                      <Pressable
+                        key={unit}
+                        onPress={() => onChange(unit as "cm" | "ft")}
+                        style={[
+                          styles.unitButton,
+                          value === unit && styles.unitButtonActive,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.unitButtonText,
+                            value === unit && styles.unitButtonTextActive,
+                          ]}
+                        >
+                          {unit}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+              />
+            </View>
+            <Controller
+              control={control}
+              name="height"
+              render={({ field: { value, onChange } }) => (
+                <TextInput
+                  style={[styles.metricInput, errors.height && styles.inputError]}
+                  placeholder="Enter height"
+                  value={value}
+                  onChangeText={onChange}
+                  keyboardType="decimal-pad"
+                  placeholderTextColor={olyColors.text.secondary}
+                />
+              )}
+            />
+            {errors.height && (
+              <Text style={styles.errorText}>{errors.height.message}</Text>
+            )}
+          </View>
+
+          {/* Weightlifting Exposure */}
+          <View style={styles.fieldContainer}>
+            <Text style={styles.label}>Weightlifting Exposure</Text>
+            <Controller
+              control={control}
+              name="weightliftingExposure"
+              render={({ field: { value, onChange } }) => (
+                <View style={styles.exposureGrid}>
+                  {EXPOSURE_OPTIONS.map((option) => (
+                    <Pressable
+                      key={option.value}
+                      onPress={() => onChange(option.value)}
+                      style={[
+                        styles.exposureCard,
+                        value === option.value && styles.exposureCardActive,
+                      ]}
+                    >
+                      <Text style={styles.exposureTitle}>{option.title}</Text>
+                      <Text style={styles.exposureSubtitle}>
+                        {option.subtitle}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+            />
+            {errors.weightliftingExposure && (
+              <Text style={styles.errorText}>
+                {errors.weightliftingExposure.message}
+              </Text>
+            )}
+          </View>
+
+          {/* Submit Button */}
+          <OlyButton
+            title="Continue"
+            onPress={handleSubmit(handleSubmitForm)}
+            disabled={!isValid}
+            containerStyle={styles.submitButton}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
-
-      {isUploading && (
-        <View style={styles.loaderContainer}>
-          <ActivityIndicator
-            size="large"
-            color={olyColors.button.primary.bg}
-          />
-        </View>
-      )}
-
-      {/* ── DOB Picker Modal ── */}
-      <Modal
-        visible={dobModalField !== null}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setDobModalField(null)}
-      >
-        <View style={styles.countryModalOverlay}>
-          <View style={styles.countryModalContent}>
-            {/* Header */}
-            <View style={styles.dobModalHeader}>
-              <Text style={styles.dobModalTitle}>
-                {dobModalField === "day"
-                  ? "Select Day"
-                  : dobModalField === "month"
-                    ? "Select Month"
-                    : "Select Year"}
-              </Text>
-              <TouchableOpacity
-                onPress={() => setDobModalField(null)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Ionicons
-                  name="close"
-                  size={22}
-                  color={olyColors.text.secondary}
-                />
-              </TouchableOpacity>
-            </View>
-
-            {/* Options list */}
-            <FlatList
-              data={
-                dobModalField === "day"
-                  ? dayOptions
-                  : dobModalField === "month"
-                    ? MONTHS
-                    : yearOptions
-              }
-              keyExtractor={(item) =>
-                typeof item === "string" ? item : item.value
-              }
-              keyboardShouldPersistTaps="handled"
-              renderItem={({ item }) => {
-                const itemValue =
-                  typeof item === "string" ? item : item.value;
-                const itemLabel =
-                  typeof item === "string" ? item : item.label;
-                const currentValue =
-                  dobModalField === "day"
-                    ? dobDay
-                    : dobModalField === "month"
-                      ? dobMonth
-                      : dobYear;
-                const isSelected = currentValue === itemValue;
-
-                return (
-                  <TouchableOpacity
-                    style={[
-                      styles.countryItem,
-                      isSelected && styles.countryItemSelected,
-                    ]}
-                    onPress={() => {
-                      if (dobModalField === "day")
-                        setValue("dobDay", itemValue);
-                      else if (dobModalField === "month")
-                        setValue("dobMonth", itemValue);
-                      else if (dobModalField === "year")
-                        setValue("dobYear", itemValue);
-                      setDobModalField(null);
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.countryItemText,
-                        isSelected && styles.countryItemTextSelected,
-                      ]}
-                    >
-                      {itemLabel}
-                    </Text>
-                    {isSelected && (
-                      <Ionicons
-                        name="checkmark"
-                        size={18}
-                        color={olyPalette.primary}
-                      />
-                    )}
-                  </TouchableOpacity>
-                );
-              }}
-            />
-          </View>
-        </View>
-      </Modal>
     </>
   );
 }
@@ -967,354 +659,258 @@ export default function OnboardingScreen1({
 /* ── Styles ─────────────────────────────────────────────── */
 
 const styles = StyleSheet.create({
-  flex: {
+  container: {
     flex: 1,
+    backgroundColor: olyColors.bg.primary,
   },
   scrollContent: {
-    flexGrow: 1,
-    paddingBottom: olySpacing[32],
+    paddingHorizontal: olySpacing.lg,
+    paddingBottom: olySpacing.xl,
   },
-
-  /* ── Title ── */
-  titleBlock: {
-    marginBottom: olySpacing[20],
-  },
-  title: {
-    ...olyTypography.title1,
-    color: olyColors.text.primary,
-  },
-  subtitle: {
-    ...olyTypography.body,
-    color: olyColors.text.secondary,
-    marginTop: olySpacing[4],
-  },
-
-  /* ── Avatar ── */
-  avatarContainer: {
+  profileImageContainer: {
     alignItems: "center",
-    marginBottom: olySpacing[24],
+    marginVertical: olySpacing.lg,
   },
-  avatarPlaceholder: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    borderWidth: 2,
-    borderStyle: "dashed",
-    borderColor: olyColors.text.disabled,
-    alignItems: "center",
-    justifyContent: "center",
+  profileImageButton: {
+    position: "relative",
+    marginBottom: olySpacing.md,
   },
-  avatarImage: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    borderWidth: 2,
-    borderColor: olyPalette.primary,
+  profileImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
   },
-  avatarBadge: {
-    position: "absolute",
-    top: 68,
-    right: "38%",
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: olyPalette.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: olyPalette.card,
-  },
-  avatarLabel: {
-    ...olyTypography.caption,
-    color: olyColors.text.secondary,
-    marginTop: olySpacing[8],
-  },
-
-  /* ── Fields ── */
-  fieldContainer: {
-    gap: olySpacing[20],
-  },
-  fieldLabel: {
-    ...olyTypography.label,
-    color: olyColors.text.secondary,
-    letterSpacing: olyLetterSpacing.uppercase,
-    textTransform: "uppercase",
-    marginBottom: olySpacing[8],
-  },
-
-  /* ── Date of Birth (dropdown pickers) ── */
-  dobRow: {
-    flexDirection: "row",
-    gap: olySpacing[12],
-  },
-  dobField: {
-    flex: 1,
-    height: 52,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: olySpacing[8],
-    borderRadius: olyRadius.lg,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
-    backgroundColor: olyPalette.cardElevated,
-    paddingHorizontal: olySpacing[12],
-  },
-  dobFieldYear: {
-    flex: 1.3,
-  },
-  dobDisplayText: {
-    ...olyTypography.body,
-    color: olyColors.text.primary,
-  },
-  dobPlaceholder: {
-    color: olyColors.text.disabled,
-  },
-  dobModalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: olySpacing[16],
-    paddingVertical: olySpacing[12],
-    borderBottomWidth: 0.5,
-    borderBottomColor: olyColors.border.default,
-  },
-  dobModalTitle: {
-    ...olyTypography.body,
-    fontFamily: olyFonts.medium,
-    color: olyColors.text.primary,
-  },
-
-  /* ── Sex Selector ── */
-  segmentRow: {
-    flexDirection: "row",
-    gap: olySpacing[8],
-  },
-  segmentButton: {
-    flex: 1,
-    height: 44,
-    borderRadius: olyRadius.full,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
-    backgroundColor: "transparent",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  segmentButtonActive: {
-    backgroundColor: olyPalette.primary,
-    borderColor: olyPalette.primary,
-  },
-  segmentText: {
-    ...olyTypography.bodySmall,
-    fontFamily: "Ubuntu-Medium",
-    color: olyColors.text.secondary,
-    textTransform: "uppercase",
-  },
-  segmentTextActive: {
-    color: olyPalette.white,
-  },
-
-  /* ── Metric inputs (Bodyweight + Height side-by-side) ── */
-  metricRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-  },
-  metricColumn: {
-    flex: 1,
-    alignItems: "center",
-    gap: olySpacing[8],
-    paddingVertical: olySpacing[4],
-  },
-  metricLabel: {
-    ...olyTypography.label,
-    color: olyColors.text.secondary,
-    letterSpacing: olyLetterSpacing.uppercase,
-    textTransform: "uppercase",
-  },
-  metricValueRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    justifyContent: "center",
-    gap: 4,
-  },
-  metricNumber: {
-    fontFamily: olyFonts.light,
-    fontSize: 48,
-    color: olyColors.text.primary,
-    textAlign: "center",
-    minWidth: 40,
-    paddingVertical: 0,
-  },
-  metricUnit: {
-    ...olyTypography.bodySmall,
-    fontFamily: olyFonts.medium,
-    color: olyColors.text.secondary,
-    marginBottom: 8,
-  },
-  metricToggle: {
-    flexDirection: "row",
-    borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.cardElevated,
-    padding: 3,
-  },
-  metricToggleOption: {
-    paddingHorizontal: olySpacing[16],
-    paddingVertical: olySpacing[4],
-    borderRadius: olyRadius.full,
-  },
-  metricToggleOptionActive: {
-    backgroundColor: olyPalette.primary,
-  },
-  metricToggleText: {
-    ...olyTypography.caption,
-    fontFamily: olyFonts.medium,
-    color: olyColors.text.secondary,
-  },
-  metricToggleTextActive: {
-    color: olyPalette.white,
-  },
-  metricDivider: {
-    width: 1,
-    alignSelf: "stretch",
-    backgroundColor: olyColors.border.default,
-    marginVertical: olySpacing[12],
-    opacity: 0.3,
-  },
-
-  /* ── Exposure Grid ── */
-  exposureGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: olySpacing[12],
-  },
-  exposureCard: {
-    width: "47%",
-    borderRadius: olyRadius.lg,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
-    backgroundColor: "transparent",
-    paddingVertical: olySpacing[16],
-    paddingHorizontal: olySpacing[12],
-  },
-  exposureCardActive: {
-    backgroundColor: olyPalette.primary,
-    borderColor: olyPalette.primary,
-  },
-  exposureTitle: {
-    ...olyTypography.body,
-    fontFamily: "Ubuntu-Medium",
-    color: olyColors.text.primary,
-    marginBottom: olySpacing[4],
-  },
-  exposureTitleActive: {
-    color: olyPalette.white,
-  },
-  exposureSubtitle: {
-    ...olyTypography.caption,
-    color: olyColors.text.secondary,
-    lineHeight: 18,
-  },
-  exposureSubtitleActive: {
-    color: olyColors.text.secondary,
-  },
-
-  /* ── Country Selector ── */
-  countrySelector: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    height: 52,
-    borderRadius: olyRadius.lg,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
-    backgroundColor: olyPalette.cardElevated,
-    paddingHorizontal: olySpacing[16],
-  },
-  countrySelectorText: {
-    ...olyTypography.body,
-    color: olyColors.text.primary,
-    flex: 1,
-  },
-  countrySelectorPlaceholder: {
-    color: olyColors.text.disabled,
-  },
-  countryModalOverlay: {
-    flex: 1,
-    backgroundColor: olyColors.bg.overlay,
-    justifyContent: "flex-end",
-  },
-  countryModalContent: {
-    backgroundColor: olyPalette.card,
-    borderTopLeftRadius: olyRadius.lg,
-    borderTopRightRadius: olyRadius.lg,
-    maxHeight: "70%",
-    paddingBottom: olySpacing[32],
-  },
-  countrySearchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: olySpacing[8],
-    paddingHorizontal: olySpacing[16],
-    paddingVertical: olySpacing[12],
-    borderBottomWidth: 0.5,
-    borderBottomColor: olyColors.border.default,
-  },
-  countrySearchInput: {
-    flex: 1,
-    ...olyTypography.body,
-    color: olyColors.text.primary,
-    paddingVertical: olySpacing[4],
-  },
-  countryItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: olySpacing[12],
-    paddingHorizontal: olySpacing[16],
-    minHeight: 44,
-  },
-  countryItemSelected: {
-    backgroundColor: olyPalette.cardElevated,
-  },
-  countryItemText: {
-    ...olyTypography.body,
-    color: olyColors.text.primary,
-  },
-  countryItemTextSelected: {
-    color: olyPalette.white,
-    fontFamily: olyFonts.medium,
-  },
-  countryEmptyState: {
-    padding: olySpacing[24],
-    alignItems: "center",
-  },
-  countryEmptyText: {
-    ...olyTypography.body,
-    color: olyColors.text.secondary,
-  },
-
-  /* ── Error ── */
-  errorText: {
-    ...olyTypography.caption,
-    color: olyPalette.red,
-    marginTop: olySpacing[4],
-  },
-
-  /* ── Bottom CTA ── */
-  bottomCta: {
-    paddingTop: olySpacing[32],
-  },
-
-  /* ── Loader ── */
-  loaderContainer: {
+  imageLoadingOverlay: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
+    borderRadius: 40,
     backgroundColor: olyColors.bg.overlay,
     justifyContent: "center",
     alignItems: "center",
     zIndex: 999,
+  },
+  profileImageLabel: {
+    ...olyTypography.body,
+    color: olyColors.text.secondary,
+  },
+  fieldContainer: {
+    marginBottom: olySpacing.lg,
+  },
+  label: {
+    ...olyTypography.label,
+    color: olyColors.text.primary,
+    marginBottom: olySpacing.sm,
+  },
+  sectionLabel: {
+    ...olyTypography.caption,
+    color: olyColors.text.secondary,
+    marginTop: olySpacing.lg,
+    marginBottom: olySpacing.md,
+    letterSpacing: olyLetterSpacing.wide,
+  },
+  dropdownButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: olySpacing.md,
+    paddingVertical: olySpacing.md,
+    borderRadius: olyRadius.md,
+    backgroundColor: olyColors.bg.secondary,
+    borderWidth: 1,
+    borderColor: olyColors.border.default,
+  },
+  dropdownButtonText: {
+    ...olyTypography.body,
+    color: olyColors.text.primary,
+  },
+  dropdownPlaceholder: {
+    color: olyColors.text.secondary,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: olyColors.bg.primary,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: olySpacing.lg,
+    paddingVertical: olySpacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: olyColors.border.default,
+  },
+  modalCloseButton: {
+    ...olyTypography.body,
+    color: olyColors.link,
+  },
+  modalTitle: {
+    ...olyTypography.h3,
+    color: olyColors.text.primary,
+  },
+  searchInput: {
+    ...olyTypography.body,
+    marginHorizontal: olySpacing.lg,
+    marginVertical: olySpacing.md,
+    paddingHorizontal: olySpacing.md,
+    paddingVertical: olySpacing.sm,
+    borderRadius: olyRadius.md,
+    backgroundColor: olyColors.bg.secondary,
+    borderWidth: 1,
+    borderColor: olyColors.border.default,
+    color: olyColors.text.primary,
+  },
+  countryItem: {
+    paddingHorizontal: olySpacing.lg,
+    paddingVertical: olySpacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: olyColors.border.default,
+  },
+  countryItemText: {
+    ...olyTypography.body,
+    color: olyColors.text.primary,
+  },
+  dobContainer: {
+    marginBottom: olySpacing.lg,
+  },
+  dobFields: {
+    flexDirection: "row",
+    gap: olySpacing.sm,
+  },
+  dobFieldWrapper: {
+    flex: 1,
+  },
+  dobInput: {
+    ...olyTypography.body,
+    paddingHorizontal: olySpacing.md,
+    paddingVertical: olySpacing.md,
+    borderRadius: olyRadius.md,
+    backgroundColor: olyColors.bg.secondary,
+    borderWidth: 1,
+    borderColor: olyColors.border.default,
+    color: olyColors.text.primary,
+    textAlign: "center",
+  },
+  dobInputError: {
+    borderColor: olyColors.feedback.error,
+  },
+  dobErrorText: {
+    ...olyTypography.caption,
+    color: olyColors.feedback.error,
+    marginTop: olySpacing.xs,
+  },
+  sexSelector: {
+    flexDirection: "row",
+    gap: olySpacing.sm,
+  },
+  sexButton: {
+    flex: 1,
+    paddingVertical: olySpacing.md,
+    borderRadius: olyRadius.md,
+    backgroundColor: olyColors.bg.secondary,
+    borderWidth: 1,
+    borderColor: olyColors.border.default,
+    alignItems: "center",
+  },
+  sexButtonActive: {
+    backgroundColor: olyColors.primary,
+    borderColor: olyColors.primary,
+  },
+  sexButtonText: {
+    ...olyTypography.label,
+    color: olyColors.text.secondary,
+  },
+  sexButtonTextActive: {
+    color: olyColors.text.inverse,
+  },
+  metricCard: {
+    padding: olySpacing.md,
+    marginBottom: olySpacing.lg,
+    backgroundColor: olyColors.bg.secondary,
+    borderRadius: olyRadius.md,
+    borderWidth: 1,
+    borderColor: olyColors.border.default,
+  },
+  metricLabelContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: olySpacing.md,
+  },
+  metricLabel: {
+    ...olyTypography.label,
+    color: olyColors.text.primary,
+  },
+  unitToggle: {
+    flexDirection: "row",
+    gap: olySpacing.xs,
+  },
+  unitButton: {
+    paddingHorizontal: olySpacing.sm,
+    paddingVertical: olySpacing.xs,
+    borderRadius: olyRadius.sm,
+    backgroundColor: olyColors.bg.primary,
+    borderWidth: 1,
+    borderColor: olyColors.border.default,
+  },
+  unitButtonActive: {
+    backgroundColor: olyColors.primary,
+    borderColor: olyColors.primary,
+  },
+  unitButtonText: {
+    ...olyTypography.caption,
+    color: olyColors.text.secondary,
+  },
+  unitButtonTextActive: {
+    color: olyColors.text.inverse,
+  },
+  metricInput: {
+    ...olyTypography.body,
+    paddingHorizontal: olySpacing.md,
+    paddingVertical: olySpacing.md,
+    borderRadius: olyRadius.md,
+    backgroundColor: olyColors.bg.primary,
+    borderWidth: 1,
+    borderColor: olyColors.border.default,
+    color: olyColors.text.primary,
+  },
+  inputError: {
+    borderColor: olyColors.feedback.error,
+  },
+  errorText: {
+    ...olyTypography.caption,
+    color: olyColors.feedback.error,
+    marginTop: olySpacing.xs,
+  },
+  exposureGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: olySpacing.sm,
+  },
+  exposureCard: {
+    width: "48%",
+    padding: olySpacing.md,
+    backgroundColor: olyColors.bg.secondary,
+    borderRadius: olyRadius.md,
+    borderWidth: 1,
+    borderColor: olyColors.border.default,
+  },
+  exposureCardActive: {
+    backgroundColor: olyColors.primary,
+    borderColor: olyColors.primary,
+  },
+  exposureTitle: {
+    ...olyTypography.label,
+    color: olyColors.text.primary,
+    marginBottom: olySpacing.xs,
+  },
+  exposureSubtitle: {
+    ...olyTypography.caption,
+    color: olyColors.text.secondary,
+  },
+  submitButton: {
+    marginTop: olySpacing.lg,
   },
 });
