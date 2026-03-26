@@ -18,7 +18,6 @@ import {
 import {
   olyColors,
   olyPalette,
-  olyOpacity,
 } from "@/src/oly-theme/oly-colors";
 import { olySpacing } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
@@ -33,7 +32,6 @@ import {
   ActionSheetIOS,
   ActivityIndicator,
   Alert,
-  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -111,10 +109,7 @@ export default function OnboardingScreen2({
   /* Video state */
   const [isUploading, setIsUploading] = useState(false);
   const [liftVideos, setLiftVideos] = useState<Record<string, string>>({});
-  const [currentLift, setCurrentLift] = useState<LiftIdentifier | null>(null);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [uploadAthleteVideo, { isLoading: isUploadingToApi }] =
-    useUploadAthleteVideoMutation();
+  const [uploadAthleteVideo] = useUploadAthleteVideoMutation();
 
   /* Lift weight values */
   const [liftValues, setLiftValues] = useState<Record<LiftCategory, number[]>>({
@@ -161,20 +156,25 @@ export default function OnboardingScreen2({
 
     if (!result.canceled) {
       setIsUploading(true);
-      setCurrentLift(lift);
       try {
-        await new Promise((resolve) => setTimeout(resolve, 1500));
         const key = getLiftKey(lift);
-        setLiftVideos((prev) => ({ ...prev, [key]: result.assets[0].uri }));
-        setShowSuccessModal(true);
+        const videoUri = result.assets[0].uri;
+        setLiftVideos((prev) => ({ ...prev, [key]: videoUri }));
+
+        /* Upload to API in background */
+        const formData = new FormData();
+        formData.append("video", {
+          uri: videoUri,
+          type: "video/mp4",
+          name: `${lift.label.replace(/\s+/g, "_")}.mp4`,
+        } as any);
+        await uploadAthleteVideo(formData).unwrap();
+        showSuccess("Video added!");
       } catch {
         showError("Failed to upload video");
-        setCurrentLift(null);
       } finally {
         setIsUploading(false);
       }
-    } else {
-      setCurrentLift(null);
     }
   };
 
@@ -195,7 +195,7 @@ export default function OnboardingScreen2({
         (buttonIndex) => {
           if (hasVideo) {
             if (buttonIndex === 1) pickVideo(lift);
-            if (buttonIndex === 2) handleRemoveVideoDirect(lift);
+            if (buttonIndex === 2) handleRemoveVideo(lift);
           } else {
             if (buttonIndex === 1) pickVideo(lift);
           }
@@ -209,7 +209,7 @@ export default function OnboardingScreen2({
             {
               text: "Remove Video",
               style: "destructive" as const,
-              onPress: () => handleRemoveVideoDirect(lift),
+              onPress: () => handleRemoveVideo(lift),
             },
           ]
         : [
@@ -220,7 +220,7 @@ export default function OnboardingScreen2({
     }
   };
 
-  const handleRemoveVideoDirect = (lift: LiftIdentifier) => {
+  const handleRemoveVideo = (lift: LiftIdentifier) => {
     const key = getLiftKey(lift);
     setLiftVideos((prev) => {
       const updated = { ...prev };
@@ -230,47 +230,9 @@ export default function OnboardingScreen2({
     showSuccess("Video removed!");
   };
 
-  const handleContinue = async () => {
-    if (currentLift) {
-      const key = getLiftKey(currentLift);
-      const videoUri = liftVideos[key];
-      if (videoUri) {
-        try {
-          const formData = new FormData();
-          formData.append("video", {
-            uri: videoUri,
-            type: "video/mp4",
-            name: `${currentLift.label.replace(/\s+/g, "_")}.mp4`,
-          } as any);
-          await uploadAthleteVideo(formData).unwrap();
-          showSuccess("Video uploaded successfully!");
-        } catch {
-          showError("Failed to upload video");
-        }
-      }
-    }
-    setShowSuccessModal(false);
-    setCurrentLift(null);
-  };
-
-  const handleRemoveVideo = () => {
-    if (currentLift) {
-      const key = getLiftKey(currentLift);
-      setLiftVideos((prev) => {
-        const updated = { ...prev };
-        delete updated[key];
-        return updated;
-      });
-    }
-    setShowSuccessModal(false);
-    setCurrentLift(null);
-    showSuccess("Video removed!");
-  };
-
   /* ── Submit ── */
 
   const onSubmit = () => {
-    /* Check at least one lift has a weight > 0 */
     const hasAnyWeight = Object.values(liftValues).some((cat) =>
       cat.some((v) => v > 0),
     );
@@ -317,7 +279,6 @@ export default function OnboardingScreen2({
     return (
       <View key={`${category}-${index}`}>
         <View style={styles.liftRow}>
-          {/* Lift name */}
           <Text
             style={[
               styles.liftName,
@@ -327,7 +288,6 @@ export default function OnboardingScreen2({
             {item.label}
           </Text>
 
-          {/* Right side: video icon + weight */}
           <View style={styles.liftRight}>
             <TouchableOpacity
               onPress={() =>
@@ -381,7 +341,6 @@ export default function OnboardingScreen2({
           </View>
         </View>
 
-        {/* Divider */}
         {!isLast && <View style={styles.divider} />}
       </View>
     );
@@ -411,7 +370,6 @@ export default function OnboardingScreen2({
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
-      {/* Title */}
       <View style={styles.titleBlock}>
         <Text style={styles.title} maxFontSizeMultiplier={1.2}>
           Current strength
@@ -421,12 +379,10 @@ export default function OnboardingScreen2({
         </Text>
       </View>
 
-      {/* Lift categories */}
       <View style={styles.categoriesContainer}>
         {CATEGORIES.map(renderCategory)}
       </View>
 
-      {/* Accuracy */}
       <View style={styles.accuracyBlock}>
         <Text style={styles.accuracyTitle}>
           HOW ACCURATE ARE THESE NUMBERS?
@@ -458,7 +414,6 @@ export default function OnboardingScreen2({
         </View>
       </View>
 
-      {/* Bottom buttons */}
       <View style={styles.bottomButtons}>
         <OlyButton
           label="BACK"
@@ -476,7 +431,6 @@ export default function OnboardingScreen2({
         />
       </View>
 
-      {/* Upload loader */}
       {isUploading && (
         <View style={styles.loaderContainer}>
           <ActivityIndicator
@@ -485,59 +439,6 @@ export default function OnboardingScreen2({
           />
         </View>
       )}
-
-      {/* Video success modal */}
-      <Modal
-        visible={showSuccessModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => {}}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Video Uploaded Successfully!</Text>
-            <Text style={styles.modalMessage}>
-              Would you like to save this video or upload a different one?
-            </Text>
-
-            <View style={styles.modalButtonsRow}>
-              <TouchableOpacity
-                style={[
-                  styles.modalButton,
-                  styles.removeButtonStyle,
-                  isUploadingToApi && styles.disabledButton,
-                ]}
-                onPress={handleRemoveVideo}
-                disabled={isUploadingToApi}
-              >
-                <Text style={styles.modalButtonText}>Remove Video</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.modalButton,
-                  styles.saveButtonStyle,
-                  isUploadingToApi && styles.disabledButton,
-                ]}
-                onPress={handleContinue}
-                disabled={isUploadingToApi}
-              >
-                {isUploadingToApi ? (
-                  <View style={styles.modalLoadingRow}>
-                    <ActivityIndicator
-                      size="small"
-                      color={olyColors.text.primary}
-                    />
-                    <Text style={styles.modalButtonText}>Saving...</Text>
-                  </View>
-                ) : (
-                  <Text style={styles.modalButtonText}>Continue</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </ScrollView>
   );
 }
@@ -545,35 +446,15 @@ export default function OnboardingScreen2({
 /* ── Styles ─────────────────────────────────────────────── */
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: olySpacing[32],
-  },
+  container: { flex: 1 },
+  scrollContent: { flexGrow: 1, paddingBottom: olySpacing[32] },
 
-  /* Title */
-  titleBlock: {
-    marginBottom: olySpacing[20],
-  },
-  title: {
-    ...olyTypography.title1,
-    color: olyColors.text.primary,
-  },
-  subtitle: {
-    ...olyTypography.body,
-    color: olyColors.text.secondary,
-    marginTop: olySpacing[4],
-  },
+  titleBlock: { marginBottom: olySpacing[20] },
+  title: { ...olyTypography.title1, color: olyColors.text.primary },
+  subtitle: { ...olyTypography.body, color: olyColors.text.secondary, marginTop: olySpacing[4] },
 
-  /* Categories */
-  categoriesContainer: {
-    gap: olySpacing[16],
-  },
-  categoryBlock: {
-    gap: olySpacing[8],
-  },
+  categoriesContainer: { gap: olySpacing[16] },
+  categoryBlock: { gap: olySpacing[8] },
   categoryTitle: {
     ...olyTypography.label,
     color: olyColors.text.secondary,
@@ -581,7 +462,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
 
-  /* Lift card */
   liftCard: {
     backgroundColor: olyElevation.level1.backgroundColor,
     borderWidth: olyElevation.level1.borderWidth,
@@ -596,16 +476,8 @@ const styles = StyleSheet.create({
     paddingVertical: olySpacing[12],
     minHeight: 44,
   },
-  liftName: {
-    ...olyTypography.body,
-    fontFamily: olyFonts.medium,
-    flex: 1,
-  },
-  liftRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: olySpacing[12],
-  },
+  liftName: { ...olyTypography.body, fontFamily: olyFonts.medium, flex: 1 },
+  liftRight: { flexDirection: "row", alignItems: "center", gap: olySpacing[12] },
   weightInput: {
     ...olyTypography.body,
     fontFamily: olyFonts.medium,
@@ -614,29 +486,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: olySpacing[4],
     paddingVertical: olySpacing[4],
   },
-  unitLabel: {
-    ...olyTypography.bodySmall,
-  },
-  divider: {
-    height: 0.5,
-    backgroundColor: olyColors.border.default,
-  },
+  unitLabel: { ...olyTypography.bodySmall },
+  divider: { height: 0.5, backgroundColor: olyColors.border.default },
 
-  /* Accuracy */
-  accuracyBlock: {
-    marginTop: olySpacing[24],
-    gap: olySpacing[8],
-  },
+  accuracyBlock: { marginTop: olySpacing[24], gap: olySpacing[8] },
   accuracyTitle: {
     ...olyTypography.label,
     color: olyColors.text.secondary,
     letterSpacing: olyLetterSpacing.uppercase,
     textTransform: "uppercase",
   },
-  accuracyRow: {
-    flexDirection: "row",
-    gap: olySpacing[8],
-  },
+  accuracyRow: { flexDirection: "row", gap: olySpacing[8] },
   accuracyPill: {
     flex: 1,
     height: 44,
@@ -647,10 +507,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  accuracyPillActive: {
-    backgroundColor: olyPalette.primary,
-    borderColor: olyPalette.primary,
-  },
+  accuracyPillActive: { backgroundColor: olyPalette.primary, borderColor: olyPalette.primary },
   accuracyPillText: {
     ...olyTypography.bodySmall,
     fontFamily: olyFonts.medium,
@@ -658,95 +515,18 @@ const styles = StyleSheet.create({
     letterSpacing: olyLetterSpacing.uppercase,
     textTransform: "uppercase",
   },
-  accuracyPillTextActive: {
-    color: olyPalette.white,
-  },
+  accuracyPillTextActive: { color: olyPalette.white },
 
-  /* Bottom buttons */
-  bottomButtons: {
-    flexDirection: "row",
-    gap: olySpacing[12],
-    paddingTop: olySpacing[32],
-  },
-  backButton: {
-    flex: 1,
-  },
-  nextButton: {
-    flex: 1,
-  },
+  bottomButtons: { flexDirection: "row", gap: olySpacing[12], paddingTop: olySpacing[32] },
+  backButton: { flex: 1 },
+  nextButton: { flex: 1 },
 
-  /* Loader */
   loaderContainer: {
     position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: olyOverlay,
     justifyContent: "center",
     alignItems: "center",
     zIndex: 999,
-  },
-
-  /* Modal */
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: olyOverlay,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContent: {
-    backgroundColor: olyPalette.card,
-    borderRadius: olyRadius.lg,
-    paddingHorizontal: olySpacing[20],
-    paddingTop: olySpacing[24],
-    paddingBottom: olySpacing[20],
-    width: "85%",
-    alignItems: "center",
-  },
-  modalTitle: {
-    ...olyTypography.body,
-    fontFamily: olyFonts.medium,
-    color: olyColors.text.primary,
-    marginBottom: olySpacing[8],
-    textAlign: "center",
-  },
-  modalMessage: {
-    ...olyTypography.bodySmall,
-    color: olyColors.text.secondary,
-    textAlign: "center",
-    marginBottom: olySpacing[24],
-  },
-  modalButtonsRow: {
-    flexDirection: "row",
-    gap: olySpacing[12],
-    width: "100%",
-  },
-  modalButton: {
-    flex: 1,
-    height: 44,
-    borderRadius: olyRadius.full,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  saveButtonStyle: {
-    backgroundColor: olyColors.button.primary.bg,
-  },
-  removeButtonStyle: {
-    backgroundColor: olyColors.button.destructive.bg,
-  },
-  modalButtonText: {
-    ...olyTypography.button,
-    color: olyColors.text.primary,
-    letterSpacing: olyLetterSpacing.uppercase,
-    textTransform: "uppercase",
-  },
-  modalLoadingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: olySpacing[8],
-  },
-  disabledButton: {
-    opacity: olyOpacity.muted,
   },
 });

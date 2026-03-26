@@ -1,10 +1,23 @@
-import Header from "@/components/header";
-import SegmentedSelector from "@/components/segmented-selector";
-import ActionButtonsRow from "@/constants/custom-row-buttons";
-import { useTheme } from "@/context/theme-context";
+/**
+ * Onboarding Screen 3 — Training Considerations (Redesigned v2)
+ *
+ * Collects training limitation info: affected body areas,
+ * current impact level, and context-specific triggers.
+ *
+ * Abdul's data flow is unchanged — dispatches to onboardingSlice.
+ */
+
+import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
+import {
+  olyTypography,
+  olyFonts,
+  olyLetterSpacing,
+} from "@/src/oly-theme/oly-typography";
+import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olySpacing } from "@/src/oly-theme/oly-spacing";
+import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { useToast } from "@/context/toast-context";
 import { saveOnboardingData } from "@/store/reducer/onboardingSlice";
-import { Typography } from "@/utils/custom-styles";
 import React, { useEffect, useMemo } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import {
@@ -14,8 +27,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { scale } from "react-native-size-matters";
 import { useDispatch } from "react-redux";
+
+/* ── Types ─────────────────────────────────────────────── */
 
 interface OnboardingScreen3Props {
   onBack?: () => void;
@@ -30,12 +44,25 @@ interface OnboardingScreen3Values {
   when_to_show: string[];
 }
 
+/* ── Data ──────────────────────────────────────────────── */
+
+const BODY_AREAS = [
+  "Lower back",
+  "Knees",
+  "Shoulders",
+  "Wrists",
+  "Hips",
+  "Ankles",
+] as const;
+
+const IMPACT_OPTIONS = ["Mild", "Moderate", "High"] as const;
+
 const WHEN_TO_SHOW_OPTIONS: Record<
   string,
   Array<{ label: string; value: string }>
 > = {
   "Lower back": [
-    { label: "Over head position", value: "Over head position" },
+    { label: "Overhead position", value: "Overhead position" },
     { label: "Snatch catch", value: "Snatch catch" },
     { label: "Jerk lockout", value: "Jerk lockout" },
     { label: "High OH volume", value: "High OH volume" },
@@ -84,45 +111,19 @@ const WHEN_TO_SHOW_OPTIONS: Record<
   ],
 };
 
+/* ── Component ─────────────────────────────────────────── */
+
 export default function OnboardingScreen3({
   onBack,
   onComplete,
 }: OnboardingScreen3Props) {
-  const { colors } = useTheme();
   const dispatch = useDispatch();
   const { showError } = useToast();
-  const onSubmit = (data: OnboardingScreen3Values) => {
-    if (
-      data.limitation &&
-      data.affected_area.length > 0 &&
-      !data.selected_affected_area
-    ) {
-      showError("Please select an affected area");
-      return;
-    }
-    const sanitizedData =
-      data.limitation === false
-        ? {
-            ...data,
-            affected_area: [],
-            selected_affected_area: "",
-            impact: "",
-            when_to_show: [],
-          }
-        : data;
-
-    dispatch(saveOnboardingData(sanitizedData));
-
-    if (onComplete) {
-      onComplete();
-    }
-  };
 
   const {
     control,
     handleSubmit,
     setValue,
-    formState: { errors },
   } = useForm<OnboardingScreen3Values>({
     defaultValues: {
       limitation: true,
@@ -133,34 +134,20 @@ export default function OnboardingScreen3({
     },
   });
 
-  const limitationValue = useWatch({
-    control,
-    name: "limitation",
-  });
-
-  const affectedAreaValue = useWatch({
-    control,
-    name: "affected_area",
-  });
-
+  const limitationValue = useWatch({ control, name: "limitation" });
+  const affectedAreaValue = useWatch({ control, name: "affected_area" });
   const selectedAffectedAreaValue = useWatch({
     control,
     name: "selected_affected_area",
   });
 
-  const mappedAffectedAreaOptions = useMemo(() => {
-    return (affectedAreaValue || []).map((area) => ({
-      label: area,
-      value: area,
-    }));
-  }, [affectedAreaValue]);
-
   const whenToShowOptions = useMemo(() => {
-    if (!selectedAffectedAreaValue) {
-      return [];
-    }
+    if (!selectedAffectedAreaValue) return [];
     return WHEN_TO_SHOW_OPTIONS[selectedAffectedAreaValue] || [];
   }, [selectedAffectedAreaValue]);
+
+  /* ── Side effects (same as Abdul's original logic) ── */
+
   useEffect(() => {
     if (!limitationValue) {
       setValue("affected_area", []);
@@ -178,7 +165,6 @@ export default function OnboardingScreen3({
     if (affectedAreaValue && affectedAreaValue.length > 0) {
       if (!affectedAreaValue.includes(selectedAffectedAreaValue)) {
         setValue("selected_affected_area", affectedAreaValue[0]);
-
         setValue("when_to_show", []);
       }
     } else {
@@ -191,120 +177,205 @@ export default function OnboardingScreen3({
     setValue("when_to_show", []);
   }, [selectedAffectedAreaValue, setValue]);
 
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    scrollContent: {},
-    formGroup: {
-      marginVertical: scale(20),
-      gap: scale(20),
-      marginBottom: scale(50),
-    },
-    chipsContainer: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: scale(8),
-    },
-    chip: {
-      paddingHorizontal: scale(7),
-      paddingVertical: scale(3),
-      borderRadius: scale(24),
-      borderWidth: 1,
-      borderColor: colors.primary,
-      backgroundColor: colors.lightBlue,
-    },
-    chipSelected: {
-      backgroundColor: colors.primary,
-      borderColor: colors.primary,
-    },
-    chipText: {
-      fontSize: Typography.fontSize.base,
-      fontWeight: "500",
-      color: colors.text,
-    },
-    chipTextSelected: {
-      color: colors.text,
-    },
-  });
+  /* ── Submit ── */
+
+  const onSubmit = (data: OnboardingScreen3Values) => {
+    if (
+      data.limitation &&
+      data.affected_area.length > 0 &&
+      !data.selected_affected_area
+    ) {
+      showError("Please select an affected area");
+      return;
+    }
+
+    const sanitizedData =
+      data.limitation === false
+        ? {
+            ...data,
+            affected_area: [],
+            selected_affected_area: "",
+            impact: "",
+            when_to_show: [],
+          }
+        : data;
+
+    dispatch(saveOnboardingData(sanitizedData));
+    if (onComplete) onComplete();
+  };
+
+  /* ── Render ── */
 
   return (
-    <>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <Header
-          mainText="Training considerations"
-          subText="Used to modify training when needed."
-        />
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Title */}
+      <View style={styles.titleBlock}>
+        <Text style={styles.title} maxFontSizeMultiplier={1.2}>
+          Training considerations
+        </Text>
+        <Text style={styles.subtitle} maxFontSizeMultiplier={1.5}>
+          Used to modify training when needed
+        </Text>
+      </View>
 
-        <View style={styles.formGroup}>
+      <View style={styles.formGroup}>
+        {/* Training Limitations YES/NO */}
+        <View>
+          <Text style={styles.sectionLabel}>TRAINING LIMITATIONS</Text>
           <Controller
             control={control}
             name="limitation"
             render={({ field: { onChange, value } }) => (
-              <SegmentedSelector
-                title="Training Limitations"
-                options={[
-                  { label: "Yes", value: "true" },
-                  { label: "No", value: "false" },
-                ]}
-                selectedValue={String(value)}
-                onChange={(v) => onChange(v === "true")}
-                segments={2}
-              />
+              <View style={styles.segmentedContainer}>
+                {(["Yes", "No"] as const).map((option) => {
+                  const isActive =
+                    (option === "Yes" && value === true) ||
+                    (option === "No" && value === false);
+                  return (
+                    <TouchableOpacity
+                      key={option}
+                      style={[
+                        styles.segmentedOption,
+                        isActive && styles.segmentedOptionActive,
+                      ]}
+                      onPress={() => onChange(option === "Yes")}
+                      activeOpacity={0.8}
+                    >
+                      <Text
+                        style={[
+                          styles.segmentedText,
+                          isActive && styles.segmentedTextActive,
+                        ]}
+                      >
+                        {option.toUpperCase()}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             )}
           />
+        </View>
 
-          {limitationValue === true && (
-            <>
+        {limitationValue === true && (
+          <>
+            {/* Affected Areas — 2-column grid, multi-select */}
+            <View>
+              <Text style={styles.sectionLabel}>AFFECTED AREAS</Text>
               <Controller
                 control={control}
                 name="affected_area"
                 render={({ field: { onChange, value } }) => (
-                  <SegmentedSelector
-                    title="Affected Areas"
-                    options={[
-                      { label: "Lower back", value: "Lower back" },
-                      { label: "Knees", value: "Knees" },
-                      { label: "Shoulders", value: "Shoulders" },
-                      { label: "Wrists", value: "Wrists" },
-                      { label: "Hips", value: "Hips" },
-                      { label: "Ankles", value: "Ankles" },
-                    ]}
-                    selectedValue={value || []}
-                    onChange={onChange}
-                    segments={6}
-                    allowMultiple
-                  />
+                  <View style={styles.pillGrid}>
+                    {BODY_AREAS.map((area) => {
+                      const isActive = (value || []).includes(area);
+                      return (
+                        <TouchableOpacity
+                          key={area}
+                          style={[
+                            styles.pillButton,
+                            isActive && styles.pillButtonActive,
+                          ]}
+                          onPress={() => {
+                            const current = value || [];
+                            if (current.includes(area)) {
+                              onChange(current.filter((a) => a !== area));
+                            } else {
+                              onChange([...current, area]);
+                            }
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <Text
+                            style={[
+                              styles.pillText,
+                              isActive && styles.pillTextActive,
+                            ]}
+                          >
+                            {area}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 )}
               />
+            </View>
 
-              {mappedAffectedAreaOptions.length > 0 && (
+            {/* Current Impact */}
+            <View>
+              <Text style={styles.sectionLabel}>CURRENT IMPACT</Text>
+              <Controller
+                control={control}
+                name="impact"
+                render={({ field: { onChange, value } }) => (
+                  <View style={styles.segmentedContainer}>
+                    {IMPACT_OPTIONS.map((option) => {
+                      const isActive = value === option;
+                      return (
+                        <TouchableOpacity
+                          key={option}
+                          style={[
+                            styles.segmentedOption,
+                            isActive && styles.segmentedOptionActive,
+                          ]}
+                          onPress={() => onChange(option)}
+                          activeOpacity={0.8}
+                        >
+                          <Text
+                            style={[
+                              styles.segmentedText,
+                              isActive && styles.segmentedTextActive,
+                            ]}
+                          >
+                            {option.toUpperCase()}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
+              />
+            </View>
+
+            {/* When Does It Show Up — 2-column grid, multi-select */}
+            {whenToShowOptions.length > 0 && (
+              <View>
+                <Text style={styles.sectionLabel}>WHEN DOES IT SHOW UP</Text>
                 <Controller
                   control={control}
-                  name="selected_affected_area"
+                  name="when_to_show"
                   render={({ field: { onChange, value } }) => (
-                    <View style={styles.chipsContainer}>
-                      {mappedAffectedAreaOptions.map((option) => {
-                        const isSelected = value === option.value;
+                    <View style={styles.pillGrid}>
+                      {whenToShowOptions.map((option) => {
+                        const isActive = (value || []).includes(option.value);
                         return (
                           <TouchableOpacity
                             key={option.value}
                             style={[
-                              styles.chip,
-                              isSelected && styles.chipSelected,
+                              styles.pillButton,
+                              isActive && styles.pillButtonActive,
                             ]}
-                            onPress={() => onChange(option.value)}
-                            activeOpacity={0.7}
+                            onPress={() => {
+                              const current = value || [];
+                              if (current.includes(option.value)) {
+                                onChange(
+                                  current.filter((v) => v !== option.value),
+                                );
+                              } else {
+                                onChange([...current, option.value]);
+                              }
+                            }}
+                            activeOpacity={0.8}
                           >
                             <Text
                               style={[
-                                styles.chipText,
-                                isSelected && styles.chipTextSelected,
+                                styles.pillText,
+                                isActive && styles.pillTextActive,
                               ]}
                             >
                               {option.label}
@@ -315,50 +386,122 @@ export default function OnboardingScreen3({
                     </View>
                   )}
                 />
-              )}
+              </View>
+            )}
+          </>
+        )}
+      </View>
 
-              <Controller
-                control={control}
-                name="impact"
-                render={({ field: { onChange, value } }) => (
-                  <SegmentedSelector
-                    title="Current Impact"
-                    options={[
-                      { label: "Mild", value: "Mild" },
-                      { label: "Moderate", value: "Moderate" },
-                      { label: "High", value: "High" },
-                    ]}
-                    selectedValue={value}
-                    onChange={onChange}
-                    segments={3}
-                  />
-                )}
-              />
-
-              {whenToShowOptions.length > 0 && (
-                <Controller
-                  control={control}
-                  name="when_to_show"
-                  render={({ field: { onChange, value } }) => (
-                    <SegmentedSelector
-                      title="When does it show up"
-                      options={whenToShowOptions}
-                      selectedValue={value || []}
-                      onChange={onChange}
-                      segments={6}
-                      allowMultiple
-                    />
-                  )}
-                />
-              )}
-            </>
-          )}
-        </View>
-      </ScrollView>
-      <ActionButtonsRow
-        onPrimaryPress={handleSubmit(onSubmit)}
-        onSecondaryPress={onBack}
-      />
-    </>
+      {/* Bottom buttons */}
+      <View style={styles.bottomButtons}>
+        <OlyButton
+          label="BACK"
+          variant="secondary"
+          onPress={onBack ?? (() => {})}
+          fullWidth
+          style={styles.halfButton}
+        />
+        <OlyButton
+          label="NEXT"
+          variant="primary"
+          onPress={handleSubmit(onSubmit)}
+          fullWidth
+          style={styles.halfButton}
+        />
+      </View>
+    </ScrollView>
   );
 }
+
+/* ── Styles ─────────────────────────────────────────────── */
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  scrollContent: { flexGrow: 1, paddingBottom: olySpacing[32] },
+
+  /* Title */
+  titleBlock: { marginBottom: olySpacing[20] },
+  title: { ...olyTypography.title1, color: olyColors.text.primary },
+  subtitle: {
+    ...olyTypography.body,
+    color: olyColors.text.secondary,
+    marginTop: olySpacing[4],
+  },
+
+  /* Form */
+  formGroup: { gap: olySpacing[24] },
+  sectionLabel: {
+    ...olyTypography.label,
+    color: olyColors.text.secondary,
+    letterSpacing: olyLetterSpacing.uppercase,
+    textTransform: "uppercase",
+    marginBottom: olySpacing[8],
+  },
+
+  /* Segmented control (YES/NO, impact) */
+  segmentedContainer: {
+    flexDirection: "row",
+    borderRadius: olyRadius.full,
+    borderWidth: 1,
+    borderColor: olyColors.border.brand,
+    overflow: "hidden",
+  },
+  segmentedOption: {
+    flex: 1,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  segmentedOptionActive: {
+    backgroundColor: olyPalette.primary,
+  },
+  segmentedText: {
+    ...olyTypography.bodySmall,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.secondary,
+    letterSpacing: olyLetterSpacing.uppercase,
+    textTransform: "uppercase",
+  },
+  segmentedTextActive: {
+    color: olyPalette.white,
+  },
+
+  /* Pill grid (affected areas, when to show) */
+  pillGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: olySpacing[8],
+  },
+  pillButton: {
+    width: "48%",
+    height: 44,
+    borderRadius: olyRadius.full,
+    borderWidth: 1,
+    borderColor: olyColors.border.default,
+    backgroundColor: "transparent",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pillButtonActive: {
+    backgroundColor: olyPalette.primary,
+    borderColor: olyPalette.primary,
+  },
+  pillText: {
+    ...olyTypography.bodySmall,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.secondary,
+  },
+  pillTextActive: {
+    color: olyPalette.white,
+  },
+
+  /* Bottom buttons */
+  bottomButtons: {
+    flexDirection: "row",
+    gap: olySpacing[12],
+    paddingTop: olySpacing[32],
+  },
+  halfButton: {
+    flex: 1,
+  },
+});
