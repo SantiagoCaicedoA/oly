@@ -17,7 +17,7 @@ import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
 import { olySpacing } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { useToast } from "@/context/toast-context";
-import { saveOnboardingData } from "@/store/reducer/onboardingSlice";
+import { saveOnboardingData, selectOnboardingData } from "@/store/reducer/onboardingSlice";
 import React, { useEffect, useMemo } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import {
@@ -27,7 +27,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 /* ── Types ─────────────────────────────────────────────── */
 
@@ -119,18 +119,20 @@ export default function OnboardingScreen3({
 }: OnboardingScreen3Props) {
   const dispatch = useDispatch();
   const { showError } = useToast();
+  const onboardingData = useSelector(selectOnboardingData);
 
   const {
     control,
     handleSubmit,
     setValue,
+    getValues,
   } = useForm<OnboardingScreen3Values>({
     defaultValues: {
-      limitation: true,
-      affected_area: ["Lower back"],
-      selected_affected_area: "Lower back",
-      impact: "Moderate",
-      when_to_show: [],
+      limitation: onboardingData?.limitation ?? true,
+      affected_area: onboardingData?.affected_area ?? ["Lower back"],
+      selected_affected_area: onboardingData?.selected_affected_area ?? "Lower back",
+      impact: onboardingData?.impact ?? "Moderate",
+      when_to_show: onboardingData?.when_to_show ?? [],
     },
   });
 
@@ -176,6 +178,13 @@ export default function OnboardingScreen3({
   useEffect(() => {
     setValue("when_to_show", []);
   }, [selectedAffectedAreaValue, setValue]);
+
+  /* ── Back (save progress) ── */
+
+  const handleBack = () => {
+    dispatch(saveOnboardingData(getValues()));
+    if (onBack) onBack();
+  };
 
   /* ── Submit ── */
 
@@ -306,30 +315,30 @@ export default function OnboardingScreen3({
               />
             </View>
 
-            {/* Current Impact */}
+            {/* Current Impact — floating pill style */}
             <View>
               <Text style={styles.sectionLabel}>CURRENT IMPACT</Text>
               <Controller
                 control={control}
                 name="impact"
                 render={({ field: { onChange, value } }) => (
-                  <View style={styles.segmentedContainer}>
+                  <View style={styles.floatingPillContainer}>
                     {IMPACT_OPTIONS.map((option) => {
                       const isActive = value === option;
                       return (
                         <TouchableOpacity
                           key={option}
                           style={[
-                            styles.segmentedOption,
-                            isActive && styles.segmentedOptionActive,
+                            styles.floatingPillOption,
+                            isActive && styles.floatingPillOptionActive,
                           ]}
                           onPress={() => onChange(option)}
                           activeOpacity={0.8}
                         >
                           <Text
                             style={[
-                              styles.segmentedText,
-                              isActive && styles.segmentedTextActive,
+                              styles.floatingPillText,
+                              isActive && styles.floatingPillTextActive,
                             ]}
                           >
                             {option.toUpperCase()}
@@ -397,7 +406,7 @@ export default function OnboardingScreen3({
         <OlyButton
           label="BACK"
           variant="secondary"
-          onPress={onBack ?? (() => {})}
+          onPress={handleBack}
           fullWidth
           style={styles.halfButton}
         />
@@ -463,6 +472,34 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   segmentedTextActive: {
+    color: olyPalette.white,
+  },
+
+  /* Floating pill control (current impact) */
+  floatingPillContainer: {
+    flexDirection: "row",
+    borderRadius: olyRadius.full,
+    backgroundColor: olyPalette.cardElevated,
+    padding: 4,
+  },
+  floatingPillOption: {
+    flex: 1,
+    height: 40,
+    borderRadius: olyRadius.full,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  floatingPillOptionActive: {
+    backgroundColor: olyPalette.primary,
+  },
+  floatingPillText: {
+    ...olyTypography.bodySmall,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.secondary,
+    letterSpacing: olyLetterSpacing.uppercase,
+    textTransform: "uppercase",
+  },
+  floatingPillTextActive: {
     color: olyPalette.white,
   },
 

@@ -24,7 +24,7 @@ import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyElevation, olyOverlay } from "@/src/oly-theme/oly-elevation";
 import { useToast } from "@/context/toast-context";
 import { useUploadAthleteVideoMutation } from "@/store/api";
-import { saveOnboardingData } from "@/store/reducer/onboardingSlice";
+import { saveOnboardingData, selectOnboardingData } from "@/store/reducer/onboardingSlice";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
@@ -40,7 +40,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 /* ── Types ─────────────────────────────────────────────── */
 
@@ -105,22 +105,30 @@ export default function OnboardingScreen2({
 }: OnboardingScreen2Props) {
   const { showSuccess, showError } = useToast();
   const dispatch = useDispatch();
+  const onboardingData = useSelector(selectOnboardingData);
 
   /* Video state */
   const [isUploading, setIsUploading] = useState(false);
-  const [liftVideos, setLiftVideos] = useState<Record<string, string>>({});
+  const [liftVideos, setLiftVideos] = useState<Record<string, string>>(
+    () => onboardingData?.liftVideos ?? {},
+  );
   const [uploadAthleteVideo] = useUploadAthleteVideoMutation();
 
-  /* Lift weight values */
-  const [liftValues, setLiftValues] = useState<Record<LiftCategory, number[]>>({
-    classic: CLASSIC_LIFTS.map((l) => l.value),
-    variation: VARIATION_LIFTS.map((l) => l.value),
-    squat: SQUAT_LIFTS.map((l) => l.value),
-    press: PRESS_LIFTS.map((l) => l.value),
-  });
+  /* Lift weight values — restore from Redux if available */
+  const [liftValues, setLiftValues] = useState<Record<LiftCategory, number[]>>(
+    () =>
+      onboardingData?.liftValues ?? {
+        classic: CLASSIC_LIFTS.map((l) => l.value),
+        variation: VARIATION_LIFTS.map((l) => l.value),
+        squat: SQUAT_LIFTS.map((l) => l.value),
+        press: PRESS_LIFTS.map((l) => l.value),
+      },
+  );
 
-  /* Accuracy */
-  const [accuracy, setAccuracy] = useState<AccuracyValue>("Estimated");
+  /* Accuracy — restore from Redux if available */
+  const [accuracy, setAccuracy] = useState<AccuracyValue>(
+    () => onboardingData?.accuracy ?? "Estimated",
+  );
 
   /* ── Handlers ── */
 
@@ -228,6 +236,13 @@ export default function OnboardingScreen2({
       return updated;
     });
     showSuccess("Video removed!");
+  };
+
+  /* ── Back (save progress) ── */
+
+  const handleBack = () => {
+    dispatch(saveOnboardingData({ accuracy, liftValues, liftVideos }));
+    if (onBack) onBack();
   };
 
   /* ── Submit ── */
@@ -418,7 +433,7 @@ export default function OnboardingScreen2({
         <OlyButton
           label="BACK"
           variant="secondary"
-          onPress={onBack ?? (() => {})}
+          onPress={handleBack}
           fullWidth
           style={styles.backButton}
         />
@@ -496,18 +511,20 @@ const styles = StyleSheet.create({
     letterSpacing: olyLetterSpacing.uppercase,
     textTransform: "uppercase",
   },
-  accuracyRow: { flexDirection: "row", gap: olySpacing[8] },
+  accuracyRow: {
+    flexDirection: "row",
+    borderRadius: olyRadius.full,
+    backgroundColor: olyPalette.cardElevated,
+    padding: 4,
+  },
   accuracyPill: {
     flex: 1,
-    height: 44,
+    height: 40,
     borderRadius: olyRadius.full,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
-    backgroundColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
   },
-  accuracyPillActive: { backgroundColor: olyPalette.primary, borderColor: olyPalette.primary },
+  accuracyPillActive: { backgroundColor: olyPalette.primary },
   accuracyPillText: {
     ...olyTypography.bodySmall,
     fontFamily: olyFonts.medium,
