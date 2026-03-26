@@ -179,7 +179,7 @@ export const onboardingScreen1Schema = yup.object({
   sex: yup.string().default("male"),
   weight: yup.string().required("Body weight is required"),
   weightUnit: yup.string().oneOf(["KG", "LB"]).default("KG"),
-  height: yup.string().default(""),
+  height: yup.string().required("Height is required"),
   height_unit: yup.string().oneOf(["cm", "ft"]).default("cm"),
   weightliftingExposure: yup
     .string()

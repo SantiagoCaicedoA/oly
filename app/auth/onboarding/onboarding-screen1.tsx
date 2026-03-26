@@ -24,7 +24,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as ImagePicker from "expo-image-picker";
 import { Stack } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   ActivityIndicator,
@@ -131,6 +131,34 @@ const COUNTRIES = [
   "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe",
 ] as const;
 
+/* ── DOB picker data ──────────────────────────────────── */
+
+const MONTHS = [
+  { label: "January", value: "1" },
+  { label: "February", value: "2" },
+  { label: "March", value: "3" },
+  { label: "April", value: "4" },
+  { label: "May", value: "5" },
+  { label: "June", value: "6" },
+  { label: "July", value: "7" },
+  { label: "August", value: "8" },
+  { label: "September", value: "9" },
+  { label: "October", value: "10" },
+  { label: "November", value: "11" },
+  { label: "December", value: "12" },
+] as const;
+
+const MONTH_SHORT: Record<string, string> = {
+  "1": "Jan", "2": "Feb", "3": "Mar", "4": "Apr",
+  "5": "May", "6": "Jun", "7": "Jul", "8": "Aug",
+  "9": "Sep", "10": "Oct", "11": "Nov", "12": "Dec",
+};
+
+const getDaysInMonth = (month: number, year: number): number => {
+  if (!month || month < 1 || month > 12) return 31;
+  return new Date(year || 2000, month, 0).getDate();
+};
+
 /* ── Component ─────────────────────────────────────────── */
 
 export default function OnboardingScreen1({
@@ -143,13 +171,10 @@ export default function OnboardingScreen1({
   const [profileImage, setProfileImage] = React.useState<string>("");
   const [showCountryModal, setShowCountryModal] = useState(false);
   const [countrySearch, setCountrySearch] = useState("");
+  const [dobModalField, setDobModalField] = useState<"day" | "month" | "year" | null>(null);
   const [uploadProfileImage, { isLoading: isUploading }] =
     useUploadProfileImageMutation();
   const user = useSelector((state: RootState) => state.auth.token);
-
-  /* ── DOB refs for auto-advance ── */
-  const monthRef = React.useRef<TextInput>(null);
-  const yearRef = React.useRef<TextInput>(null);
 
   /* ── Form ── */
   const {
@@ -300,6 +325,39 @@ export default function OnboardingScreen1({
   const heightUnit = watch("height_unit");
   const selectedExposure = watch("weightliftingExposure");
   const selectedSex = watch("sex");
+  const dobDay = watch("dobDay");
+  const dobMonth = watch("dobMonth");
+  const dobYear = watch("dobYear");
+
+  /* ── DOB picker options (dynamic) ── */
+  const dayOptions = useMemo(() => {
+    const maxDays = getDaysInMonth(
+      parseInt(dobMonth) || 0,
+      parseInt(dobYear) || 2000,
+    );
+    return Array.from({ length: maxDays }, (_, i) => (i + 1).toString());
+  }, [dobMonth, dobYear]);
+
+  const yearOptions = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    return Array.from(
+      { length: 101 },
+      (_, i) => (currentYear - 10 - i).toString(),
+    );
+  }, []);
+
+  /* Reset day if it exceeds max for selected month/year */
+  useEffect(() => {
+    if (dobDay && dobMonth) {
+      const maxDays = getDaysInMonth(
+        parseInt(dobMonth),
+        parseInt(dobYear) || 2000,
+      );
+      if (parseInt(dobDay) > maxDays) {
+        setValue("dobDay", "");
+      }
+    }
+  }, [dobMonth, dobYear, dobDay, setValue]);
 
   return (
     <>
@@ -511,70 +569,82 @@ export default function OnboardingScreen1({
                 )}
               />
 
-              {/* Date of Birth */}
+              {/* Date of Birth — dropdown pickers */}
               <View>
                 <Text style={styles.fieldLabel}>DATE OF BIRTH</Text>
                 <View style={styles.dobRow}>
-                  <Controller
-                    control={control}
-                    name="dobDay"
-                    render={({ field: { onChange, value } }) => (
-                      <View style={styles.dobField}>
-                        <TextInput
-                          style={styles.dobInput}
-                          placeholder="DD"
-                          placeholderTextColor={olyColors.text.disabled}
-                          keyboardType="number-pad"
-                          maxLength={2}
-                          value={value}
-                          onChangeText={(text) => {
-                            onChange(text);
-                            if (text.length === 2) monthRef.current?.focus();
-                          }}
-                        />
-                      </View>
-                    )}
-                  />
-                  <Controller
-                    control={control}
-                    name="dobMonth"
-                    render={({ field: { onChange, value } }) => (
-                      <View style={styles.dobField}>
-                        <TextInput
-                          ref={monthRef}
-                          style={styles.dobInput}
-                          placeholder="MM"
-                          placeholderTextColor={olyColors.text.disabled}
-                          keyboardType="number-pad"
-                          maxLength={2}
-                          value={value}
-                          onChangeText={(text) => {
-                            onChange(text);
-                            if (text.length === 2) yearRef.current?.focus();
-                          }}
-                        />
-                      </View>
-                    )}
-                  />
-                  <Controller
-                    control={control}
-                    name="dobYear"
-                    render={({ field: { onChange, value } }) => (
-                      <View style={[styles.dobField, styles.dobFieldYear]}>
-                        <TextInput
-                          ref={yearRef}
-                          style={styles.dobInput}
-                          placeholder="YYYY"
-                          placeholderTextColor={olyColors.text.disabled}
-                          keyboardType="number-pad"
-                          maxLength={4}
-                          value={value}
-                          onChangeText={onChange}
-                        />
-                      </View>
-                    )}
-                  />
+                  {/* Day */}
+                  <TouchableOpacity
+                    style={styles.dobField}
+                    onPress={() => setDobModalField("day")}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.dobDisplayText,
+                        !dobDay && styles.dobPlaceholder,
+                      ]}
+                    >
+                      {dobDay || "DD"}
+                    </Text>
+                    <Ionicons
+                      name="chevron-down"
+                      size={14}
+                      color={olyColors.text.secondary}
+                    />
+                  </TouchableOpacity>
+
+                  {/* Month */}
+                  <TouchableOpacity
+                    style={[styles.dobField, { flex: 1.5 }]}
+                    onPress={() => setDobModalField("month")}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.dobDisplayText,
+                        !dobMonth && styles.dobPlaceholder,
+                      ]}
+                    >
+                      {dobMonth ? MONTH_SHORT[dobMonth] : "Month"}
+                    </Text>
+                    <Ionicons
+                      name="chevron-down"
+                      size={14}
+                      color={olyColors.text.secondary}
+                    />
+                  </TouchableOpacity>
+
+                  {/* Year */}
+                  <TouchableOpacity
+                    style={[styles.dobField, styles.dobFieldYear]}
+                    onPress={() => setDobModalField("year")}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.dobDisplayText,
+                        !dobYear && styles.dobPlaceholder,
+                      ]}
+                    >
+                      {dobYear || "YYYY"}
+                    </Text>
+                    <Ionicons
+                      name="chevron-down"
+                      size={14}
+                      color={olyColors.text.secondary}
+                    />
+                  </TouchableOpacity>
                 </View>
+                {(errors.dobDay?.message ||
+                  errors.dobMonth?.message ||
+                  errors.dobYear?.message) && (
+                  <Text style={styles.errorText}>
+                    {errors.dobDay?.message ||
+                      errors.dobMonth?.message ||
+                      errors.dobYear?.message}
+                  </Text>
+                )}
               </View>
 
               {/* Sex */}
@@ -607,40 +677,50 @@ export default function OnboardingScreen1({
                 </View>
               </View>
 
-              {/* Bodyweight */}
-              <View>
-                <Text style={styles.fieldLabel}>BODYWEIGHT</Text>
-                <View style={styles.unitInputRow}>
+              {/* Bodyweight + Height — side-by-side metric inputs */}
+              <View style={styles.metricRow}>
+                {/* Bodyweight */}
+                <View style={styles.metricColumn}>
+                  <Text style={styles.metricLabel}>BODYWEIGHT</Text>
                   <Controller
                     control={control}
                     name="weight"
                     render={({ field: { onChange, value } }) => (
-                      <TextInput
-                        style={styles.unitInput}
-                        placeholder="0"
-                        placeholderTextColor={olyColors.text.disabled}
-                        keyboardType="numeric"
-                        value={value}
-                        onChangeText={onChange}
-                      />
+                      <View style={styles.metricValueRow}>
+                        <TextInput
+                          style={styles.metricNumber}
+                          value={value}
+                          onChangeText={onChange}
+                          keyboardType="numeric"
+                          placeholder="0"
+                          placeholderTextColor={olyColors.text.disabled}
+                          maxLength={4}
+                          selectTextOnFocus
+                        />
+                        <Text style={styles.metricUnit}>
+                          {weightUnit.toLowerCase()}
+                        </Text>
+                      </View>
                     )}
                   />
-                  <View style={styles.unitToggle}>
+                  {/* Unit toggle */}
+                  <View style={styles.metricToggle}>
                     {(["KG", "LB"] as const).map((unit) => {
                       const isActive = weightUnit === unit;
                       return (
                         <TouchableOpacity
                           key={unit}
                           style={[
-                            styles.unitToggleButton,
-                            isActive && styles.unitToggleButtonActive,
+                            styles.metricToggleOption,
+                            isActive && styles.metricToggleOptionActive,
                           ]}
                           onPress={() => setValue("weightUnit", unit)}
+                          activeOpacity={0.8}
                         >
                           <Text
                             style={[
-                              styles.unitToggleText,
-                              isActive && styles.unitToggleTextActive,
+                              styles.metricToggleText,
+                              isActive && styles.metricToggleTextActive,
                             ]}
                           >
                             {unit}
@@ -649,46 +729,58 @@ export default function OnboardingScreen1({
                       );
                     })}
                   </View>
+                  {errors.weight?.message && (
+                    <Text style={styles.errorText}>
+                      {errors.weight.message}
+                    </Text>
+                  )}
                 </View>
-                {errors.weight?.message && (
-                  <Text style={styles.errorText}>{errors.weight.message}</Text>
-                )}
-              </View>
 
-              {/* Height */}
-              <View>
-                <Text style={styles.fieldLabel}>HEIGHT</Text>
-                <View style={styles.unitInputRow}>
+                {/* Vertical divider */}
+                <View style={styles.metricDivider} />
+
+                {/* Height */}
+                <View style={styles.metricColumn}>
+                  <Text style={styles.metricLabel}>HEIGHT</Text>
                   <Controller
                     control={control}
                     name="height"
                     render={({ field: { onChange, value } }) => (
-                      <TextInput
-                        style={styles.unitInput}
-                        placeholder="0"
-                        placeholderTextColor={olyColors.text.disabled}
-                        keyboardType="numeric"
-                        value={value}
-                        onChangeText={onChange}
-                      />
+                      <View style={styles.metricValueRow}>
+                        <TextInput
+                          style={styles.metricNumber}
+                          value={value}
+                          onChangeText={onChange}
+                          keyboardType="numeric"
+                          placeholder="0"
+                          placeholderTextColor={olyColors.text.disabled}
+                          maxLength={4}
+                          selectTextOnFocus
+                        />
+                        <Text style={styles.metricUnit}>
+                          {heightUnit}
+                        </Text>
+                      </View>
                     )}
                   />
-                  <View style={styles.unitToggle}>
+                  {/* Unit toggle */}
+                  <View style={styles.metricToggle}>
                     {(["cm", "ft"] as const).map((unit) => {
                       const isActive = heightUnit === unit;
                       return (
                         <TouchableOpacity
                           key={unit}
                           style={[
-                            styles.unitToggleButton,
-                            isActive && styles.unitToggleButtonActive,
+                            styles.metricToggleOption,
+                            isActive && styles.metricToggleOptionActive,
                           ]}
                           onPress={() => setValue("height_unit", unit)}
+                          activeOpacity={0.8}
                         >
                           <Text
                             style={[
-                              styles.unitToggleText,
-                              isActive && styles.unitToggleTextActive,
+                              styles.metricToggleText,
+                              isActive && styles.metricToggleTextActive,
                             ]}
                           >
                             {unit.toUpperCase()}
@@ -697,6 +789,11 @@ export default function OnboardingScreen1({
                       );
                     })}
                   </View>
+                  {errors.height?.message && (
+                    <Text style={styles.errorText}>
+                      {errors.height.message}
+                    </Text>
+                  )}
                 </View>
               </View>
 
@@ -768,6 +865,101 @@ export default function OnboardingScreen1({
           />
         </View>
       )}
+
+      {/* ── DOB Picker Modal ── */}
+      <Modal
+        visible={dobModalField !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setDobModalField(null)}
+      >
+        <View style={styles.countryModalOverlay}>
+          <View style={styles.countryModalContent}>
+            {/* Header */}
+            <View style={styles.dobModalHeader}>
+              <Text style={styles.dobModalTitle}>
+                {dobModalField === "day"
+                  ? "Select Day"
+                  : dobModalField === "month"
+                    ? "Select Month"
+                    : "Select Year"}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setDobModalField(null)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons
+                  name="close"
+                  size={22}
+                  color={olyColors.text.secondary}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Options list */}
+            <FlatList
+              data={
+                dobModalField === "day"
+                  ? dayOptions
+                  : dobModalField === "month"
+                    ? MONTHS
+                    : yearOptions
+              }
+              keyExtractor={(item) =>
+                typeof item === "string" ? item : item.value
+              }
+              keyboardShouldPersistTaps="handled"
+              renderItem={({ item }) => {
+                const itemValue =
+                  typeof item === "string" ? item : item.value;
+                const itemLabel =
+                  typeof item === "string" ? item : item.label;
+                const currentValue =
+                  dobModalField === "day"
+                    ? dobDay
+                    : dobModalField === "month"
+                      ? dobMonth
+                      : dobYear;
+                const isSelected = currentValue === itemValue;
+
+                return (
+                  <TouchableOpacity
+                    style={[
+                      styles.countryItem,
+                      isSelected && styles.countryItemSelected,
+                    ]}
+                    onPress={() => {
+                      if (dobModalField === "day")
+                        setValue("dobDay", itemValue);
+                      else if (dobModalField === "month")
+                        setValue("dobMonth", itemValue);
+                      else if (dobModalField === "year")
+                        setValue("dobYear", itemValue);
+                      setDobModalField(null);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.countryItemText,
+                        isSelected && styles.countryItemTextSelected,
+                      ]}
+                    >
+                      {itemLabel}
+                    </Text>
+                    {isSelected && (
+                      <Ionicons
+                        name="checkmark"
+                        size={18}
+                        color={olyPalette.primary}
+                      />
+                    )}
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -850,7 +1042,7 @@ const styles = StyleSheet.create({
     marginBottom: olySpacing[8],
   },
 
-  /* ── Date of Birth ── */
+  /* ── Date of Birth (dropdown pickers) ── */
   dobRow: {
     flexDirection: "row",
     gap: olySpacing[12],
@@ -858,20 +1050,39 @@ const styles = StyleSheet.create({
   dobField: {
     flex: 1,
     height: 52,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: olySpacing[8],
     borderRadius: olyRadius.lg,
     borderWidth: 1,
     borderColor: olyColors.border.default,
     backgroundColor: olyPalette.cardElevated,
-    justifyContent: "center",
-    paddingHorizontal: olySpacing[16],
+    paddingHorizontal: olySpacing[12],
   },
   dobFieldYear: {
     flex: 1.3,
   },
-  dobInput: {
+  dobDisplayText: {
     ...olyTypography.body,
     color: olyColors.text.primary,
-    textAlign: "center",
+  },
+  dobPlaceholder: {
+    color: olyColors.text.disabled,
+  },
+  dobModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: olySpacing[16],
+    paddingVertical: olySpacing[12],
+    borderBottomWidth: 0.5,
+    borderBottomColor: olyColors.border.default,
+  },
+  dobModalTitle: {
+    ...olyTypography.body,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.primary,
   },
 
   /* ── Sex Selector ── */
@@ -903,43 +1114,71 @@ const styles = StyleSheet.create({
     color: olyPalette.white,
   },
 
-  /* ── Unit Input (Bodyweight / Height) ── */
-  unitInputRow: {
+  /* ── Metric inputs (Bodyweight + Height side-by-side) ── */
+  metricRow: {
     flexDirection: "row",
-    alignItems: "center",
-    height: 52,
-    borderRadius: olyRadius.lg,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
-    backgroundColor: olyPalette.cardElevated,
-    paddingHorizontal: olySpacing[16],
+    alignItems: "flex-start",
   },
-  unitInput: {
+  metricColumn: {
     flex: 1,
-    ...olyTypography.body,
-    color: olyColors.text.primary,
-  },
-  unitToggle: {
-    flexDirection: "row",
-    backgroundColor: olyPalette.card,
-    borderRadius: olyRadius.sm,
-    padding: 2,
-  },
-  unitToggleButton: {
-    paddingHorizontal: olySpacing[12],
+    alignItems: "center",
+    gap: olySpacing[8],
     paddingVertical: olySpacing[4],
-    borderRadius: olyRadius.sm,
   },
-  unitToggleButtonActive: {
+  metricLabel: {
+    ...olyTypography.label,
+    color: olyColors.text.secondary,
+    letterSpacing: olyLetterSpacing.uppercase,
+    textTransform: "uppercase",
+  },
+  metricValueRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "center",
+    gap: 4,
+  },
+  metricNumber: {
+    fontFamily: olyFonts.light,
+    fontSize: 48,
+    color: olyColors.text.primary,
+    textAlign: "center",
+    minWidth: 40,
+    paddingVertical: 0,
+  },
+  metricUnit: {
+    ...olyTypography.bodySmall,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.secondary,
+    marginBottom: 8,
+  },
+  metricToggle: {
+    flexDirection: "row",
+    borderRadius: olyRadius.full,
+    backgroundColor: olyPalette.cardElevated,
+    padding: 3,
+  },
+  metricToggleOption: {
+    paddingHorizontal: olySpacing[16],
+    paddingVertical: olySpacing[4],
+    borderRadius: olyRadius.full,
+  },
+  metricToggleOptionActive: {
     backgroundColor: olyPalette.primary,
   },
-  unitToggleText: {
+  metricToggleText: {
     ...olyTypography.caption,
-    fontFamily: "Ubuntu-Medium",
+    fontFamily: olyFonts.medium,
     color: olyColors.text.secondary,
   },
-  unitToggleTextActive: {
+  metricToggleTextActive: {
     color: olyPalette.white,
+  },
+  metricDivider: {
+    width: 1,
+    alignSelf: "stretch",
+    backgroundColor: olyColors.border.default,
+    marginVertical: olySpacing[12],
+    opacity: 0.3,
   },
 
   /* ── Exposure Grid ── */
