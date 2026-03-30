@@ -3,12 +3,14 @@ import PhysicalState from "@/components/physical-state";
 import RecoveryMetrics from "@/components/slider";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { useTheme } from "@/context/theme-context";
+import { useToast } from "@/context/toast-context";
 import { useDailyCheckInMutation } from "@/store/api";
 import { Days } from "@/store/reducer/trainingSlice";
 import { RootState } from "@/store/store";
 import { DailyCheckInPayload } from "@/types/api/dashboard";
 import { Typography } from "@/utils/custom-styles";
-import { router } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -34,12 +36,19 @@ export default function DailyCheckIn() {
     "saturday",
   ];
   const { colors } = useTheme();
+  const { showError } = useToast();
   const selectedExerciseName = useSelector(
     (state: RootState) => state.training.selectedExerciseName,
   );
+  const selectedDayKeyFromRedux = useSelector(
+    (state: RootState) => state.training.selectedDayKey,
+  );
   const days = useSelector((state: RootState) => state.training.days);
 
-  const dayKey = DAY_KEYS[new Date().getDay()] as keyof Days;
+  const { dayKey: dayKeyParam } = useLocalSearchParams<{ dayKey: string }>();
+  const dayKey = (dayKeyParam ||
+    selectedDayKeyFromRedux ||
+    DAY_KEYS[new Date().getDay()]) as keyof Days;
   const todayData = days?.[dayKey];
   const exerciseData =
     todayData?.exercises?.find(
@@ -70,7 +79,8 @@ export default function DailyCheckIn() {
     string | null
   >(null);
 
-  const todayKey = DAY_KEYS[new Date().getDay()];
+  const todayKey = dayKeyParam || selectedDayKeyFromRedux || DAY_KEYS[new Date().getDay()];
+  const userId = useSelector((state: RootState) => state.auth.user?._id);
   const [submitCheckIn, { isLoading }] = useDailyCheckInMutation();
   const handleAreaIntensityChange = (area: string, value: number) => {
     setAreaIntensities((prev) => ({
@@ -101,9 +111,14 @@ export default function DailyCheckIn() {
     try {
       const result = await submitCheckIn(payload).unwrap();
 
-      router.push("athlete/training-exercise");
+      const today = new Date().toDateString();
+      const key = `daily_check_in_done_${userId}_${today}`;
+      await AsyncStorage.setItem(key, "true");
+
+      router.push("/athlete/training-exercise");
     } catch (error) {
       console.error("Daily check-in error:", error);
+      showError("Failed to save check-in. Please try again.", "Error");
     }
   };
   const styles = StyleSheet.create({

@@ -40,6 +40,7 @@ export default function Workout() {
 
   const [fetchTraining, { data, isLoading, isError, error }] =
     useLazyGetAiTrainingQuery();
+console.log("data ", JSON.stringify(data, null, 2));
 
   useEffect(() => {
     if (token) {
@@ -92,7 +93,6 @@ export default function Workout() {
     if (done) {
       router.push("/athlete/training-exercise");
     } else {
-      await AsyncStorage.setItem(key, "true");
       router.push("/athlete/daily-check-in");
     }
   };

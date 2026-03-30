@@ -12,8 +12,7 @@ import {
   AuthState,
   LoginValues,
   SignupResponse,
-  SignUpValues,
-  TokenData,
+  SignUpValues
 } from "@/types/api/auth";
 import {
   AiTrainingResponse,
@@ -34,20 +33,19 @@ import {
   UploadAthleteVideoResponse,
   UploadProfileImageResponse,
 } from "@/types/api/onboarding";
-import { logout } from "./reducer/authSlice";
 
 interface RootState {
   auth: AuthState;
 }
 
 const baseQueryWithAuth = fetchBaseQuery({
-  baseUrl: API_BASE_URL,
+  baseUrl: API_BASE_URL?.replace(/\/$/, ""),
   prepareHeaders: (headers, { getState }) => {
     const state = getState() as RootState;
     const token = state.auth.token;
 
     if (token) {
-      headers.set("authorization", `Bearer ${token}`);
+      headers.set("authorization", `Bearer ${token.token}`);
     }
 
     return headers;
@@ -68,15 +66,14 @@ const customBaseQuery: BaseQueryFn<
 
     const state = api.getState() as RootState;
     const token = state.auth.token;
-    const user = state.auth.token;
 
     if (token) {
-      headers.set("authorization", `Bearer ${token}`);
+      headers.set("authorization", `Bearer ${token.token}`);
     }
 
-    const baseUrl = API_BASE_URL;
+    const baseUrl = API_BASE_URL?.replace(/\/$/, ""); // Remove trailing slash if present
 
-    const result = await fetch(`${baseUrl}/${url.replace(/^\//, '')}`, {
+    const result = await fetch(`${baseUrl}${url}`, {
       method,
       headers,
       body,
@@ -99,58 +96,9 @@ const customBaseQuery: BaseQueryFn<
   return baseQueryWithAuth(args, api, extraOptions);
 };
 
-const customBaseQueryWithReauth: BaseQueryFn<
-  string | FetchArgs,
-  unknown,
-  FetchBaseQueryError
-> = async (args, api, extraOptions) => {
-  let result = await customBaseQuery(args, api, extraOptions);
-
-  if (
-    result?.error &&
-    (result.error.status === 401 || result.error.status === 403)
-  ) {
-    const state = api.getState() as RootState;
-    const refreshToken = state.auth.token;
-
-    if (!refreshToken) {
-      api.dispatch(logout());
-      return result;
-    }
-
-    try {
-      const refreshResponse = await fetch(
-        `${API_BASE_URL}/api/v1/auth/refresh`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ refresh_token: refreshToken }),
-        },
-      );
-
-      if (!refreshResponse.ok) {
-        api.dispatch(logout());
-        return result;
-      }
-
-      const newTokens = (await refreshResponse.json()) as TokenData;
-
-      // api.dispatch(setTokens(newTokens));
-
-      const retryResult = await customBaseQuery(args, api, extraOptions);
-      return retryResult;
-    } catch (err) {
-      api.dispatch(logout());
-      return result;
-    }
-  }
-
-  return result;
-};
-
 export const api = createApi({
   reducerPath: "api",
-  baseQuery: customBaseQueryWithReauth,
+  baseQuery: customBaseQuery,
   tagTypes: ["Athlete", "Auth"],
   endpoints: (builder) => ({
     signup: builder.mutation<SignupResponse, SignUpValues>({
