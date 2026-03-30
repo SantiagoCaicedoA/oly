@@ -11,6 +11,7 @@ import { Typography } from "@/utils/custom-styles";
 import { getFirstError } from "@/utils/get-error";
 import { createPostSchema } from "@/utils/validation-schemas";
 import { yupResolver } from "@hookform/resolvers/yup";
+import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import * as VideoThumbnails from "expo-video-thumbnails";
@@ -208,7 +209,15 @@ export default function CreateNewPost() {
         const { uri: thumb } = await VideoThumbnails.getThumbnailAsync(uri, {
           time: 1000,
         });
-        setThumbnailUri(thumb);
+
+       
+        const compressedThumb = await ImageManipulator.manipulateAsync(
+          thumb,
+          [{ resize: { width: 720 } }], 
+          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG } 
+        );
+
+        setThumbnailUri(compressedThumb.uri);
       } catch (e) {
         console.log("Thumbnail error:", e);
       } finally {
