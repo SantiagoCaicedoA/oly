@@ -14,14 +14,13 @@ import {
   olyLetterSpacing,
 } from "@/src/oly-theme/oly-typography";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
-import { olySpacing } from "@/src/oly-theme/oly-spacing";
+import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
-import { useToast } from "@/context/toast-context";
 import {
   saveOnboardingData,
   selectOnboardingData,
 } from "@/store/reducer/onboardingSlice";
-import React from "react";
+import React, { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   ScrollView,
@@ -73,7 +72,6 @@ export default function OnboardingScreen4({
   onComplete,
 }: OnboardingScreen4Props) {
   const dispatch = useDispatch();
-  const { showError } = useToast();
   const onboardingData = useSelector(selectOnboardingData);
 
   const {
@@ -81,6 +79,7 @@ export default function OnboardingScreen4({
     handleSubmit,
     watch,
     getValues,
+    setValue,
   } = useForm<OnboardingScreen4Values>({
     defaultValues: {
       days_per_week: onboardingData?.days_per_week ?? 1,
@@ -90,7 +89,17 @@ export default function OnboardingScreen4({
   });
 
   const daysPerWeek = watch("days_per_week");
+  const restDays = watch("rest_days");
   const maxRestDays = 7 - (daysPerWeek || 1);
+  const allFilled = true; // rest days are optional
+
+  // Trim rest days when training days increase and selection exceeds new max
+  useEffect(() => {
+    const currentRestDays = getValues("rest_days");
+    if (currentRestDays.length > maxRestDays) {
+      setValue("rest_days", currentRestDays.slice(0, maxRestDays));
+    }
+  }, [daysPerWeek, maxRestDays, getValues, setValue]);
 
   /* ── Back (save progress) ── */
 
@@ -203,46 +212,47 @@ export default function OnboardingScreen4({
           <Controller
             control={control}
             name="rest_days"
-            render={({ field: { onChange, value } }) => (
-              <View style={styles.restDaysGrid}>
-                {WEEK_DAYS.map((day) => {
-                  const isActive = (value || []).includes(day);
-                  return (
-                    <TouchableOpacity
-                      key={day}
-                      style={[
-                        styles.restDayPill,
-                        isActive && styles.restDayPillActive,
-                      ]}
-                      onPress={() => {
-                        const current = value || [];
-                        if (current.includes(day)) {
-                          onChange(current.filter((d) => d !== day));
-                        } else {
-                          if (current.length >= maxRestDays) {
-                            showError(
-                              `Maximum ${maxRestDays} rest days for ${daysPerWeek}-day training`,
-                            );
-                            return;
-                          }
-                          onChange([...current, day]);
-                        }
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      <Text
+            render={({ field: { onChange, value } }) => {
+              const current = value || [];
+              const limitReached = current.length >= maxRestDays;
+              return (
+                <View style={styles.restDaysGrid}>
+                  {WEEK_DAYS.map((day) => {
+                    const isActive = current.includes(day);
+                    const isDisabled = !isActive && limitReached;
+                    return (
+                      <TouchableOpacity
+                        key={day}
                         style={[
-                          styles.restDayText,
-                          isActive && styles.restDayTextActive,
+                          styles.restDayPill,
+                          isActive && styles.restDayPillActive,
+                          isDisabled && styles.restDayPillDisabled,
                         ]}
+                        onPress={() => {
+                          if (isDisabled) return;
+                          if (isActive) {
+                            onChange(current.filter((d) => d !== day));
+                          } else {
+                            onChange([...current, day]);
+                          }
+                        }}
+                        activeOpacity={isDisabled ? 1 : 0.8}
                       >
-                        {day.slice(0, 3)}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            )}
+                        <Text
+                          style={[
+                            styles.restDayText,
+                            isActive && styles.restDayTextActive,
+                            isDisabled && styles.restDayTextDisabled,
+                          ]}
+                        >
+                          {day.slice(0, 3)}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              );
+            }}
           />
         </View>
       </View>
@@ -260,6 +270,7 @@ export default function OnboardingScreen4({
           label="NEXT"
           variant="primary"
           onPress={handleSubmit(onSubmit)}
+          disabled={!allFilled}
           fullWidth
           style={styles.halfButton}
         />
@@ -272,7 +283,7 @@ export default function OnboardingScreen4({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContent: { flexGrow: 1, paddingBottom: olySpacing[32] },
+  scrollContent: { flexGrow: 1 },
 
   /* Title */
   titleBlock: { marginBottom: olySpacing[20] },
@@ -299,23 +310,23 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   dayCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: olyLayout.inputHeight,
+    height: olyLayout.inputHeight,
+    borderRadius: olyRadius.full,
     borderWidth: 1,
     borderColor: olyColors.border.default,
-    backgroundColor: "transparent",
+    backgroundColor: olyPalette.card,
     alignItems: "center",
     justifyContent: "center",
   },
   dayCircleActive: {
-    backgroundColor: olyPalette.primary,
+    backgroundColor: olyColors.bg.activeHighlight,
     borderColor: olyPalette.primary,
   },
   dayCircleText: {
     ...olyTypography.body,
     fontFamily: olyFonts.medium,
-    color: olyColors.text.secondary,
+    color: olyColors.text.primary,
   },
   dayCircleTextActive: {
     color: olyPalette.white,
@@ -325,26 +336,26 @@ const styles = StyleSheet.create({
   durationGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: olySpacing[8],
+    gap: olySpacing[12],
   },
   durationPill: {
     width: "48%",
-    height: 48,
+    height: olyLayout.minTouchTarget,
     borderRadius: olyRadius.full,
     borderWidth: 1,
     borderColor: olyColors.border.default,
-    backgroundColor: "transparent",
+    backgroundColor: olyPalette.card,
     alignItems: "center",
     justifyContent: "center",
   },
   durationPillActive: {
-    backgroundColor: olyPalette.primary,
+    backgroundColor: olyColors.bg.activeHighlight,
     borderColor: olyPalette.primary,
   },
   durationText: {
     ...olyTypography.body,
     fontFamily: olyFonts.medium,
-    color: olyColors.text.secondary,
+    color: olyColors.text.primary,
   },
   durationTextActive: {
     color: olyPalette.white,
@@ -354,36 +365,43 @@ const styles = StyleSheet.create({
   restDaysGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: olySpacing[8],
+    gap: olySpacing[12],
   },
   restDayPill: {
     paddingHorizontal: olySpacing[16],
-    height: 40,
+    height: olyLayout.minTouchTarget,
     borderRadius: olyRadius.full,
     borderWidth: 1,
     borderColor: olyColors.border.default,
-    backgroundColor: "transparent",
+    backgroundColor: olyPalette.card,
     alignItems: "center",
     justifyContent: "center",
   },
   restDayPillActive: {
-    backgroundColor: olyPalette.primary,
+    backgroundColor: olyColors.bg.activeHighlight,
     borderColor: olyPalette.primary,
+  },
+  restDayPillDisabled: {
+    opacity: 0.3,
   },
   restDayText: {
     ...olyTypography.bodySmall,
     fontFamily: olyFonts.medium,
-    color: olyColors.text.secondary,
+    color: olyColors.text.primary,
   },
   restDayTextActive: {
     color: olyPalette.white,
+  },
+  restDayTextDisabled: {
+    color: olyColors.text.disabled,
   },
 
   /* Bottom buttons */
   bottomButtons: {
     flexDirection: "row",
     gap: olySpacing[12],
-    paddingTop: olySpacing[32],
+    paddingTop: olySpacing[40],
+    marginTop: "auto" as const,
   },
   halfButton: {
     flex: 1,

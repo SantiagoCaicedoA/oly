@@ -1,15 +1,18 @@
-import { Images } from "@/assets";
 import { useTheme } from "@/context/theme-context";
-import { olyTypography } from "@/src/oly-theme/oly-typography";
+import { olyTypography, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
 import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyElevation } from "@/src/oly-theme/oly-elevation";
 import { Ionicons } from "@expo/vector-icons";
+import { OlyHomeIcon } from "@/components/icons/OlyHomeIcon";
+import { OlyWorkoutIcon } from "@/components/icons/OlyWorkoutIcon";
+import { OlyRankIcon } from "@/components/icons/OlyRankIcon";
+import { OlyAnalyticsIcon } from "@/components/icons/OlyAnalyticsIcon";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { router, Tabs } from "expo-router";
 import React, { createContext, useState } from "react";
-import { Image, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 export const TabBarContext = createContext({
@@ -17,11 +20,11 @@ export const TabBarContext = createContext({
   showTabBar: () => {},
 });
 
-const ICON_SIZE = 24;
-const FAB_SIZE = 48;
+const ICON_SIZE = 22;
+const FAB_SIZE = 44;
 const TAB_BAR_HEIGHT = 64;
-const TAB_BAR_MARGIN_BOTTOM = 20;
-const TAB_BAR_MARGIN_H = 16;
+const TAB_BAR_MARGIN_BOTTOM = 28;
+const TAB_BAR_MARGIN_H = 14;
 
 export default function TabLayout() {
   const { colors } = useTheme();
@@ -33,29 +36,32 @@ export default function TabLayout() {
         <Tabs
           screenOptions={{
             headerShown: false,
-            tabBarActiveTintColor: olyPalette.primary,
-            tabBarInactiveTintColor: olyColors.text.disabled,
+            tabBarActiveTintColor: olyPalette.white,
+            tabBarInactiveTintColor: olyColors.text.secondary,
             tabBarStyle: isTabBarVisible
               ? {
                   borderTopWidth: 0,
                   height: TAB_BAR_HEIGHT,
                   position: "absolute",
-                  paddingBottom: Platform.OS === "ios" ? 12 : 8,
-                  paddingTop: 8,
+                  paddingBottom: olySpacing[12],
+                  paddingTop: olySpacing[8],
+                  justifyContent: "center",
                   elevation: 0,
                   marginHorizontal: TAB_BAR_MARGIN_H,
                   marginBottom: TAB_BAR_MARGIN_BOTTOM,
-                  borderRadius: olyRadius.lg,
+                  borderRadius: 20,
                   overflow: "visible",
                   backgroundColor: olyElevation.level1.backgroundColor,
-                  borderColor: olyElevation.level1.borderColor,
-                  borderWidth: olyElevation.level1.borderWidth,
+                  borderColor: olyColors.border.default,
+                  borderWidth: 1,
                 }
               : { display: "none" },
             tabBarLabelStyle: {
-              ...olyTypography.caption,
-              textTransform: "uppercase",
-              letterSpacing: 0.5,
+              fontSize: olyTypography.caption.fontSize,
+              fontFamily: olyTypography.caption.fontFamily,
+              textTransform: "capitalize",
+              letterSpacing: olyLetterSpacing.uppercase,
+              marginTop: olySpacing[4],
             },
             tabBarShowLabel: true,
             animation: "none",
@@ -64,16 +70,9 @@ export default function TabLayout() {
           <Tabs.Screen
             name="home"
             options={{
-              title: "HOME",
+              title: "Home",
               tabBarIcon: ({ color }) => (
-                <Image
-                  source={Images.home}
-                  style={{
-                    width: ICON_SIZE,
-                    height: ICON_SIZE,
-                    tintColor: color,
-                  }}
-                />
+                <OlyHomeIcon size={ICON_SIZE} color={color} />
               ),
             }}
           />
@@ -81,16 +80,9 @@ export default function TabLayout() {
           <Tabs.Screen
             name="workout"
             options={{
-              title: "WORKOUT",
+              title: "Workout",
               tabBarIcon: ({ color }) => (
-                <Image
-                  source={Images.workout}
-                  style={{
-                    width: ICON_SIZE,
-                    height: ICON_SIZE,
-                    tintColor: color,
-                  }}
-                />
+                <Ionicons name="calendar-outline" size={ICON_SIZE} color={color} />
               ),
             }}
           />
@@ -98,20 +90,23 @@ export default function TabLayout() {
           <Tabs.Screen
             name="upload"
             options={{
-              title: "UPLOAD",
-              tabBarButton: (props) => (
+              title: "POST",
+              tabBarButton: () => (
                 <View style={styles.fabWrapper}>
                   <TouchableOpacity
                     onPress={() => router.push("/athlete/create-new-post")}
                     style={styles.fabTouchable}
                     accessibilityRole="button"
-                    accessibilityLabel="Upload new post"
+                    accessibilityLabel="Create new post"
                   >
                     <View style={styles.fab}>
-                      <Ionicons name="add" size={28} color={olyColors.text.onBrand} />
+                      <Ionicons
+                        name="add"
+                        size={24}
+                        color={olyColors.text.onBrand}
+                      />
                     </View>
                   </TouchableOpacity>
-                  <Text style={styles.fabLabel}>UPLOAD</Text>
                 </View>
               ),
             }}
@@ -120,16 +115,9 @@ export default function TabLayout() {
           <Tabs.Screen
             name="rank"
             options={{
-              title: "RANK",
+              title: "Rank",
               tabBarIcon: ({ color }) => (
-                <Image
-                  source={Images.rank}
-                  style={{
-                    width: ICON_SIZE,
-                    height: ICON_SIZE,
-                    tintColor: color,
-                  }}
-                />
+                <Ionicons name="pulse-outline" size={ICON_SIZE} color={color} />
               ),
             }}
           />
@@ -137,16 +125,9 @@ export default function TabLayout() {
           <Tabs.Screen
             name="analytics"
             options={{
-              title: "ANALYTICS",
+              title: "Analytics",
               tabBarIcon: ({ color }) => (
-                <Image
-                  source={Images.analytics}
-                  style={{
-                    width: ICON_SIZE,
-                    height: ICON_SIZE,
-                    tintColor: color,
-                  }}
-                />
+                <OlyAnalyticsIcon size={ICON_SIZE} color={color} />
               ),
             }}
           />
@@ -161,8 +142,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   fabWrapper: {
+    flex: 1,
     alignItems: "center",
-    top: -24,
+    justifyContent: "center",
+    top: 0,
   },
   fabTouchable: {
     justifyContent: "center",
@@ -175,13 +158,5 @@ const styles = StyleSheet.create({
     backgroundColor: olyPalette.primary,
     justifyContent: "center",
     alignItems: "center",
-    // No shadow — Design Bible: elevation via surface brightness only
-  },
-  fabLabel: {
-    ...olyTypography.caption,
-    color: olyColors.text.disabled,
-    marginTop: 4,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
   },
 });

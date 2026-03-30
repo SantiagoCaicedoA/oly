@@ -18,11 +18,10 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { olyColors } from "@/src/oly-theme/oly-colors";
+import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
 import { olyTypography, olyMaxFontScale } from "@/src/oly-theme/oly-typography";
 import { olySpacing } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
-import { olyElevation } from "@/src/oly-theme/oly-elevation";
 import { olyLayout } from "@/src/oly-theme/oly-spacing";
 
 interface OlyTextInputProps extends Omit<TextInputProps, "style"> {
@@ -113,15 +112,15 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    minHeight: 52,
-    backgroundColor: olyElevation.level2.backgroundColor,
+    minHeight: olyLayout.inputHeight,
+    backgroundColor: olyPalette.card,
     borderWidth: 1,
     borderRadius: olyRadius.lg,
     overflow: "hidden",
   },
   input: {
     flex: 1,
-    minHeight: 52,
+    minHeight: olyLayout.inputHeight,
     paddingHorizontal: olySpacing[16],
     ...olyTypography.body,
     color: olyColors.text.primary,

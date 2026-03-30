@@ -100,7 +100,7 @@ export default function Login() {
   return (
     <OlyScreenWrapper>
       <OlyNavBar
-        onBack={() => router.back()}
+        onBack={() => router.replace("/auth/welcome")}
         centerElement={<NavLogo reduceMotion={!!reduceMotion} />}
       />
 

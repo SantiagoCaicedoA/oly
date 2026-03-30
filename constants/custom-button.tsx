@@ -1,5 +1,7 @@
-import { useTheme } from "@/context/theme-context";
-import { Typography } from "@/utils/custom-styles";
+import { olyTypography } from "@/src/oly-theme/oly-typography";
+import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olySpacing } from "@/src/oly-theme/oly-spacing";
+import { olyRadius } from "@/src/oly-theme/oly-radius";
 import React from "react";
 import {
   StyleProp,
@@ -8,7 +10,6 @@ import {
   TouchableOpacity,
   ViewStyle,
 } from "react-native";
-import { scale } from "react-native-size-matters";
 
 type CustomButtonProps = {
   title: string;
@@ -23,32 +24,40 @@ export default function CustomButton({
   disabled,
   style,
 }: CustomButtonProps) {
-  const { colors } = useTheme();
-
-  const styles = StyleSheet.create({
-    container: {
-      width: "100%",
-      paddingVertical: scale(12),
-      backgroundColor: colors.primary,
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: scale(15),
-    },
-    title: {
-      fontSize: Typography.fontSize.lg,
-      fontWeight: Typography.fontWeight.normal,
-      letterSpacing: Typography.letterSpacing.normal,
-      color: colors.text,
-    },
-  });
-
   return (
     <TouchableOpacity
-      style={[styles.container, disabled && { opacity: 0.5 }, style]}
+      style={[
+        styles.container,
+        disabled && styles.containerDisabled,
+        style,
+      ]}
       onPress={onPress}
       disabled={disabled}
     >
-      <Text style={styles.title}>{title}</Text>
+      <Text style={[styles.title, disabled && styles.titleDisabled]}>
+        {title}
+      </Text>
     </TouchableOpacity>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    width: "100%",
+    paddingVertical: olySpacing[12],
+    backgroundColor: olyColors.button.primary.bg,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: olyRadius.full,
+  },
+  containerDisabled: {
+    backgroundColor: olyColors.button.disabled.bg,
+  },
+  title: {
+    ...olyTypography.button,
+    color: olyColors.button.primary.text,
+  },
+  titleDisabled: {
+    color: olyColors.button.disabled.text,
+  },
+});

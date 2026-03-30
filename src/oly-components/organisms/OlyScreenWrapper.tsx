@@ -65,7 +65,7 @@ export default OlyScreenWrapper;
 const styles = StyleSheet.create({
   gradient: {
     flex: 1,
-    backgroundColor: '#0D1117',
+    backgroundColor: olyGradient.colors[2],
   },
   safe: {
     flex: 1,

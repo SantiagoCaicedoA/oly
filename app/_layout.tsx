@@ -8,6 +8,7 @@ import {
   DefaultTheme,
   ThemeProvider as NavigationThemeProvider,
 } from "@react-navigation/native";
+import { olyGradient } from "@/src/oly-theme/oly-colors";
 import { useFonts } from "expo-font";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -33,7 +34,13 @@ function AppContent() {
   return (
     <ToastProvider>
       <NavigationThemeProvider
-        value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+        value={{
+          ...(colorScheme === "dark" ? DarkTheme : DefaultTheme),
+          colors: {
+            ...(colorScheme === "dark" ? DarkTheme : DefaultTheme).colors,
+            background: olyGradient.colors[2],
+          },
+        }}
       >
         <Stack
           screenOptions={{

@@ -12,28 +12,29 @@
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
 import { OlyFormField } from "@/src/oly-components/molecules/OlyFormField";
 import { olyTypography, olyFonts, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
-import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
-import { olySpacing } from "@/src/oly-theme/oly-spacing";
+import { olyColors, olyPalette, olyGradient } from "@/src/oly-theme/oly-colors";
+import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { useToast } from "@/context/toast-context";
 import { useUploadProfileImageMutation } from "@/store/api";
-import { saveOnboardingData } from "@/store/reducer/onboardingSlice";
-import { RootState } from "@/store/store";
+import { saveOnboardingData, selectOnboardingData } from "@/store/reducer/onboardingSlice";
 import { onboardingScreen1Schema } from "@/utils/validation-schemas";
 import { Ionicons } from "@expo/vector-icons";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as ImagePicker from "expo-image-picker";
-import { Stack } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   FlatList,
   Image,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   Pressable,
   ScrollView,
@@ -43,6 +44,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 
 /* ── Types ─────────────────────────────────────────────── */
@@ -132,16 +134,55 @@ const COUNTRIES = [
   "Yemen", "Zambia", "Zimbabwe",
 ] as const;
 
+/* ── DOB picker data ──────────────────────────────────── */
+
+const MONTHS = [
+  { value: "1", short: "Jan", long: "January", num: "01" },
+  { value: "2", short: "Feb", long: "February", num: "02" },
+  { value: "3", short: "Mar", long: "March", num: "03" },
+  { value: "4", short: "Apr", long: "April", num: "04" },
+  { value: "5", short: "May", long: "May", num: "05" },
+  { value: "6", short: "Jun", long: "June", num: "06" },
+  { value: "7", short: "Jul", long: "July", num: "07" },
+  { value: "8", short: "Aug", long: "August", num: "08" },
+  { value: "9", short: "Sep", long: "September", num: "09" },
+  { value: "10", short: "Oct", long: "October", num: "10" },
+  { value: "11", short: "Nov", long: "November", num: "11" },
+  { value: "12", short: "Dec", long: "December", num: "12" },
+];
+
+const currentYear = new Date().getFullYear();
+const MIN_AGE = 10;
+const MAX_AGE = 110;
+const YEARS = Array.from(
+  { length: MAX_AGE - MIN_AGE + 1 },
+  (_, i) => String(currentYear - MIN_AGE - i)
+);
+
+function getDaysInMonth(month: string, year: string): number {
+  if (!month) return 31;
+  const m = parseInt(month, 10);
+  const y = year ? parseInt(year, 10) : 2000; // default leap year if no year
+  return new Date(y, m, 0).getDate();
+}
+
+function getMonthShort(value: string): string {
+  const m = MONTHS.find((mo) => mo.value === value);
+  return m ? m.short : "";
+}
+
 /* ── Main Component ────────────────────────────────────── */
 
-export function OnboardingScreen1({
+export default function OnboardingScreen1({
   onComplete,
+  name: authName,
 }: OnboardingScreen1Props) {
   const dispatch = useDispatch();
+  const insets = useSafeAreaInsets();
   const { showToast } = useToast();
   const [uploadProfileImage] = useUploadProfileImageMutation();
   const onboardingData = useSelector(
-    (state: RootState) => state.onboarding.currentData
+    selectOnboardingData
   );
   const [profileImage, setProfileImage] = useState<string | null>(
     onboardingData?.photo_url || null
@@ -150,6 +191,17 @@ export function OnboardingScreen1({
   const [countryModalVisible, setCountryModalVisible] = useState(false);
   const [countrySearch, setCountrySearch] = useState("");
   const [sexModalVisible, setSexModalVisible] = useState(false);
+  const [heightInches, setHeightInches] = useState(
+    onboardingData?.heightInches || ""
+  );
+  const [dobModalVisible, setDobModalVisible] = useState(false);
+  // Temp scroll indices for the wheel picker (committed on Confirm)
+  const [tempDay, setTempDay] = useState(0);
+  const [tempMonth, setTempMonth] = useState(0);
+  const [tempYear, setTempYear] = useState(0);
+  const dayListRef = useRef<FlatList>(null);
+  const monthListRef = useRef<FlatList>(null);
+  const yearListRef = useRef<FlatList>(null);
 
   const filteredCountries = useMemo(() => {
     if (!countrySearch) return COUNTRIES;
@@ -162,12 +214,14 @@ export function OnboardingScreen1({
     control,
     handleSubmit,
     watch,
+    setValue,
+    getValues,
     formState: { errors, isValid },
   } = useForm<OnboardingScreen1Values>({
     resolver: yupResolver(onboardingScreen1Schema),
     mode: "onChange",
     defaultValues: {
-      name: onboardingData?.name || "",
+      name: authName || onboardingData?.name || "",
       user_name: onboardingData?.user_name || "",
       country: onboardingData?.country || "",
       dobDay: onboardingData?.dobDay || "",
@@ -183,6 +237,82 @@ export function OnboardingScreen1({
   });
 
   const watchedValues = watch();
+
+  // DOB wheel picker data
+  const DOB_ITEM_HEIGHT = olyLayout.minTouchTarget;
+  const DOB_VISIBLE_ITEMS = 5;
+
+  const dayItems = useMemo(() => {
+    const max = getDaysInMonth(
+      String(tempMonth + 1),
+      YEARS[tempYear] || ""
+    );
+    return Array.from({ length: max }, (_, i) => String(i + 1));
+  }, [tempMonth, tempYear]);
+
+  const monthItems = MONTHS.map((m) => m.short);
+  const yearItems = YEARS;
+
+  // Open DOB modal — seed temp values from form
+  const openDobModal = useCallback(() => {
+    const m = watchedValues.dobMonth
+      ? parseInt(watchedValues.dobMonth, 10) - 1
+      : 0;
+    const d = watchedValues.dobDay
+      ? parseInt(watchedValues.dobDay, 10) - 1
+      : 0;
+    const y = watchedValues.dobYear
+      ? YEARS.indexOf(watchedValues.dobYear)
+      : 20; // default ~30 years old
+    setTempMonth(Math.max(0, m));
+    setTempDay(Math.max(0, d));
+    setTempYear(Math.max(0, y));
+    setDobModalVisible(true);
+    // Scroll to positions after modal renders
+    setTimeout(() => {
+      dayListRef.current?.scrollToOffset({
+        offset: Math.max(0, d) * DOB_ITEM_HEIGHT,
+        animated: false,
+      });
+      monthListRef.current?.scrollToOffset({
+        offset: Math.max(0, m) * DOB_ITEM_HEIGHT,
+        animated: false,
+      });
+      yearListRef.current?.scrollToOffset({
+        offset: Math.max(0, y) * DOB_ITEM_HEIGHT,
+        animated: false,
+      });
+    }, 100);
+  }, [watchedValues.dobDay, watchedValues.dobMonth, watchedValues.dobYear]);
+
+  // Confirm DOB selection
+  const confirmDob = useCallback(() => {
+    const selectedDay = String(tempDay + 1);
+    const selectedMonth = String(tempMonth + 1);
+    const selectedYear = yearItems[tempYear] || YEARS[0];
+    setValue("dobDay", selectedDay, { shouldValidate: true });
+    setValue("dobMonth", selectedMonth, { shouldValidate: true });
+    setValue("dobYear", selectedYear, { shouldValidate: true });
+    setDobModalVisible(false);
+  }, [tempDay, tempMonth, tempYear, setValue, yearItems]);
+
+  // Handle scroll end for wheel columns
+  const handleWheelScroll = useCallback(
+    (setter: (i: number) => void, maxIndex: number) =>
+      (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        const y = event.nativeEvent.contentOffset.y;
+        const index = Math.round(y / DOB_ITEM_HEIGHT);
+        setter(Math.max(0, Math.min(index, maxIndex)));
+      },
+    []
+  );
+
+  // Clamp day if month/year change makes it invalid
+  useEffect(() => {
+    if (tempDay >= dayItems.length) {
+      setTempDay(dayItems.length - 1);
+    }
+  }, [dayItems.length, tempDay]);
 
   const handleImagePick = async () => {
     try {
@@ -228,26 +358,34 @@ export function OnboardingScreen1({
   };
 
   const handleSubmitForm = (data: OnboardingScreen1Values) => {
-    dispatch(saveOnboardingData({ ...onboardingData, ...data }));
+    dispatch(
+      saveOnboardingData({
+        ...onboardingData,
+        ...data,
+        heightInches: data.height_unit === "ft" ? heightInches : undefined,
+      })
+    );
     if (onComplete) {
       onComplete();
     }
   };
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          headerBackVisible: true,
-          title: "Athlete Profile",
-        }}
-      />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.container}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
+          {/* Title Block */}
+          <View style={styles.titleBlock}>
+            <Text style={styles.title} maxFontSizeMultiplier={1.2}>
+              Athlete profile
+            </Text>
+            <Text style={styles.subtitle} maxFontSizeMultiplier={1.5}>
+              Used to set up your training profile
+            </Text>
+          </View>
+
           {/* Profile Image Section */}
           <View style={styles.profileImageContainer}>
             <Pressable
@@ -264,12 +402,18 @@ export function OnboardingScreen1({
                   style={styles.profileImage}
                 />
               ) : (
-                <Ionicons
-                  name="person-circle-outline"
-                  size={80}
-                  color={olyColors.text.secondary}
-                />
+                <View style={styles.profileImagePlaceholder}>
+                  <Ionicons
+                    name="person-outline"
+                    size={56}
+                    color={olyColors.text.secondary}
+                  />
+                </View>
               )}
+              {/* Blue + badge */}
+              <View style={styles.addBadge}>
+                <Ionicons name="add" size={20} color={olyPalette.white} />
+              </View>
               {imageLoading && (
                 <View style={styles.imageLoadingOverlay}>
                   <ActivityIndicator
@@ -280,7 +424,7 @@ export function OnboardingScreen1({
               )}
             </Pressable>
             <Text style={styles.profileImageLabel}>
-              {profileImage ? "Change Photo" : "Add Photo"}
+              Add profile photo
             </Text>
           </View>
 
@@ -317,10 +461,89 @@ export function OnboardingScreen1({
           />
 
           {/* Country Dropdown */}
+          <Controller
+            control={control}
+            name="country"
+            render={({ field: { value, onChange } }) => (
+              <View style={styles.fieldContainer}>
+                <Text style={styles.label}>Country</Text>
+                <Pressable
+                  onPress={() => setCountryModalVisible(true)}
+                  style={({ pressed }) => [
+                    styles.dropdownButton,
+                    pressed && { opacity: 0.7 },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.dropdownButtonText,
+                      !value && styles.dropdownPlaceholder,
+                    ]}
+                  >
+                    {value || "Select a country"}
+                  </Text>
+                  <Ionicons
+                    name="chevron-down"
+                    size={20}
+                    color={olyColors.text.secondary}
+                  />
+                </Pressable>
+                {errors.country && (
+                  <Text style={styles.errorText}>{errors.country.message}</Text>
+                )}
+
+                {/* Country Selection Modal */}
+                <Modal
+                  visible={countryModalVisible}
+                  animationType="slide"
+                  onRequestClose={() => setCountryModalVisible(false)}
+                >
+                  <View style={[styles.modalBg, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+                    <View style={styles.modalHeader}>
+                      <Pressable onPress={() => setCountryModalVisible(false)}>
+                        <Text style={styles.modalCloseButton}>Done</Text>
+                      </Pressable>
+                      <Text style={styles.modalTitle}>Select Country</Text>
+                      <View style={{ width: 40 }} />
+                    </View>
+                    <TextInput
+                      style={styles.searchInput}
+                      placeholder="Search countries..."
+                      value={countrySearch}
+                      onChangeText={setCountrySearch}
+                      placeholderTextColor={olyColors.text.secondary}
+                    />
+                    <FlatList
+                      data={filteredCountries}
+                      keyExtractor={(item) => item}
+                      keyboardShouldPersistTaps="handled"
+                      renderItem={({ item }) => (
+                        <Pressable
+                          onPress={() => {
+                            onChange(item);
+                            setCountryModalVisible(false);
+                            setCountrySearch("");
+                          }}
+                          style={({ pressed }) => [
+                            styles.countryItem,
+                            pressed && { backgroundColor: olyPalette.card },
+                          ]}
+                        >
+                          <Text style={styles.countryItemText}>{item}</Text>
+                        </Pressable>
+                      )}
+                    />
+                  </View>
+                </Modal>
+              </View>
+            )}
+          />
+
+          {/* DOB Section — single dropdown trigger */}
           <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Country</Text>
+            <Text style={styles.label}>DATE OF BIRTH</Text>
             <Pressable
-              onPress={() => setCountryModalVisible(true)}
+              onPress={openDobModal}
               style={({ pressed }) => [
                 styles.dropdownButton,
                 pressed && { opacity: 0.7 },
@@ -329,146 +552,206 @@ export function OnboardingScreen1({
               <Text
                 style={[
                   styles.dropdownButtonText,
-                  !watchedValues.country && styles.dropdownPlaceholder,
+                  !(watchedValues.dobDay && watchedValues.dobMonth && watchedValues.dobYear) &&
+                    styles.dropdownPlaceholder,
                 ]}
               >
-                {watchedValues.country || "Select a country"}
+                {watchedValues.dobDay && watchedValues.dobMonth && watchedValues.dobYear
+                  ? `${getMonthShort(watchedValues.dobMonth)} ${watchedValues.dobDay}, ${watchedValues.dobYear}`
+                  : "Select date of birth"}
               </Text>
               <Ionicons
-                name="chevron-down"
+                name="calendar-outline"
                 size={20}
                 color={olyColors.text.secondary}
               />
             </Pressable>
-            {errors.country && (
-              <Text style={styles.errorText}>{errors.country.message}</Text>
-            )}
           </View>
 
-          {/* Country Selection Modal */}
+          {/* DOB Scroll Wheel Modal */}
           <Modal
-            visible={countryModalVisible}
+            visible={dobModalVisible}
             animationType="slide"
-            onRequestClose={() => setCountryModalVisible(false)}
+            transparent={true}
+            onRequestClose={() => setDobModalVisible(false)}
           >
-            <View style={styles.modalContainer}>
-              <View style={styles.modalHeader}>
-                <Pressable onPress={() => setCountryModalVisible(false)}>
-                  <Text style={styles.modalCloseButton}>Done</Text>
-                </Pressable>
-                <Text style={styles.modalTitle}>Select Country</Text>
-                <View style={{ width: 40 }} />
-              </View>
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search countries..."
-                value={countrySearch}
-                onChangeText={setCountrySearch}
-                placeholderTextColor={olyColors.text.secondary}
+            <View style={styles.dobOverlay}>
+              {/* Tap overlay to dismiss */}
+              <Pressable
+                style={styles.dobOverlayTap}
+                onPress={() => setDobModalVisible(false)}
               />
-              <FlatList
-                data={filteredCountries}
-                keyExtractor={(item) => item}
-                renderItem={({ item }) => (
+              <View style={styles.dobSheet}>
+                {/* Handle */}
+                <View style={styles.dobHandle} />
+
+                {/* Header */}
+                <View style={styles.dobSheetHeader}>
+                  <Text style={styles.dobSheetTitle}>DATE OF BIRTH</Text>
                   <Pressable
-                    onPress={() => {
-                      // We need access to the form control's setValue
-                      // This will be handled differently
-                      setCountryModalVisible(false);
-                    }}
-                    style={({ pressed }) => [
-                      styles.countryItem,
-                      pressed && { backgroundColor: olyColors.bg.secondary },
-                    ]}
+                    onPress={() => setDobModalVisible(false)}
+                    hitSlop={olySpacing[12]}
                   >
-                    <Text style={styles.countryItemText}>{item}</Text>
+                    <View style={styles.dobCloseBtn}>
+                      <Ionicons name="close" size={18} color={olyColors.text.secondary} />
+                    </View>
                   </Pressable>
-                )}
-              />
+                </View>
+
+                {/* Column labels */}
+                <View style={styles.wheelLabels}>
+                  <Text style={styles.wheelLabel}>Day</Text>
+                  <Text style={styles.wheelLabel}>Month</Text>
+                  <Text style={styles.wheelLabel}>Year</Text>
+                </View>
+
+                {/* 3-column scroll wheels */}
+                <View style={styles.wheelContainer}>
+                  {/* Selection highlight band */}
+                  <View style={styles.wheelHighlight} pointerEvents="none" />
+
+                  {/* Wheels */}
+                  <View style={styles.wheelRow}>
+                    {/* Day wheel */}
+                    <FlatList
+                      ref={dayListRef}
+                      data={dayItems}
+                      keyExtractor={(item) => `d-${item}`}
+                      showsVerticalScrollIndicator={false}
+                      snapToInterval={DOB_ITEM_HEIGHT}
+                      decelerationRate="fast"
+                      nestedScrollEnabled
+                      bounces={false}
+                      style={styles.wheelColumn}
+                      contentContainerStyle={{
+                        paddingVertical: DOB_ITEM_HEIGHT * 2,
+                      }}
+                      getItemLayout={(_, index) => ({
+                        length: DOB_ITEM_HEIGHT,
+                        offset: DOB_ITEM_HEIGHT * index,
+                        index,
+                      })}
+                      onMomentumScrollEnd={handleWheelScroll(
+                        setTempDay,
+                        dayItems.length - 1
+                      )}
+                      renderItem={({ item, index }) => (
+                        <View
+                          style={[
+                            styles.wheelItem,
+                            { height: DOB_ITEM_HEIGHT },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.wheelItemText,
+                              index === tempDay && styles.wheelItemTextActive,
+                            ]}
+                          >
+                            {item}
+                          </Text>
+                        </View>
+                      )}
+                    />
+
+                    {/* Month wheel */}
+                    <FlatList
+                      ref={monthListRef}
+                      data={monthItems}
+                      keyExtractor={(item) => `m-${item}`}
+                      showsVerticalScrollIndicator={false}
+                      snapToInterval={DOB_ITEM_HEIGHT}
+                      decelerationRate="fast"
+                      nestedScrollEnabled
+                      bounces={false}
+                      style={styles.wheelColumn}
+                      contentContainerStyle={{
+                        paddingVertical: DOB_ITEM_HEIGHT * 2,
+                      }}
+                      getItemLayout={(_, index) => ({
+                        length: DOB_ITEM_HEIGHT,
+                        offset: DOB_ITEM_HEIGHT * index,
+                        index,
+                      })}
+                      onMomentumScrollEnd={handleWheelScroll(
+                        setTempMonth,
+                        monthItems.length - 1
+                      )}
+                      renderItem={({ item, index }) => (
+                        <View
+                          style={[
+                            styles.wheelItem,
+                            { height: DOB_ITEM_HEIGHT },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.wheelItemText,
+                              index === tempMonth && styles.wheelItemTextActive,
+                            ]}
+                          >
+                            {item}
+                          </Text>
+                        </View>
+                      )}
+                    />
+
+                    {/* Year wheel */}
+                    <FlatList
+                      ref={yearListRef}
+                      data={yearItems}
+                      keyExtractor={(item) => `y-${item}`}
+                      showsVerticalScrollIndicator={false}
+                      snapToInterval={DOB_ITEM_HEIGHT}
+                      decelerationRate="fast"
+                      nestedScrollEnabled
+                      bounces={false}
+                      style={styles.wheelColumn}
+                      contentContainerStyle={{
+                        paddingVertical: DOB_ITEM_HEIGHT * 2,
+                      }}
+                      getItemLayout={(_, index) => ({
+                        length: DOB_ITEM_HEIGHT,
+                        offset: DOB_ITEM_HEIGHT * index,
+                        index,
+                      })}
+                      onMomentumScrollEnd={handleWheelScroll(
+                        setTempYear,
+                        yearItems.length - 1
+                      )}
+                      renderItem={({ item, index }) => (
+                        <View
+                          style={[
+                            styles.wheelItem,
+                            { height: DOB_ITEM_HEIGHT },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.wheelItemText,
+                              index === tempYear && styles.wheelItemTextActive,
+                            ]}
+                          >
+                            {item}
+                          </Text>
+                        </View>
+                      )}
+                    />
+                  </View>
+                </View>
+
+                {/* Confirm button */}
+                <View style={styles.dobConfirmContainer}>
+                  <OlyButton
+                    label="Confirm"
+                    onPress={confirmDob}
+                    variant="primary"
+                    fullWidth
+                  />
+                </View>
+              </View>
             </View>
           </Modal>
-
-          {/* DOB Section */}
-          <View style={styles.dobContainer}>
-            <Text style={styles.label}>Date of Birth</Text>
-            <View style={styles.dobFields}>
-              <Controller
-                control={control}
-                name="dobDay"
-                render={({ field: { value, onChange } }) => (
-                  <View style={styles.dobFieldWrapper}>
-                    <TextInput
-                      style={[
-                        styles.dobInput,
-                        errors.dobDay && styles.dobInputError,
-                      ]}
-                      placeholder="DD"
-                      value={value}
-                      onChangeText={onChange}
-                      keyboardType="number-pad"
-                      maxLength={2}
-                      placeholderTextColor={olyColors.text.secondary}
-                    />
-                    {errors.dobDay && (
-                      <Text style={styles.dobErrorText}>
-                        {errors.dobDay.message}
-                      </Text>
-                    )}
-                  </View>
-                )}
-              />
-              <Controller
-                control={control}
-                name="dobMonth"
-                render={({ field: { value, onChange } }) => (
-                  <View style={styles.dobFieldWrapper}>
-                    <TextInput
-                      style={[
-                        styles.dobInput,
-                        errors.dobMonth && styles.dobInputError,
-                      ]}
-                      placeholder="MM"
-                      value={value}
-                      onChangeText={onChange}
-                      keyboardType="number-pad"
-                      maxLength={2}
-                      placeholderTextColor={olyColors.text.secondary}
-                    />
-                    {errors.dobMonth && (
-                      <Text style={styles.dobErrorText}>
-                        {errors.dobMonth.message}
-                      </Text>
-                    )}
-                  </View>
-                )}
-              />
-              <Controller
-                control={control}
-                name="dobYear"
-                render={({ field: { value, onChange } }) => (
-                  <View style={styles.dobFieldWrapper}>
-                    <TextInput
-                      style={[
-                        styles.dobInput,
-                        errors.dobYear && styles.dobInputError,
-                      ]}
-                      placeholder="YYYY"
-                      value={value}
-                      onChangeText={onChange}
-                      keyboardType="number-pad"
-                      maxLength={4}
-                      placeholderTextColor={olyColors.text.secondary}
-                    />
-                    {errors.dobYear && (
-                      <Text style={styles.dobErrorText}>
-                        {errors.dobYear.message}
-                      </Text>
-                    )}
-                  </View>
-                )}
-              />
-            </View>
-          </View>
 
           {/* Sex Selector */}
           <View style={styles.fieldContainer}>
@@ -506,108 +789,134 @@ export function OnboardingScreen1({
           </View>
 
           {/* Body Metrics Section */}
-          <Text style={styles.sectionLabel}>BODY METRICS</Text>
-
-          {/* Weight Card */}
-          <View style={styles.metricCard}>
-            <View style={styles.metricLabelContainer}>
-              <Text style={styles.metricLabel}>Weight</Text>
-              <Controller
-                control={control}
-                name="weightUnit"
-                render={({ field: { value, onChange } }) => (
-                  <View style={styles.unitToggle}>
-                    {["KG", "LB"].map((unit) => (
-                      <Pressable
-                        key={unit}
-                        onPress={() => onChange(unit as "KG" | "LB")}
-                        style={[
-                          styles.unitButton,
-                          value === unit && styles.unitButtonActive,
-                        ]}
-                      >
-                        <Text
+          <View style={styles.fieldContainer}>
+            <Text style={styles.label}>BODY METRICS</Text>
+            <View style={styles.metricsRow}>
+              {/* Weight */}
+              <View style={styles.metricCard}>
+                <Text style={styles.metricTitle}>Weight</Text>
+                <Controller
+                  control={control}
+                  name="weight"
+                  render={({ field: { value, onChange } }) => (
+                    <TextInput
+                      style={styles.metricInput}
+                      placeholder="0"
+                      value={value}
+                      onChangeText={(t) => onChange(t.replace(/[^0-9]/g, ""))}
+                      keyboardType="number-pad"
+                      maxLength={3}
+                      placeholderTextColor={olyColors.text.disabled}
+                      textAlign="center"
+                    />
+                  )}
+                />
+                <Controller
+                  control={control}
+                  name="weightUnit"
+                  render={({ field: { value, onChange } }) => (
+                    <View style={styles.unitToggle}>
+                      {["KG", "LB"].map((unit) => (
+                        <Pressable
+                          key={unit}
+                          onPress={() => onChange(unit as "KG" | "LB")}
                           style={[
-                            styles.unitButtonText,
-                            value === unit && styles.unitButtonTextActive,
+                            styles.unitPill,
+                            value === unit && styles.unitPillActive,
                           ]}
                         >
-                          {unit}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
-              />
-            </View>
-            <Controller
-              control={control}
-              name="weight"
-              render={({ field: { value, onChange } }) => (
-                <TextInput
-                  style={[styles.metricInput, errors.weight && styles.inputError]}
-                  placeholder="Enter weight"
-                  value={value}
-                  onChangeText={onChange}
-                  keyboardType="decimal-pad"
-                  placeholderTextColor={olyColors.text.secondary}
+                          <Text
+                            style={[
+                              styles.unitPillText,
+                              value === unit && styles.unitPillTextActive,
+                            ]}
+                          >
+                            {unit}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
                 />
-              )}
-            />
-            {errors.weight && (
-              <Text style={styles.errorText}>{errors.weight.message}</Text>
-            )}
-          </View>
+              </View>
 
-          {/* Height Card */}
-          <View style={styles.metricCard}>
-            <View style={styles.metricLabelContainer}>
-              <Text style={styles.metricLabel}>Height</Text>
-              <Controller
-                control={control}
-                name="height_unit"
-                render={({ field: { value, onChange } }) => (
-                  <View style={styles.unitToggle}>
-                    {["cm", "ft"].map((unit) => (
-                      <Pressable
-                        key={unit}
-                        onPress={() => onChange(unit as "cm" | "ft")}
-                        style={[
-                          styles.unitButton,
-                          value === unit && styles.unitButtonActive,
-                        ]}
-                      >
-                        <Text
+              {/* Height */}
+              <View style={styles.metricCard}>
+                <Text style={styles.metricTitle}>Height</Text>
+                <Controller
+                  control={control}
+                  name="height"
+                  render={({ field: { value, onChange } }) => (
+                    <View style={styles.heightInputRow}>
+                      {watchedValues.height_unit === "ft" ? (
+                        <>
+                          <TextInput
+                            style={styles.ftInput}
+                            placeholder="5"
+                            value={value}
+                            onChangeText={(t) => onChange(t.replace(/[^0-9]/g, ""))}
+                            keyboardType="number-pad"
+                            maxLength={1}
+                            placeholderTextColor={olyColors.text.disabled}
+                            textAlign="center"
+                          />
+                          <Text style={styles.ftSeparator}>'</Text>
+                          <TextInput
+                            style={styles.ftInput}
+                            placeholder="11"
+                            value={heightInches}
+                            onChangeText={(t) => setHeightInches(t.replace(/[^0-9]/g, ""))}
+                            keyboardType="number-pad"
+                            maxLength={2}
+                            placeholderTextColor={olyColors.text.disabled}
+                            textAlign="center"
+                          />
+                          <Text style={styles.ftSeparator}>"</Text>
+                        </>
+                      ) : (
+                        <TextInput
+                          style={styles.metricInput}
+                          placeholder="0"
+                          value={value}
+                          onChangeText={(t) => onChange(t.replace(/[^0-9]/g, ""))}
+                          keyboardType="number-pad"
+                          maxLength={3}
+                          placeholderTextColor={olyColors.text.disabled}
+                          textAlign="center"
+                        />
+                      )}
+                    </View>
+                  )}
+                />
+                <Controller
+                  control={control}
+                  name="height_unit"
+                  render={({ field: { value, onChange } }) => (
+                    <View style={styles.unitToggle}>
+                      {["CM", "FT"].map((unit) => (
+                        <Pressable
+                          key={unit}
+                          onPress={() => onChange(unit.toLowerCase() as "cm" | "ft")}
                           style={[
-                            styles.unitButtonText,
-                            value === unit && styles.unitButtonTextActive,
+                            styles.unitPill,
+                            value === unit.toLowerCase() && styles.unitPillActive,
                           ]}
                         >
-                          {unit}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
-              />
-            </View>
-            <Controller
-              control={control}
-              name="height"
-              render={({ field: { value, onChange } }) => (
-                <TextInput
-                  style={[styles.metricInput, errors.height && styles.inputError]}
-                  placeholder="Enter height"
-                  value={value}
-                  onChangeText={onChange}
-                  keyboardType="decimal-pad"
-                  placeholderTextColor={olyColors.text.secondary}
+                          <Text
+                            style={[
+                              styles.unitPillText,
+                              value === unit.toLowerCase() && styles.unitPillTextActive,
+                            ]}
+                          >
+                            {unit}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
                 />
-              )}
-            />
-            {errors.height && (
-              <Text style={styles.errorText}>{errors.height.message}</Text>
-            )}
+              </View>
+            </View>
           </View>
 
           {/* Weightlifting Exposure */}
@@ -645,14 +954,26 @@ export function OnboardingScreen1({
 
           {/* Submit Button */}
           <OlyButton
-            title="Continue"
-            onPress={handleSubmit(handleSubmitForm)}
+            label="Continue"
+            onPress={() => {
+              // Always save current values to Redux (even if invalid)
+              const values = getValues();
+              dispatch(
+                saveOnboardingData({
+                  ...onboardingData,
+                  ...values,
+                  heightInches: values.height_unit === "ft" ? heightInches : undefined,
+                })
+              );
+              // Only navigate if valid
+              handleSubmit(handleSubmitForm)();
+            }}
             disabled={!isValid}
-            containerStyle={styles.submitButton}
+            style={styles.submitButton}
+            fullWidth
           />
         </ScrollView>
       </KeyboardAvoidingView>
-    </>
   );
 }
 
@@ -661,24 +982,51 @@ export function OnboardingScreen1({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: olyColors.bg.primary,
+    backgroundColor: olyColors.bg.app,
+  },
+  titleBlock: { marginBottom: olySpacing[20] },
+  title: { ...olyTypography.title1, color: olyColors.text.primary },
+  subtitle: {
+    ...olyTypography.body,
+    color: olyColors.text.secondary,
+    marginTop: olySpacing[4],
   },
   scrollContent: {
-    paddingHorizontal: olySpacing.lg,
-    paddingBottom: olySpacing.xl,
+    flexGrow: 1,
   },
   profileImageContainer: {
     alignItems: "center",
-    marginVertical: olySpacing.lg,
+    marginVertical: olySpacing[24],
   },
   profileImageButton: {
     position: "relative",
-    marginBottom: olySpacing.md,
+    marginBottom: olySpacing[12],
+  },
+  profileImagePlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 2,
+    borderColor: olyColors.border.default,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: olyColors.bg.app,
   },
   profileImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+  },
+  addBadge: {
+    position: "absolute",
+    bottom: 4,
+    right: 4,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: olyPalette.primary,
+    alignItems: "center",
+    justifyContent: "center",
   },
   imageLoadingOverlay: {
     position: "absolute",
@@ -686,7 +1034,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: 40,
+    borderRadius: 60,
     backgroundColor: olyColors.bg.overlay,
     justifyContent: "center",
     alignItems: "center",
@@ -697,28 +1045,23 @@ const styles = StyleSheet.create({
     color: olyColors.text.secondary,
   },
   fieldContainer: {
-    marginBottom: olySpacing.lg,
+    marginTop: olySpacing[24],
   },
   label: {
     ...olyTypography.label,
-    color: olyColors.text.primary,
-    marginBottom: olySpacing.sm,
-  },
-  sectionLabel: {
-    ...olyTypography.caption,
     color: olyColors.text.secondary,
-    marginTop: olySpacing.lg,
-    marginBottom: olySpacing.md,
-    letterSpacing: olyLetterSpacing.wide,
+    letterSpacing: olyLetterSpacing.uppercase,
+    textTransform: "uppercase",
+    marginBottom: olySpacing[8],
   },
   dropdownButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: olySpacing.md,
-    paddingVertical: olySpacing.md,
-    borderRadius: olyRadius.md,
-    backgroundColor: olyColors.bg.secondary,
+    paddingHorizontal: olySpacing[16],
+    minHeight: olyLayout.inputHeight,
+    borderRadius: olyRadius.lg,
+    backgroundColor: olyPalette.card,
     borderWidth: 1,
     borderColor: olyColors.border.default,
   },
@@ -727,44 +1070,47 @@ const styles = StyleSheet.create({
     color: olyColors.text.primary,
   },
   dropdownPlaceholder: {
-    color: olyColors.text.secondary,
+    color: olyColors.text.disabled,
   },
-  modalContainer: {
+  modalBg: {
     flex: 1,
-    backgroundColor: olyColors.bg.primary,
+    backgroundColor: olyGradient.colors[2],
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: olySpacing.lg,
-    paddingVertical: olySpacing.md,
+    paddingHorizontal: olySpacing[16],
+    paddingVertical: olySpacing[16],
     borderBottomWidth: 1,
     borderBottomColor: olyColors.border.default,
   },
   modalCloseButton: {
     ...olyTypography.body,
-    color: olyColors.link,
+    color: olyPalette.white,
   },
   modalTitle: {
-    ...olyTypography.h3,
+    ...olyTypography.label,
     color: olyColors.text.primary,
+    letterSpacing: olyLetterSpacing.uppercase,
+    textTransform: "uppercase",
   },
   searchInput: {
     ...olyTypography.body,
-    marginHorizontal: olySpacing.lg,
-    marginVertical: olySpacing.md,
-    paddingHorizontal: olySpacing.md,
-    paddingVertical: olySpacing.sm,
-    borderRadius: olyRadius.md,
-    backgroundColor: olyColors.bg.secondary,
+    marginHorizontal: olySpacing[16],
+    marginTop: olySpacing[16],
+    marginBottom: olySpacing[8],
+    paddingHorizontal: olySpacing[16],
+    minHeight: olyLayout.inputHeight,
+    borderRadius: olyRadius.lg,
+    backgroundColor: olyPalette.card,
     borderWidth: 1,
     borderColor: olyColors.border.default,
     color: olyColors.text.primary,
   },
   countryItem: {
-    paddingHorizontal: olySpacing.lg,
-    paddingVertical: olySpacing.md,
+    paddingHorizontal: olySpacing[16],
+    paddingVertical: olySpacing[16],
     borderBottomWidth: 1,
     borderBottomColor: olyColors.border.default,
   },
@@ -772,145 +1118,239 @@ const styles = StyleSheet.create({
     ...olyTypography.body,
     color: olyColors.text.primary,
   },
-  dobContainer: {
-    marginBottom: olySpacing.lg,
+  // DOB bottom sheet overlay
+  dobOverlay: {
+    flex: 1,
+    backgroundColor: olyColors.bg.overlay,
+    justifyContent: "flex-end" as const,
   },
-  dobFields: {
-    flexDirection: "row",
-    gap: olySpacing.sm,
-  },
-  dobFieldWrapper: {
+  dobOverlayTap: {
     flex: 1,
   },
-  dobInput: {
-    ...olyTypography.body,
-    paddingHorizontal: olySpacing.md,
-    paddingVertical: olySpacing.md,
-    borderRadius: olyRadius.md,
-    backgroundColor: olyColors.bg.secondary,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
-    color: olyColors.text.primary,
-    textAlign: "center",
+  dobSheet: {
+    backgroundColor: olyPalette.card,
+    borderTopLeftRadius: olyRadius.lg,
+    borderTopRightRadius: olyRadius.lg,
+    paddingBottom: olySpacing[32],
   },
-  dobInputError: {
-    borderColor: olyColors.feedback.error,
+  dobHandle: {
+    width: olySpacing[32],
+    height: olySpacing[4],
+    borderRadius: olyRadius.sm,
+    backgroundColor: olyColors.border.default,
+    alignSelf: "center" as const,
+    marginTop: olySpacing[8],
   },
-  dobErrorText: {
+  dobSheetHeader: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+    paddingHorizontal: olySpacing[16],
+    paddingVertical: olySpacing[12],
+  },
+  dobSheetTitle: {
+    ...olyTypography.label,
+    color: olyColors.text.secondary,
+    letterSpacing: olyLetterSpacing.uppercase,
+    textTransform: "uppercase" as const,
+  },
+  dobCloseBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: olyPalette.card,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  // Wheel picker
+  wheelContainer: {
+    position: "relative" as const,
+    height: olyLayout.minTouchTarget * 5,
+    marginHorizontal: olySpacing[16],
+    overflow: "hidden" as const,
+  },
+  wheelHighlight: {
+    position: "absolute" as const,
+    top: olyLayout.minTouchTarget * 2,
+    left: 0,
+    right: 0,
+    height: olyLayout.minTouchTarget,
+    backgroundColor: olyColors.bg.subtleHighlight,
+    borderRadius: olyRadius.lg,
+    zIndex: 1,
+  },
+  wheelLabels: {
+    flexDirection: "row" as const,
+    paddingHorizontal: olySpacing[16],
+    marginBottom: olySpacing[8],
+  },
+  wheelLabel: {
+    flex: 1,
     ...olyTypography.caption,
-    color: olyColors.feedback.error,
-    marginTop: olySpacing.xs,
+    color: olyColors.text.disabled,
+    textAlign: "center" as const,
+    textTransform: "uppercase" as const,
+    letterSpacing: olyLetterSpacing.uppercase,
+  },
+  wheelRow: {
+    flexDirection: "row" as const,
+    flex: 1,
+  },
+  wheelColumn: {
+    flex: 1,
+  },
+  wheelItem: {
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  wheelItemText: {
+    ...olyTypography.body,
+    color: olyColors.text.disabled,
+    textAlign: "center" as const,
+  },
+  wheelItemTextActive: {
+    color: olyColors.text.primary,
+    fontFamily: olyFonts.medium,
+  },
+  dobConfirmContainer: {
+    paddingHorizontal: olySpacing[16],
+    marginTop: olySpacing[24],
   },
   sexSelector: {
     flexDirection: "row",
-    gap: olySpacing.sm,
+    gap: olySpacing[12],
   },
   sexButton: {
     flex: 1,
-    paddingVertical: olySpacing.md,
-    borderRadius: olyRadius.md,
-    backgroundColor: olyColors.bg.secondary,
+    minHeight: olyLayout.minTouchTarget,
+    borderRadius: olyRadius.full,
+    backgroundColor: olyPalette.card,
     borderWidth: 1,
     borderColor: olyColors.border.default,
-    alignItems: "center",
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
   },
   sexButtonActive: {
-    backgroundColor: olyColors.primary,
-    borderColor: olyColors.primary,
+    backgroundColor: olyColors.bg.activeHighlight,
+    borderColor: olyPalette.primary,
   },
   sexButtonText: {
     ...olyTypography.label,
-    color: olyColors.text.secondary,
+    color: olyColors.text.primary,
+    textTransform: "capitalize" as const,
+    letterSpacing: olyLetterSpacing.uppercase,
   },
   sexButtonTextActive: {
-    color: olyColors.text.inverse,
+    color: olyPalette.white,
+  },
+  metricsRow: {
+    flexDirection: "row" as const,
+    gap: olySpacing[12],
   },
   metricCard: {
-    padding: olySpacing.md,
-    marginBottom: olySpacing.lg,
-    backgroundColor: olyColors.bg.secondary,
-    borderRadius: olyRadius.md,
+    flex: 1,
+    padding: olySpacing[16],
+    backgroundColor: olyPalette.card,
+    borderRadius: olyRadius.lg,
     borderWidth: 1,
     borderColor: olyColors.border.default,
+    alignItems: "center" as const,
   },
-  metricLabelContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: olySpacing.md,
-  },
-  metricLabel: {
-    ...olyTypography.label,
-    color: olyColors.text.primary,
-  },
-  unitToggle: {
-    flexDirection: "row",
-    gap: olySpacing.xs,
-  },
-  unitButton: {
-    paddingHorizontal: olySpacing.sm,
-    paddingVertical: olySpacing.xs,
-    borderRadius: olyRadius.sm,
-    backgroundColor: olyColors.bg.primary,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
-  },
-  unitButtonActive: {
-    backgroundColor: olyColors.primary,
-    borderColor: olyColors.primary,
-  },
-  unitButtonText: {
-    ...olyTypography.caption,
+  metricTitle: {
+    ...olyTypography.bodySmall,
     color: olyColors.text.secondary,
-  },
-  unitButtonTextActive: {
-    color: olyColors.text.inverse,
+    marginBottom: olySpacing[8],
+    textTransform: "uppercase" as const,
+    letterSpacing: olyLetterSpacing.uppercase,
   },
   metricInput: {
-    ...olyTypography.body,
-    paddingHorizontal: olySpacing.md,
-    paddingVertical: olySpacing.md,
-    borderRadius: olyRadius.md,
-    backgroundColor: olyColors.bg.primary,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
+    ...olyTypography.display,
     color: olyColors.text.primary,
+    minHeight: 48,
+    width: "100%" as any,
+    textAlign: "center" as const,
+    padding: 0,
+  },
+  heightInputRow: {
+    flexDirection: "row" as const,
+    alignItems: "baseline" as const,
+    justifyContent: "center" as const,
+    width: "100%" as any,
+  },
+  ftInput: {
+    ...olyTypography.display,
+    color: olyColors.text.primary,
+    minHeight: 48,
+    width: 36,
+    textAlign: "center" as const,
+    padding: 0,
+  },
+  ftSeparator: {
+    ...olyTypography.title2,
+    color: olyColors.text.disabled,
+  },
+  unitToggle: {
+    flexDirection: "row" as const,
+    backgroundColor: olyPalette.card,
+    borderRadius: olyRadius.full,
+    padding: olySpacing[4],
+    marginTop: olySpacing[8],
+  },
+  unitPill: {
+    paddingHorizontal: olySpacing[16],
+    paddingVertical: olySpacing[4],
+    borderRadius: olyRadius.full,
+  },
+  unitPillActive: {
+    backgroundColor: olyColors.bg.activeHighlight,
+    borderWidth: 1,
+    borderColor: olyPalette.primary,
+  },
+  unitPillText: {
+    ...olyTypography.caption,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.primary,
+    textTransform: "capitalize" as const,
+    letterSpacing: olyLetterSpacing.uppercase,
+  },
+  unitPillTextActive: {
+    color: olyPalette.white,
   },
   inputError: {
-    borderColor: olyColors.feedback.error,
+    borderColor: olyColors.border.error,
   },
   errorText: {
     ...olyTypography.caption,
-    color: olyColors.feedback.error,
-    marginTop: olySpacing.xs,
+    color: olyColors.text.error,
+    marginTop: olySpacing[4],
   },
   exposureGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: olySpacing.sm,
+    gap: olySpacing[12],
   },
   exposureCard: {
     width: "48%",
-    padding: olySpacing.md,
-    backgroundColor: olyColors.bg.secondary,
-    borderRadius: olyRadius.md,
+    padding: olySpacing[16],
+    backgroundColor: olyPalette.card,
+    borderRadius: olyRadius.lg,
     borderWidth: 1,
     borderColor: olyColors.border.default,
   },
   exposureCardActive: {
-    backgroundColor: olyColors.primary,
-    borderColor: olyColors.primary,
+    backgroundColor: olyColors.bg.activeHighlight,
+    borderColor: olyPalette.primary,
   },
   exposureTitle: {
     ...olyTypography.label,
     color: olyColors.text.primary,
-    marginBottom: olySpacing.xs,
+    marginBottom: olySpacing[4],
   },
   exposureSubtitle: {
     ...olyTypography.caption,
     color: olyColors.text.secondary,
   },
   submitButton: {
-    marginTop: olySpacing.lg,
+    marginTop: olySpacing[40],
   },
 });

@@ -19,7 +19,7 @@ import {
   olyColors,
   olyPalette,
 } from "@/src/oly-theme/oly-colors";
-import { olySpacing } from "@/src/oly-theme/oly-spacing";
+import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyElevation, olyOverlay } from "@/src/oly-theme/oly-elevation";
 import { useToast } from "@/context/toast-context";
@@ -245,16 +245,15 @@ export default function OnboardingScreen2({
     if (onBack) onBack();
   };
 
+  /* ── Validation — all lifts must have a value > 0 ── */
+  const allLiftsFilled = Object.values(liftValues).every((cat) =>
+    cat.every((v) => v > 0),
+  );
+
   /* ── Submit ── */
 
   const onSubmit = () => {
-    const hasAnyWeight = Object.values(liftValues).some((cat) =>
-      cat.some((v) => v > 0),
-    );
-    if (!hasAnyWeight) {
-      showError("Please enter a weight for at least one lift");
-      return;
-    }
+    if (!allLiftsFilled) return;
 
     /* Build selection booleans (backwards compat with Abdul's payload) */
     const olympic_lifts = liftValues.classic.map((v) => v > 0);
@@ -308,7 +307,8 @@ export default function OnboardingScreen2({
               onPress={() =>
                 showVideoOptions({ category, index, label: item.label })
               }
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              hitSlop={olySpacing[12]}
+              style={hasVideo ? styles.videoIconActive : undefined}
             >
               <Ionicons
                 name={hasVideo ? "videocam" : "videocam-outline"}
@@ -337,7 +337,7 @@ export default function OnboardingScreen2({
                 const numValue = parseInt(text) || 0;
                 handleValueChange(category, index, numValue);
               }}
-              keyboardType="numeric"
+              keyboardType="number-pad"
               maxLength={4}
               selectTextOnFocus
             />
@@ -421,7 +421,7 @@ export default function OnboardingScreen2({
                     isActive && styles.accuracyPillTextActive,
                   ]}
                 >
-                  {option.toUpperCase()}
+                  {option}
                 </Text>
               </TouchableOpacity>
             );
@@ -441,6 +441,7 @@ export default function OnboardingScreen2({
           label="NEXT"
           variant="primary"
           onPress={onSubmit}
+          disabled={!allLiftsFilled}
           fullWidth
           style={styles.nextButton}
         />
@@ -462,7 +463,7 @@ export default function OnboardingScreen2({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContent: { flexGrow: 1, paddingBottom: olySpacing[32] },
+  scrollContent: { flexGrow: 1 },
 
   titleBlock: { marginBottom: olySpacing[20] },
   title: { ...olyTypography.title1, color: olyColors.text.primary },
@@ -489,20 +490,30 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: olySpacing[12],
-    minHeight: 44,
+    minHeight: olyLayout.minTouchTarget,
   },
   liftName: { ...olyTypography.body, fontFamily: olyFonts.medium, flex: 1 },
   liftRight: { flexDirection: "row", alignItems: "center", gap: olySpacing[12] },
+  videoIconActive: {
+    width: 32,
+    height: 32,
+    borderRadius: olyRadius.sm,
+    backgroundColor: olyColors.bg.activeHighlight,
+    borderWidth: 1,
+    borderColor: olyPalette.primary,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
   weightInput: {
     ...olyTypography.body,
     fontFamily: olyFonts.medium,
-    minWidth: 40,
+    minWidth: olySpacing[40],
     textAlign: "right",
     paddingHorizontal: olySpacing[4],
     paddingVertical: olySpacing[4],
   },
   unitLabel: { ...olyTypography.bodySmall },
-  divider: { height: 0.5, backgroundColor: olyColors.border.default },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: olyColors.border.default },
 
   accuracyBlock: { marginTop: olySpacing[24], gap: olySpacing[8] },
   accuracyTitle: {
@@ -513,28 +524,32 @@ const styles = StyleSheet.create({
   },
   accuracyRow: {
     flexDirection: "row",
-    borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.cardElevated,
-    padding: 4,
+    gap: olySpacing[12],
   },
   accuracyPill: {
     flex: 1,
-    height: 40,
+    height: olyLayout.minTouchTarget,
     borderRadius: olyRadius.full,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: olyPalette.card,
+    borderWidth: 1,
+    borderColor: olyColors.border.default,
   },
-  accuracyPillActive: { backgroundColor: olyPalette.primary },
+  accuracyPillActive: {
+    backgroundColor: olyColors.bg.activeHighlight,
+    borderColor: olyPalette.primary,
+  },
   accuracyPillText: {
     ...olyTypography.bodySmall,
     fontFamily: olyFonts.medium,
-    color: olyColors.text.secondary,
+    color: olyColors.text.primary,
     letterSpacing: olyLetterSpacing.uppercase,
-    textTransform: "uppercase",
+    textTransform: "capitalize",
   },
   accuracyPillTextActive: { color: olyPalette.white },
 
-  bottomButtons: { flexDirection: "row", gap: olySpacing[12], paddingTop: olySpacing[32] },
+  bottomButtons: { flexDirection: "row", gap: olySpacing[12], paddingTop: olySpacing[40], marginTop: "auto" as const },
   backButton: { flex: 1 },
   nextButton: { flex: 1 },
 

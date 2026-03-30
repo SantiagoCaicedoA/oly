@@ -2,7 +2,7 @@
  * OlyButton — Primary atom component
  * Source: Design Bible v3.0, Section 8.1 Button
  *
- * Variants: primary, secondary, destructive
+ * Variants: primary, secondary, destructive, ghost
  * Sizes: large (50px), medium (44px)
  * States: default, pressed, disabled, loading
  *
@@ -19,14 +19,14 @@ import {
 } from "react-native";
 import * as Haptics from "expo-haptics";
 
-import { olyColors } from "@/src/oly-theme/oly-colors";
+import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
 import { olyTypography, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
 import { olySpacing } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyLayout } from "@/src/oly-theme/oly-spacing";
 
 // ─── Types ───────────────────────────────────────────────────────────
-type OlyButtonVariant = "primary" | "secondary" | "destructive";
+type OlyButtonVariant = "primary" | "secondary" | "destructive" | "ghost";
 type OlyButtonSize = "large" | "medium";
 
 interface OlyButtonProps {
@@ -86,8 +86,8 @@ export const OlyButton: React.FC<OlyButtonProps> = ({
       {loading ? (
         <ActivityIndicator
           color={
-            variant === "secondary"
-              ? olyColors.text.primary
+            variant === "secondary" || variant === "ghost"
+              ? olyColors.text.secondary
               : olyColors.button[variant]?.text ?? olyColors.text.primary
           }
           size="small"
@@ -99,6 +99,7 @@ export const OlyButton: React.FC<OlyButtonProps> = ({
             !preserveCase && { letterSpacing: olyLetterSpacing.uppercase, textTransform: "uppercase" },
             isDisabled && styles.disabledText,
             variant === "secondary" && !isDisabled && styles.secondaryText,
+            variant === "ghost" && !isDisabled && styles.ghostText,
           ]}
           maxFontSizeMultiplier={1.3}
         >
@@ -126,23 +127,27 @@ const styles = StyleSheet.create({
     color: olyColors.text.primary,
   },
   disabled: {
-    backgroundColor: olyColors.button.disabled.bg,
+    backgroundColor: olyColors.bg.activeHighlight,
+    borderWidth: 0,
   },
   disabledText: {
-    color: olyColors.button.disabled.text,
+    color: olyColors.text.secondary,
   },
   secondaryText: {
     color: olyColors.button.secondary.text,
+  },
+  ghostText: {
+    color: olyColors.text.secondary,
   },
 });
 
 const sizeStyles: Record<OlyButtonSize, ViewStyle> = {
   large: {
-    height: 52,
+    height: olyLayout.inputHeight,
     paddingHorizontal: olySpacing[24],
   },
   medium: {
-    height: 44,
+    height: olyLayout.minTouchTarget,
     paddingHorizontal: olySpacing[20],
   },
 };
@@ -152,12 +157,15 @@ const variantStyles: Record<OlyButtonVariant, ViewStyle> = {
     backgroundColor: olyColors.button.primary.bg,
   },
   secondary: {
-    backgroundColor: olyColors.button.secondary.bg,
+    backgroundColor: olyPalette.card,
     borderWidth: 1,
-    borderColor: olyColors.button.secondary.border,
+    borderColor: olyColors.border.default,
   },
   destructive: {
     backgroundColor: olyColors.button.destructive.bg,
+  },
+  ghost: {
+    backgroundColor: "transparent",
   },
 };
 
@@ -171,6 +179,9 @@ const pressedStyles: Record<OlyButtonVariant, ViewStyle> = {
   destructive: {
     backgroundColor: olyColors.button.destructive.bg,
     opacity: 0.8,
+  },
+  ghost: {
+    opacity: 0.6,
   },
 };
 

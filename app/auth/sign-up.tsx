@@ -17,6 +17,7 @@ import { OlyNavBar } from "@/src/oly-components/organisms/OlyNavBar";
 import { useToast } from "@/context/toast-context";
 import { useSignupMutation } from "@/store/api";
 import { loginSuccess } from "@/store/reducer/authSlice";
+import { clearOnboardingData } from "@/store/reducer/onboardingSlice";
 import { SignUpPayload, SignUpFormValues } from "@/types/api/auth";
 import { olyTypography } from "@/src/oly-theme/oly-typography";
 import { olyColors } from "@/src/oly-theme/oly-colors";
@@ -90,6 +91,9 @@ export default function SignUp() {
         }),
       );
 
+      // Clear any stale onboarding data from previous accounts
+      dispatch(clearOnboardingData());
+
       showSuccess("Success", "Welcome! Let's get started");
       router.push({
         pathname: "/auth/onboarding/main-onboarding",
@@ -115,7 +119,7 @@ export default function SignUp() {
   return (
     <OlyScreenWrapper>
       <OlyNavBar
-        onBack={() => router.back()}
+        onBack={() => router.replace("/auth/welcome")}
         centerElement={<NavLogo reduceMotion={!!reduceMotion} />}
       />
 

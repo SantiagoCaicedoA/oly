@@ -40,7 +40,7 @@ export const OlyProgressDots: React.FC<OlyProgressDotsProps> = ({
               {
                 backgroundColor: isActive
                   ? olyPalette.primary
-                  : olyColors.text.disabled,
+                  : `rgba(0, 74, 173, 0.4)`,
               },
             ]}
           />

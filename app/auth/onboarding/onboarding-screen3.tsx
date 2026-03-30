@@ -14,7 +14,7 @@ import {
   olyLetterSpacing,
 } from "@/src/oly-theme/oly-typography";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
-import { olySpacing } from "@/src/oly-theme/oly-spacing";
+import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { useToast } from "@/context/toast-context";
 import { saveOnboardingData, selectOnboardingData } from "@/store/reducer/onboardingSlice";
@@ -239,7 +239,7 @@ export default function OnboardingScreen3({
             control={control}
             name="limitation"
             render={({ field: { onChange, value } }) => (
-              <View style={styles.segmentedContainer}>
+              <View style={styles.pillGrid}>
                 {(["Yes", "No"] as const).map((option) => {
                   const isActive =
                     (option === "Yes" && value === true) ||
@@ -248,19 +248,19 @@ export default function OnboardingScreen3({
                     <TouchableOpacity
                       key={option}
                       style={[
-                        styles.segmentedOption,
-                        isActive && styles.segmentedOptionActive,
+                        styles.pillButton,
+                        isActive && styles.pillButtonActive,
                       ]}
                       onPress={() => onChange(option === "Yes")}
                       activeOpacity={0.8}
                     >
                       <Text
                         style={[
-                          styles.segmentedText,
-                          isActive && styles.segmentedTextActive,
+                          styles.pillText,
+                          isActive && styles.pillTextActive,
                         ]}
                       >
-                        {option.toUpperCase()}
+                        {option}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -322,26 +322,26 @@ export default function OnboardingScreen3({
                 control={control}
                 name="impact"
                 render={({ field: { onChange, value } }) => (
-                  <View style={styles.floatingPillContainer}>
+                  <View style={styles.impactRow}>
                     {IMPACT_OPTIONS.map((option) => {
                       const isActive = value === option;
                       return (
                         <TouchableOpacity
                           key={option}
                           style={[
-                            styles.floatingPillOption,
-                            isActive && styles.floatingPillOptionActive,
+                            styles.impactPill,
+                            isActive && styles.pillButtonActive,
                           ]}
                           onPress={() => onChange(option)}
                           activeOpacity={0.8}
                         >
                           <Text
                             style={[
-                              styles.floatingPillText,
-                              isActive && styles.floatingPillTextActive,
+                              styles.pillText,
+                              isActive && styles.pillTextActive,
                             ]}
                           >
-                            {option.toUpperCase()}
+                            {option}
                           </Text>
                         </TouchableOpacity>
                       );
@@ -426,7 +426,7 @@ export default function OnboardingScreen3({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContent: { flexGrow: 1, paddingBottom: olySpacing[32] },
+  scrollContent: { flexGrow: 1 },
 
   /* Title */
   titleBlock: { marginBottom: olySpacing[20] },
@@ -447,63 +447,7 @@ const styles = StyleSheet.create({
     marginBottom: olySpacing[8],
   },
 
-  /* Segmented control (YES/NO, impact) */
-  segmentedContainer: {
-    flexDirection: "row",
-    borderRadius: olyRadius.full,
-    borderWidth: 1,
-    borderColor: olyColors.border.brand,
-    overflow: "hidden",
-  },
-  segmentedOption: {
-    flex: 1,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  segmentedOptionActive: {
-    backgroundColor: olyPalette.primary,
-  },
-  segmentedText: {
-    ...olyTypography.bodySmall,
-    fontFamily: olyFonts.medium,
-    color: olyColors.text.secondary,
-    letterSpacing: olyLetterSpacing.uppercase,
-    textTransform: "uppercase",
-  },
-  segmentedTextActive: {
-    color: olyPalette.white,
-  },
-
-  /* Floating pill control (current impact) */
-  floatingPillContainer: {
-    flexDirection: "row",
-    borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.cardElevated,
-    padding: 4,
-  },
-  floatingPillOption: {
-    flex: 1,
-    height: 40,
-    borderRadius: olyRadius.full,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  floatingPillOptionActive: {
-    backgroundColor: olyPalette.primary,
-  },
-  floatingPillText: {
-    ...olyTypography.bodySmall,
-    fontFamily: olyFonts.medium,
-    color: olyColors.text.secondary,
-    letterSpacing: olyLetterSpacing.uppercase,
-    textTransform: "uppercase",
-  },
-  floatingPillTextActive: {
-    color: olyPalette.white,
-  },
-
-  /* Pill grid (affected areas, when to show) */
+  /* Pill grid (all controls) */
   pillGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -511,32 +455,48 @@ const styles = StyleSheet.create({
   },
   pillButton: {
     width: "48%",
-    height: 44,
+    height: olyLayout.minTouchTarget,
     borderRadius: olyRadius.full,
     borderWidth: 1,
     borderColor: olyColors.border.default,
-    backgroundColor: "transparent",
+    backgroundColor: olyPalette.card,
     alignItems: "center",
     justifyContent: "center",
   },
   pillButtonActive: {
-    backgroundColor: olyPalette.primary,
+    backgroundColor: olyColors.bg.activeHighlight,
     borderColor: olyPalette.primary,
   },
   pillText: {
-    ...olyTypography.bodySmall,
-    fontFamily: olyFonts.medium,
-    color: olyColors.text.secondary,
+    ...olyTypography.label,
+    color: olyColors.text.primary,
   },
   pillTextActive: {
     color: olyPalette.white,
+  },
+
+  /* Impact row — 3 pills in a row */
+  impactRow: {
+    flexDirection: "row",
+    gap: olySpacing[8],
+  },
+  impactPill: {
+    flex: 1,
+    height: olyLayout.minTouchTarget,
+    borderRadius: olyRadius.full,
+    borderWidth: 1,
+    borderColor: olyColors.border.default,
+    backgroundColor: olyPalette.card,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   /* Bottom buttons */
   bottomButtons: {
     flexDirection: "row",
     gap: olySpacing[12],
-    paddingTop: olySpacing[32],
+    paddingTop: olySpacing[40],
+    marginTop: "auto" as const,
   },
   halfButton: {
     flex: 1,

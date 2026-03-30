@@ -48,6 +48,10 @@ export const olyColors = {
     app: "transparent",
     card: olyPalette.card,
     cardSelected: olyPalette.primary,
+    /** Active pill/card highlight — translucent primary 30% */
+    activeHighlight: `rgba(0, 74, 173, ${olyOpacity.faint})`,
+    /** Subtle highlight band — translucent primary 12% */
+    subtleHighlight: `rgba(0, 74, 173, 0.12)`,
     cardUnselected: `rgba(0, 74, 173, ${olyOpacity.muted})`,
     brand: olyPalette.primary,
     overlay: `rgba(0, 0, 0, 0.4)`,
@@ -87,10 +91,10 @@ export const olyColors = {
       pressed: olyPalette.primaryPressed,
     },
     secondary: {
-      bg: "transparent",
-      border: olyPalette.primary,
+      bg: olyPalette.card,
+      border: `rgba(226, 232, 240, ${olyOpacity.faint})`,
       text: olyPalette.white,
-      pressed: `rgba(0, 74, 173, ${olyOpacity.faint})`,
+      pressed: olyPalette.cardElevated,
     },
     disabled: {
       bg: `rgba(226, 232, 240, ${olyOpacity.subtle})`,

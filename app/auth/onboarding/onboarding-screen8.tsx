@@ -1,27 +1,222 @@
+/**
+ * Onboarding Screen 8 — Summary & Confirmation (Redesigned v2)
+ *
+ * Shows a scrollable summary of everything the user entered,
+ * then submits to the API. Logo + greeting at top, summary cards
+ * for plan & performance gaps, bottom "START TRAINING" button.
+ *
+ * Abdul's submission logic unchanged.
+ */
+
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
 import { OlyScreenWrapper } from "@/src/oly-components/organisms/OlyScreenWrapper";
-import { useToast } from "@/context/toast-context";
-import { useLoadingMessages } from "@/hooks/useLoadingMessage";
 import { useSubmitProfileMutation } from "@/store/api";
 import { setUser } from "@/store/reducer/authSlice";
 import { selectOnboardingData } from "@/store/reducer/onboardingSlice";
 import { RootState } from "@/store/store";
 import { OnboardingApiPayload } from "@/types/api/onboarding";
-import { olyTypography } from "@/src/oly-theme/oly-typography";
-import { olyColors } from "@/src/oly-theme/oly-colors";
-import { olySpacing } from "@/src/oly-theme/oly-spacing";
+import {
+  olyTypography,
+  olyFonts,
+  olyLetterSpacing,
+} from "@/src/oly-theme/oly-typography";
+import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
+import { olyRadius } from "@/src/oly-theme/oly-radius";
+import { getFilteredFacts } from "./loading-facts";
 import { router } from "expo-router";
-import React from "react";
-import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Animated,
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useDispatch, useSelector } from "react-redux";
+
+/* ── Helpers ───────────────────────────────────────────── */
+
+const MONTHS_SHORT = [
+  "", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+const TRAINING_PHASE_LABELS: Record<string, string> = {
+  starting_fresh: "Starting fresh",
+  in_training_block: "In a training block",
+  post_competition: "Post-competition",
+  deload_recovery: "Deload / Recovery",
+  coming_back: "Coming back from injury",
+};
+
+const GAP_CATEGORY_LABELS: Record<string, string> = {
+  pulling_positioning: "Pulling & positioning",
+  receiving_bar: "Receiving",
+  squat_leg_strength: "Squat & leg strength",
+  overhead_stability: "Overhead stability",
+};
+
+const GAP_CATEGORY_KEYS = [
+  "pulling_positioning",
+  "receiving_bar",
+  "squat_leg_strength",
+  "overhead_stability",
+] as const;
+
+function formatCompDate(day?: string, month?: string, year?: string): string {
+  if (!day || !month || !year) return "";
+  const m = parseInt(month, 10);
+  return `${MONTHS_SHORT[m] || month} ${day}, ${year}`;
+}
+
+function weeksUntil(day?: string, month?: string, year?: string): number | null {
+  if (!day || !month || !year) return null;
+  const target = new Date(
+    parseInt(year, 10),
+    parseInt(month, 10) - 1,
+    parseInt(day, 10)
+  );
+  const now = new Date();
+  const diff = target.getTime() - now.getTime();
+  if (diff <= 0) return 0;
+  return Math.ceil(diff / (7 * 24 * 60 * 60 * 1000));
+}
+
+/* ── Component ─────────────────────────────────────────── */
 
 export default function OnboardingScreen8() {
   const allData = useSelector(selectOnboardingData);
   const [submitProfile, { isLoading }] = useSubmitProfileMutation();
   const dispatch = useDispatch();
   const token = useSelector((state: RootState) => state.auth.token);
-  const loadingMessage = useLoadingMessages(isLoading, 25000);
+  /* ── Loading screen: fun facts + progress bar ── */
+  const facts = useMemo(
+    () => getFilteredFacts(allData?.sex, allData?.experience ? parseInt(allData.experience, 10) : undefined),
+    [allData?.sex, allData?.experience]
+  );
 
+  const [currentFactIndex, setCurrentFactIndex] = useState(0);
+  const [showLoading, setShowLoading] = useState(false);
+  const factOpacity = useRef(new Animated.Value(1)).current;
+  const progressWidth = useRef(new Animated.Value(0)).current;
+
+  // Show loading screen when submission starts (stays visible until navigation)
+  useEffect(() => {
+    if (isLoading) setShowLoading(true);
+  }, [isLoading]);
+
+  // Rotate facts every 12 seconds with fade transition
+  useEffect(() => {
+    if (!showLoading || facts.length === 0) return;
+
+    const interval = setInterval(() => {
+      Animated.timing(factOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => {
+        setCurrentFactIndex((prev) => (prev + 1) % facts.length);
+        Animated.timing(factOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
+      });
+    }, 12000);
+
+    return () => clearInterval(interval);
+  }, [showLoading, facts.length, factOpacity]);
+
+  // Animate progress bar over ~60 seconds (stops at 95%)
+  useEffect(() => {
+    if (!showLoading) {
+      progressWidth.setValue(0);
+      return;
+    }
+
+    Animated.timing(progressWidth, {
+      toValue: 0.95,
+      duration: 55000,
+      useNativeDriver: false,
+    }).start();
+  }, [showLoading, progressWidth]);
+
+  /* ── Derived display values ── */
+  const firstName = useMemo(() => {
+    const name = allData?.name || "";
+    return name.split(" ")[0] || "Athlete";
+  }, [allData?.name]);
+
+  const compDate = useMemo(
+    () => formatCompDate(allData?.compDay, allData?.compMonth, allData?.compYear),
+    [allData?.compDay, allData?.compMonth, allData?.compYear]
+  );
+
+  const weeksOut = useMemo(
+    () => weeksUntil(allData?.compDay, allData?.compMonth, allData?.compYear),
+    [allData?.compDay, allData?.compMonth, allData?.compYear]
+  );
+
+  const isCompeting = allData?.preparing_for_competition === true;
+
+  const durationLabel = useMemo(() => {
+    const d = allData?.duration;
+    if (!d) return "";
+    return `${d} min sessions`;
+  }, [allData?.duration]);
+
+  const trainingSchedulePills = useMemo(() => {
+    const pills: string[] = [];
+    if (allData?.days_per_week) pills.push(`${allData.days_per_week} days/wk`);
+    if (allData?.duration) pills.push(`${allData.duration} min sessions`);
+    return pills;
+  }, [allData?.days_per_week, allData?.duration]);
+
+  const restDayNames = useMemo(() => {
+    const days = allData?.rest_days;
+    if (!Array.isArray(days) || days.length === 0) return [];
+    return days;
+  }, [allData?.rest_days]);
+
+  const equipmentPills = useMemo(() => {
+    const pills: string[] = ["Barbell + Bumpers"];
+    const optional = allData?.optional_equipment;
+    if (Array.isArray(optional)) {
+      optional.forEach((e: string) => pills.push(e));
+    }
+    return pills;
+  }, [allData?.optional_equipment]);
+
+  const phaseLabel = useMemo(() => {
+    const phase = allData?.training_phase;
+    if (!phase) return "";
+    return TRAINING_PHASE_LABELS[phase] || phase;
+  }, [allData?.training_phase]);
+
+  // Group selected gaps by category
+  const gapsByCategory = useMemo(() => {
+    const result: { label: string; gaps: string[] }[] = [];
+    for (const key of GAP_CATEGORY_KEYS) {
+      const selected = allData?.[key];
+      if (Array.isArray(selected) && selected.length > 0) {
+        result.push({
+          label: GAP_CATEGORY_LABELS[key] || key,
+          gaps: selected,
+        });
+      }
+    }
+    return result;
+  }, [
+    allData?.pulling_positioning,
+    allData?.receiving_bar,
+    allData?.squat_leg_strength,
+    allData?.overhead_stability,
+  ]);
+
+  /* ── Submit ── */
   const onSubmit = async () => {
     try {
       const apiPayload: OnboardingApiPayload = {
@@ -90,17 +285,17 @@ export default function OnboardingScreen8() {
 
       const result = await submitProfile(apiPayload).unwrap();
       dispatch(setUser(result.data));
-      Alert.alert(
-        "Success",
-        "Your profile has been created successfully!",
-        [
-          {
-            text: "OK",
-            onPress: () => router.replace("/(tabs)/home"),
-          },
-        ],
-        { cancelable: false },
-      );
+
+      // Fill progress bar to 100%, then navigate
+      Animated.timing(progressWidth, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: false,
+      }).start(() => {
+        setTimeout(() => {
+          router.replace("/(tabs)/home");
+        }, 600);
+      });
     } catch (error: any) {
       console.error("Submit Profile Error:", error);
 
@@ -120,85 +315,392 @@ export default function OnboardingScreen8() {
         errorMessage = "Network error. Please check your connection.";
       }
 
+      setShowLoading(false);
+      progressWidth.setValue(0);
       Alert.alert("Error", errorMessage, [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Retry",
-          onPress: onSubmit,
-        },
+        { text: "Cancel", style: "cancel" },
+        { text: "Retry", onPress: onSubmit },
       ]);
     }
   };
 
-  if (isLoading) {
+  /* ── Loading state ── */
+  if (showLoading) {
     return (
       <OlyScreenWrapper>
-        <View style={styles.centerContainer}>
-          <ActivityIndicator
-            size="large"
-            color={olyColors.button.primary.bg}
+        <View style={styles.loadingContainer}>
+          {/* Logo */}
+          <Image
+            source={require("@/assets/images/oly-logo.webp")}
+            style={styles.loadingLogo}
+            resizeMode="contain"
           />
-          <Text style={styles.loadingText}>{loadingMessage}</Text>
+
+          {/* Status message */}
+          <Text style={styles.loadingStatus}>Setting up your training...</Text>
+
+          {/* Progress bar */}
+          <View style={styles.progressBarTrack}>
+            <Animated.View
+              style={[
+                styles.progressBarFill,
+                {
+                  width: progressWidth.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ["0%", "100%"],
+                  }),
+                },
+              ]}
+            />
+          </View>
+
+          {/* Fun fact */}
+          <View style={styles.factContainer}>
+            <Text style={styles.factLabel}>DID YOU KNOW?</Text>
+            <Animated.Text
+              style={[styles.factText, { opacity: factOpacity }]}
+            >
+              {facts[currentFactIndex] || ""}
+            </Animated.Text>
+          </View>
         </View>
       </OlyScreenWrapper>
     );
   }
 
+  /* ── Render ── */
   return (
     <OlyScreenWrapper>
-      <View style={styles.centerContainer}>
-        <View style={styles.headerBlock}>
-          <Text
-            style={styles.mainText}
-            maxFontSizeMultiplier={1.2}
-          >
-            Are you ready to start training?
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── Logo + Greeting ── */}
+        <View style={styles.heroBlock}>
+          <Image
+            source={require("@/assets/images/oly-logo.webp")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.heroTitle} maxFontSizeMultiplier={1.2}>
+            {firstName}, you're all set
           </Text>
-          <Text
-            style={styles.subText}
-            maxFontSizeMultiplier={1.5}
-          >
-            You'll be able to update the past personal data in your profile
-            settings
+          <Text style={styles.heroSubtitle} maxFontSizeMultiplier={1.5}>
+            Here's a summary of your training profile.{"\n"}You can update any of this in settings.
           </Text>
         </View>
 
-        <OlyButton
-          label={isLoading ? "SAVING..." : "SAVE"}
-          onPress={onSubmit}
-          disabled={isLoading}
-          loading={isLoading}
-          fullWidth
-        />
-      </View>
+        {/* ── Competition countdown (conditional) ── */}
+        {isCompeting && allData?.competition_name ? (
+          <View style={styles.compCard}>
+            <View style={styles.compCardLeft}>
+              <Text style={styles.compName} numberOfLines={1}>
+                {allData.competition_name}
+              </Text>
+              {compDate ? (
+                <Text style={styles.compDate}>{compDate}</Text>
+              ) : null}
+            </View>
+            {weeksOut != null && (
+              <View style={styles.compCardRight}>
+                <Text style={styles.weeksNumber}>{weeksOut}</Text>
+                <Text style={styles.weeksLabel}>weeks out</Text>
+              </View>
+            )}
+          </View>
+        ) : null}
+
+        {/* ── YOUR PLAN — Apple Health-style rows ── */}
+        <View style={styles.sectionBlock}>
+          <Text style={styles.sectionLabel}>YOUR PLAN</Text>
+
+          {/* Training schedule */}
+          {allData?.days_per_week && (
+            <View style={styles.dataRow}>
+              <Text style={styles.dataLabel}>Training</Text>
+              <Text style={styles.dataValue}>
+                {allData.days_per_week} days/wk · {allData.duration} min
+              </Text>
+            </View>
+          )}
+
+          {/* Rest days */}
+          {restDayNames.length > 0 && (
+            <View style={styles.dataRow}>
+              <Text style={styles.dataLabel}>Rest days</Text>
+              <Text style={styles.dataValue}>
+                {restDayNames.join(", ")}
+              </Text>
+            </View>
+          )}
+
+          {/* Starting point */}
+          {phaseLabel ? (
+            <View style={styles.dataRow}>
+              <Text style={styles.dataLabel}>Starting point</Text>
+              <Text style={styles.dataValue}>{phaseLabel}</Text>
+            </View>
+          ) : null}
+        </View>
+
+        {/* ── Equipment pills ── */}
+        {equipmentPills.length > 0 && (
+          <View style={styles.sectionBlock}>
+            <Text style={styles.sectionLabel}>EQUIPMENT</Text>
+            <View style={styles.pillRow}>
+              {equipmentPills.map((item) => (
+                <View key={item} style={styles.infoPill}>
+                  <Text style={styles.infoPillText}>{item}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* ── FOCUS AREAS — grouped pills ── */}
+        {gapsByCategory.length > 0 && (
+          <View style={styles.sectionBlock}>
+            <Text style={styles.sectionLabel}>FOCUS AREAS</Text>
+            {gapsByCategory.map((cat, idx) => (
+              <View key={cat.label}>
+                <Text style={styles.gapCategoryLabel}>{cat.label}</Text>
+                <View style={styles.pillRow}>
+                  {cat.gaps.map((gap) => (
+                    <View key={gap} style={styles.infoPill}>
+                      <Text style={styles.infoPillText}>{gap}</Text>
+                    </View>
+                  ))}
+                </View>
+                {idx < gapsByCategory.length - 1 && (
+                  <View style={styles.divider} />
+                )}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* ── Bottom buttons ── */}
+        <View style={styles.bottomButtons}>
+          <OlyButton
+            label="BACK"
+            variant="secondary"
+            onPress={() => router.back()}
+            style={styles.backButton}
+          />
+          <OlyButton
+            label="START TRAINING"
+            variant="primary"
+            onPress={onSubmit}
+            disabled={isLoading}
+            loading={isLoading}
+            fullWidth
+            style={styles.startButton}
+          />
+        </View>
+      </ScrollView>
     </OlyScreenWrapper>
   );
 }
 
+/* ── Styles ─────────────────────────────────────────────── */
+
 const styles = StyleSheet.create({
-  centerContainer: {
+  scrollContent: {
+    flexGrow: 1,
+  },
+
+  /* Loading */
+  loadingContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: olySpacing[16],
+    paddingHorizontal: olySpacing[24],
   },
-  headerBlock: {
+  loadingLogo: {
+    width: 72,
+    height: 72,
     marginBottom: olySpacing[24],
   },
-  mainText: {
+  loadingStatus: {
+    ...olyTypography.body,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.primary,
+    textAlign: "center",
+    marginBottom: olySpacing[20],
+  },
+  progressBarTrack: {
+    width: "100%",
+    height: 3,
+    backgroundColor: olyPalette.card,
+    borderRadius: olyRadius.full,
+    overflow: "hidden",
+    marginBottom: olySpacing[40],
+  },
+  progressBarFill: {
+    height: "100%",
+    backgroundColor: olyPalette.primary,
+    borderRadius: olyRadius.full,
+  },
+  factContainer: {
+    alignItems: "center",
+    paddingHorizontal: olySpacing[8],
+  },
+  factLabel: {
+    ...olyTypography.caption,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.disabled,
+    letterSpacing: olyLetterSpacing.uppercase,
+    textTransform: "uppercase",
+    marginBottom: olySpacing[8],
+  },
+  factText: {
+    ...olyTypography.bodySmall,
+    color: olyColors.text.secondary,
+    textAlign: "center",
+    lineHeight: 22,
+  },
+
+  /* Hero */
+  heroBlock: {
+    alignItems: "center",
+    paddingTop: olySpacing[24],
+    marginBottom: olySpacing[24],
+  },
+  logo: {
+    width: olyLayout.gymTouchTarget,
+    height: olyLayout.gymTouchTarget,
+    marginBottom: olySpacing[16],
+  },
+  heroTitle: {
     ...olyTypography.title1,
     color: olyColors.text.primary,
+    textAlign: "center",
   },
-  subText: {
-    ...olyTypography.body,
+  heroSubtitle: {
+    ...olyTypography.bodySmall,
     color: olyColors.text.secondary,
-    marginTop: olySpacing[8],
+    textAlign: "center",
+    marginTop: olySpacing[4],
   },
-  loadingText: {
+
+  /* Competition card */
+  compCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: olyColors.bg.activeHighlight,
+    borderWidth: 1,
+    borderColor: olyPalette.primary,
+    borderRadius: olyRadius.lg,
+    paddingHorizontal: olySpacing[16],
+    paddingVertical: olySpacing[16],
+    marginBottom: olySpacing[24],
+  },
+  compCardLeft: {
+    flex: 1,
+  },
+  compName: {
     ...olyTypography.body,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.primary,
+  },
+  compDate: {
+    ...olyTypography.caption,
     color: olyColors.text.secondary,
+    marginTop: olySpacing[4],
+  },
+  compCardRight: {
+    alignItems: "center",
+    marginLeft: olySpacing[16],
+  },
+  weeksNumber: {
+    ...olyTypography.display,
+    color: olyColors.text.primary,
+  },
+  weeksLabel: {
+    ...olyTypography.caption,
+    color: olyColors.text.secondary,
+    textAlign: "center",
+  },
+
+  /* Sections */
+  sectionBlock: {
+    marginTop: olySpacing[24],
+    gap: olySpacing[8],
+  },
+  sectionLabel: {
+    ...olyTypography.label,
+    color: olyColors.text.secondary,
+    letterSpacing: olyLetterSpacing.uppercase,
+    textTransform: "uppercase",
+    marginBottom: olySpacing[8],
+  },
+
+  /* Data rows — Apple Health style: label left, value right */
+  dataRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: olySpacing[12],
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: olyColors.border.default,
+  },
+  dataLabel: {
+    ...olyTypography.bodySmall,
+    color: olyColors.text.secondary,
+  },
+  dataValue: {
+    ...olyTypography.bodySmall,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.primary,
+    textAlign: "right",
+    flexShrink: 1,
+  },
+
+  /* Pill rows — for equipment & focus areas */
+  pillRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: olySpacing[8],
+  },
+  infoPill: {
+    backgroundColor: olyPalette.card,
+    borderRadius: olyRadius.full,
+    borderWidth: 1,
+    borderColor: olyColors.border.default,
+    paddingHorizontal: olySpacing[12],
+    paddingVertical: olySpacing[4],
+  },
+  infoPillText: {
+    ...olyTypography.bodySmall,
+    color: olyColors.text.primary,
+  },
+
+  /* Focus area category labels */
+  gapCategoryLabel: {
+    ...olyTypography.bodySmall,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.secondary,
+    marginBottom: olySpacing[8],
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: olyColors.border.default,
+    marginVertical: olySpacing[12],
+  },
+
+  /* Bottom buttons */
+  bottomButtons: {
+    flexDirection: "row",
+    gap: olySpacing[12],
+    paddingTop: olySpacing[40],
+    marginTop: "auto" as const,
+  },
+  backButton: {
+    flex: 0,
+    paddingHorizontal: olySpacing[24],
+  },
+  startButton: {
+    flex: 1,
   },
 });

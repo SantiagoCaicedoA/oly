@@ -1,34 +1,47 @@
-import { Images } from "@/assets";
 import PostCard from "@/components/post-card";
 import CustomButton from "@/constants/custom-button";
-import { useTheme } from "@/context/theme-context";
+import { olyTypography, olyFonts, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
+import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
+import { olyRadius } from "@/src/oly-theme/oly-radius";
+import { Ionicons } from "@expo/vector-icons";
 import { useGetPostsQuery } from "@/store/api";
 import { RootState } from "@/store/store";
-import { Typography } from "@/utils/custom-styles";
 import { router, Stack } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Image,
+  ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { scale } from "react-native-size-matters";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
+
+const HEADER_ICON_SIZE = 24;
+
+const FEED_FILTERS = [
+  "All",
+  "Snatch",
+  "Clean & Jerk",
+  "Squats",
+  "PRs",
+  "Following",
+] as const;
 
 export default function Home() {
-  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const dispatch = useDispatch();
   const token = useSelector((state: RootState) => state.auth.token);
   const LIMIT = 10;
   const [page, setPage] = useState(1);
+  const [activeFilter, setActiveFilter] = useState<string>("All");
   const isLoadingMore = useRef(false);
   const [hasMore, setHasMore] = useState(true);
   const [allPosts, setAllPosts] = useState<any[]>([]);
@@ -83,86 +96,6 @@ export default function Home() {
     );
     setVisiblePostIds(ids);
   }).current;
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-      paddingBottom: insets.bottom + scale(30),
-    },
-    icon: {
-      width: scale(20),
-      height: scale(20),
-      borderRadius: scale(20),
-      marginRight: scale(10),
-    },
-    header: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      paddingVertical: scale(12),
-      borderBottomWidth: 0.5,
-      borderColor: colors.text,
-      backgroundColor: colors.headerBackground,
-      paddingHorizontal: scale(8),
-    },
-    headerSection: {
-      flexDirection: "row",
-    },
-    home: {
-      fontSize: Typography.fontSize.lg,
-      fontWeight: Typography.fontWeight.normal,
-      letterSpacing: Typography.letterSpacing.normal,
-      color: colors.text,
-    },
-    listContent: {
-      paddingVertical: scale(15),
-      paddingHorizontal: scale(14),
-    },
-    loadingContainer: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-
-    emptyText: {
-      fontSize: Typography.fontSize.md,
-      fontWeight: Typography.fontWeight.normal,
-      color: colors.text,
-    },
-
-    errorText: {
-      fontSize: Typography.fontSize.md,
-      fontWeight: Typography.fontWeight.normal,
-      color: "red",
-    },
-
-    emptyContainer: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
-      paddingHorizontal: scale(24),
-      gap: scale(12),
-    },
-
-    emptyTitle: {
-      fontSize: Typography.fontSize["2xl"],
-      fontWeight: Typography.fontWeight.bold,
-      color: colors.text,
-    },
-
-    emptySubtitle: {
-      fontSize: Typography.fontSize.md,
-      fontWeight: Typography.fontWeight.normal,
-      color: colors.textSecondary,
-      textAlign: "center",
-
-      maxWidth: scale(260),
-    },
-
-    button: {
-      width: "70%",
-      maxWidth: scale(160),
-    },
-  });
 
   const renderEmptyComponent = () => {
     if (isLoading) return null;
@@ -199,7 +132,7 @@ export default function Home() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={olyPalette.primary} />
         </View>
       </SafeAreaView>
     );
@@ -216,17 +149,69 @@ export default function Home() {
     <>
       <Stack.Screen options={{ gestureEnabled: false }} />
       <SafeAreaView style={styles.container}>
-        {/* <ScreenWrapper> */}
-        <View style={styles.header}>
-          <View style={styles.headerSection}>
-            <Image source={Images.profile} style={styles.icon} />
-            <Image source={Images.search} style={styles.icon} />
+        <View style={styles.stickyHeader}>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>COMMUNITY</Text>
+            <View style={styles.headerIcons}>
+              <TouchableOpacity hitSlop={olySpacing[8]} activeOpacity={0.6}>
+                <Ionicons
+                  name="search-outline"
+                  size={HEADER_ICON_SIZE}
+                  color={olyColors.text.secondary}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity hitSlop={olySpacing[8]} activeOpacity={0.6}>
+                <View>
+                  <Ionicons
+                    name="mail-outline"
+                    size={HEADER_ICON_SIZE}
+                    color={olyColors.text.secondary}
+                  />
+                  <View style={styles.notificationDot} />
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity hitSlop={olySpacing[8]} activeOpacity={0.6}>
+                <Ionicons
+                  name="notifications-outline"
+                  size={HEADER_ICON_SIZE}
+                  color={olyColors.text.secondary}
+                />
+              </TouchableOpacity>
+            </View>
           </View>
-          <Text style={styles.home}>HOME</Text>
-          <View style={styles.headerSection}>
-            <Image source={Images.notificationicon} style={styles.icon} />
-            <Image source={Images.comment} style={styles.icon} />
-          </View>
+
+          {/* Filter pills */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterRow}
+            style={styles.filterContainer}
+          >
+            {FEED_FILTERS.map((filter) => {
+              const isActive = activeFilter === filter;
+              return (
+                <TouchableOpacity
+                  key={filter}
+                  style={[styles.filterPill, isActive && styles.filterPillActive]}
+                  onPress={() => setActiveFilter(filter)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.filterText,
+                      isActive && styles.filterTextActive,
+                    ]}
+                  >
+                    {filter}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+          <LinearGradient
+            colors={[olyPalette.background, "transparent"]}
+            style={styles.headerFade}
+          />
         </View>
 
         <FlatList
@@ -249,8 +234,8 @@ export default function Home() {
             isFetching && !isLoading ? (
               <ActivityIndicator
                 size="small"
-                color={colors.primary}
-                style={{ padding: scale(10) }}
+                color={olyPalette.primary}
+                style={{ padding: olySpacing[8] }}
               />
             ) : null
           }
@@ -263,8 +248,126 @@ export default function Home() {
           ListEmptyComponent={renderEmptyComponent}
           showsVerticalScrollIndicator={false}
         />
-        {/* </ScreenWrapper> */}
       </SafeAreaView>
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+  stickyHeader: {
+    backgroundColor: olyPalette.background,
+    zIndex: 1,
+  },
+  headerFade: {
+    height: 12,
+    marginTop: -1,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: olySpacing[12],
+    paddingHorizontal: olyLayout.screenPadding,
+  },
+  headerTitle: {
+    ...olyTypography.title2,
+    color: olyColors.text.primary,
+    letterSpacing: olyLetterSpacing.uppercase,
+  },
+  headerIcons: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: olySpacing[20],
+  },
+  notificationDot: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    width: 8,
+    height: 8,
+    borderRadius: olyRadius.full,
+    backgroundColor: olyPalette.primary,
+    borderWidth: 1.5,
+    borderColor: olyPalette.card,
+  },
+  filterContainer: {
+    flexGrow: 0,
+  },
+  filterRow: {
+    flexDirection: "row",
+    gap: olySpacing[8],
+    paddingHorizontal: olyLayout.screenPadding,
+    paddingVertical: olySpacing[12],
+  },
+  filterPill: {
+    paddingHorizontal: olySpacing[16],
+    height: 32,
+    borderRadius: olyRadius.full,
+    borderWidth: 1,
+    borderColor: olyColors.border.default,
+    backgroundColor: "transparent",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  filterPillActive: {
+    backgroundColor: olyPalette.primary,
+    borderColor: olyPalette.primary,
+  },
+  filterText: {
+    ...olyTypography.caption,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.secondary,
+  },
+  filterTextActive: {
+    color: olyPalette.white,
+  },
+  listContent: {
+    paddingTop: olySpacing[4],
+    paddingBottom: olySpacing[16],
+    paddingHorizontal: olyLayout.screenPadding,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  emptyText: {
+    ...olyTypography.body,
+    color: olyColors.text.primary,
+  },
+
+  errorText: {
+    ...olyTypography.body,
+    color: olyColors.text.error,
+  },
+
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: olySpacing[24],
+    gap: olySpacing[12],
+  },
+
+  emptyTitle: {
+    ...olyTypography.title2,
+    color: olyColors.text.primary,
+  },
+
+  emptySubtitle: {
+    ...olyTypography.body,
+    color: olyColors.text.secondary,
+    textAlign: "center",
+    maxWidth: 260,
+  },
+
+  button: {
+    width: "70%",
+    maxWidth: 160,
+  },
+});

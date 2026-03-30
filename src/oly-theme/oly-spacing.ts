@@ -39,6 +39,8 @@ export const olyLayout = {
   tabBarHeight: 49,
   /** Minimum touch target everywhere — Apple HIG */
   minTouchTarget: 44,
+  /** Standard text-input / dropdown height */
+  inputHeight: 52,
   /** In-gym touch target (chalk/sweat/fatigue) */
   gymTouchTarget: 56,
 } as const;
