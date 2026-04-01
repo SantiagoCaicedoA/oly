@@ -1,8 +1,11 @@
 /**
- * Daily Check-In — Redesigned v2
+ * Daily Check-In — Redesigned v2.1
  *
  * Visual redesign using Oly Design System tokens.
- * Abdul's API mutation & navigation flow unchanged.
+ * API mutation & navigation flow unchanged.
+ *
+ * v2.1: Premium pass — killed card borders, refined slider,
+ *       softened greeting hierarchy, added breathing room.
  *
  * Sections: Header, Greeting, Sleep, Readiness, Soreness,
  *           Bodyweight, Notes, Submit
@@ -20,7 +23,6 @@ import {
 } from "@/src/oly-theme/oly-colors";
 import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
-import { olyElevation } from "@/src/oly-theme/oly-elevation";
 import { useDailyCheckInMutation } from "@/store/api";
 import { Days } from "@/store/reducer/trainingSlice";
 import { RootState } from "@/store/store";
@@ -114,13 +116,9 @@ function sleepHoursToQuality(hours: number): number {
   return Math.round(((hours - SLEEP_MIN) / (SLEEP_MAX - SLEEP_MIN)) * 10);
 }
 
-/** Get sleep quality label from hours */
-function getSleepQualityLabel(hours: number): string {
-  if (hours <= 5) return "Poor";
-  if (hours <= 6.5) return "Below average";
-  if (hours <= 7.5) return "Good quality";
-  if (hours <= 8.5) return "Great quality";
-  return "Excellent";
+/** Contextual label — keeps it informational, not judgmental */
+function getSleepContext(hours: number): string {
+  return "last night";
 }
 
 /* ── Sleep Slider Component ────────────────────────────── */
@@ -218,27 +216,25 @@ const sliderStyles = StyleSheet.create({
     position: "relative",
   },
   trackBg: {
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: olyPalette.cardElevated,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: `rgba(226, 232, 240, 0.08)`,
     overflow: "hidden",
   },
   trackFill: {
     height: "100%",
-    borderRadius: 2,
+    borderRadius: 3,
     backgroundColor: olyPalette.primary,
   },
   thumb: {
     position: "absolute",
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: olyColors.text.primary,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: olyPalette.primary,
     top: "50%",
-    marginTop: -10,
-    marginLeft: -10,
-    borderWidth: 2,
-    borderColor: olyPalette.primary,
+    marginTop: -12,
+    marginLeft: -12,
   },
   rangeLabels: {
     flexDirection: "row",
@@ -505,8 +501,11 @@ export default function DailyCheckIn() {
         >
           {/* ── Greeting ── */}
           <View style={styles.greetingBlock}>
-            <Text style={styles.greetingTitle}>
-              {getGreeting()}, {athleteName}.
+            <Text style={styles.greetingLine}>
+              {getGreeting()},
+            </Text>
+            <Text style={styles.greetingName}>
+              {athleteName}.
             </Text>
             <Text style={styles.greetingSubtitle}>
               Let's see how you're feeling before today's session.
@@ -524,8 +523,8 @@ export default function DailyCheckIn() {
                 </Text>
                 <Text style={styles.sleepUnit}>hrs</Text>
               </View>
-              <Text style={styles.sleepQualityLabel}>
-                {getSleepQualityLabel(sleepHours)}
+              <Text style={styles.sleepContextLabel}>
+                {getSleepContext(sleepHours)}
               </Text>
 
               <View style={{ marginTop: olySpacing[12] }}>
@@ -690,20 +689,26 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: olyLayout.screenPadding,
     paddingBottom: olySpacing[40],
-    gap: olySpacing[24],
+    gap: olySpacing[32],
   },
 
   // ── Greeting ──
   greetingBlock: {
     gap: olySpacing[4],
+    marginBottom: -olySpacing[8],
   },
-  greetingTitle: {
+  greetingLine: {
+    ...olyTypography.body,
+    color: olyColors.text.secondary,
+  },
+  greetingName: {
     ...olyTypography.title1,
     color: olyColors.text.primary,
   },
   greetingSubtitle: {
-    ...olyTypography.body,
+    ...olyTypography.bodySmall,
     color: olyColors.text.secondary,
+    marginTop: olySpacing[4],
   },
 
   // ── Section pattern ──
@@ -711,15 +716,15 @@ const styles = StyleSheet.create({
     gap: olySpacing[8],
   },
   sectionLabel: {
-    ...olyTypography.label,
+    ...olyTypography.caption,
     color: olyColors.text.secondary,
     textTransform: "uppercase",
     letterSpacing: olyLetterSpacing.uppercase,
   },
 
-  // ── Card ──
+  // ── Card — borderless, bg separation only ──
   card: {
-    ...olyElevation.level1,
+    backgroundColor: olyPalette.card,
     borderRadius: olyRadius.lg,
     padding: olyLayout.cardPadding,
   },
@@ -740,8 +745,8 @@ const styles = StyleSheet.create({
     ...olyTypography.body,
     color: olyColors.text.secondary,
   },
-  sleepQualityLabel: {
-    ...olyTypography.bodySmall,
+  sleepContextLabel: {
+    ...olyTypography.caption,
     color: olyColors.text.secondary,
     marginTop: olySpacing[4],
   },
@@ -758,12 +763,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: olyRadius.full,
     backgroundColor: olyPalette.card,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
   },
   readinessPillActive: {
     backgroundColor: olyPalette.primary,
-    borderColor: olyPalette.primary,
   },
   readinessPillText: {
     ...olyTypography.bodySmall,
@@ -775,7 +777,7 @@ const styles = StyleSheet.create({
 
   // ── Divider ──
   divider: {
-    height: 1,
+    height: StyleSheet.hairlineWidth,
     backgroundColor: olyColors.border.default,
   },
 
@@ -792,8 +794,6 @@ const styles = StyleSheet.create({
   },
   bodyweightNumber: {
     ...olyTypography.display,
-    fontSize: 40,
-    lineHeight: 48,
     color: olyColors.text.primary,
   },
   bodyweightUnit: {
