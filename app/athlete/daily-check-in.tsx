@@ -501,11 +501,8 @@ export default function DailyCheckIn() {
         >
           {/* ── Greeting ── */}
           <View style={styles.greetingBlock}>
-            <Text style={styles.greetingLine}>
-              {getGreeting()},
-            </Text>
-            <Text style={styles.greetingName}>
-              {athleteName}.
+            <Text style={styles.greetingTitle}>
+              {getGreeting()}, {athleteName}.
             </Text>
             <Text style={styles.greetingSubtitle}>
               Let's see how you're feeling before today's session.
@@ -697,12 +694,8 @@ const styles = StyleSheet.create({
     gap: olySpacing[4],
     marginBottom: -olySpacing[8],
   },
-  greetingLine: {
-    ...olyTypography.body,
-    color: olyColors.text.secondary,
-  },
-  greetingName: {
-    ...olyTypography.title1,
+  greetingTitle: {
+    ...olyTypography.title2,
     color: olyColors.text.primary,
   },
   greetingSubtitle: {
