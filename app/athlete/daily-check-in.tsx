@@ -4,7 +4,7 @@
  * Visual redesign using Oly Design System tokens.
  * API mutation & navigation flow unchanged.
  *
- * v2.4: Soreness bar — single segment fill, primary blue only.
+ * v2.4: Soreness bar — single segment fill, white indicator.
  *       Readiness chips match lift-analysis pill pattern.
  *
  * Sections: Header, Greeting, Sleep, Readiness, Soreness,
@@ -284,7 +284,7 @@ const SorenessTrack: React.FC<SorenessTrackProps> = ({
                 sorenessStyles.segment,
                 {
                   backgroundColor: isSelected
-                    ? olyPalette.primary
+                    ? olyColors.text.primary
                     : olyColors.border.default,
                 },
                 isFirst && sorenessStyles.segmentFirst,
