@@ -1,16 +1,17 @@
 /**
- * Daily Check-In — Redesigned v2.4
+ * Daily Check-In — Redesigned v2.5
  *
  * Visual redesign using Oly Design System tokens.
  * API mutation & navigation flow unchanged.
  *
- * v2.4: Soreness bar — single segment fill, white indicator.
+ * v2.5: Soreness uses AnalysisSegment directly (zero duplication).
  *       Readiness chips match lift-analysis pill pattern.
  *
  * Sections: Header, Greeting, Sleep, Readiness, Soreness,
  *           Bodyweight, Notes, Submit
  */
 
+import AnalysisSegment from "@/components/analysis-segment";
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
 import {
   olyTypography,
@@ -65,13 +66,6 @@ const READINESS_OPTIONS = [
   { label: "Normal", value: 6 },
   { label: "Good", value: 8 },
   { label: "Great", value: 10 },
-] as const;
-
-const SORENESS_LEVELS = [
-  { label: "None", value: 0 },
-  { label: "Mild", value: 1 },
-  { label: "Moderate", value: 2 },
-  { label: "Severe", value: 3 },
 ] as const;
 
 const SORENESS_AREAS = [
@@ -243,102 +237,15 @@ const sliderStyles = StyleSheet.create({
   },
 });
 
-/* ── Soreness Track Component (matches AnalysisSegment bar) ── */
+/* ── Soreness constants for AnalysisSegment ────────────── */
 
-interface SorenessTrackProps {
-  area: string;
-  level: number;
-  onChange: (level: number) => void;
-}
-
-const SORENESS_BAR_HEIGHT = 6;
-
-const SorenessTrack: React.FC<SorenessTrackProps> = ({
-  area,
-  level,
-  onChange,
-}) => {
-  const currentLevel = SORENESS_LEVELS[level] ?? SORENESS_LEVELS[0];
-
-  return (
-    <View style={sorenessStyles.row}>
-      {/* Title row — same layout as AnalysisSegment titleRow */}
-      <View style={sorenessStyles.titleRow}>
-        <Text style={sorenessStyles.title}>{area}</Text>
-        <Text style={sorenessStyles.valueLabel}>
-          {currentLevel.label}
-        </Text>
-      </View>
-
-      {/* Segmented bar — only selected segment fills */}
-      <View style={sorenessStyles.barRow}>
-        {SORENESS_LEVELS.map((sl, index) => {
-          const isSelected = index === level;
-          const isFirst = index === 0;
-          const isLast = index === SORENESS_LEVELS.length - 1;
-
-          return (
-            <TouchableOpacity
-              key={sl.label}
-              style={[
-                sorenessStyles.segment,
-                {
-                  backgroundColor: isSelected
-                    ? olyColors.text.primary
-                    : olyColors.border.default,
-                },
-                isFirst && sorenessStyles.segmentFirst,
-                isLast && sorenessStyles.segmentLast,
-              ]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                onChange(index);
-              }}
-              activeOpacity={0.7}
-            />
-          );
-        })}
-      </View>
-    </View>
-  );
+const SORENESS_OPTIONS = ["None", "Mild", "Moderate", "Severe"];
+const SORENESS_TEXT_MAP: Record<string, string> = {
+  None: "None",
+  Mild: "Mild",
+  Moderate: "Moderate",
+  Severe: "Severe",
 };
-
-const sorenessStyles = StyleSheet.create({
-  row: {
-    gap: olySpacing[8],
-    marginBottom: olySpacing[20],
-  },
-  titleRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  title: {
-    ...olyTypography.body,
-    fontFamily: olyFonts.medium,
-    color: olyColors.text.primary,
-  },
-  valueLabel: {
-    ...olyTypography.bodySmall,
-    color: olyColors.text.secondary,
-  },
-  barRow: {
-    flexDirection: "row",
-    gap: olySpacing[4],
-  },
-  segment: {
-    flex: 1,
-    height: SORENESS_BAR_HEIGHT,
-  },
-  segmentFirst: {
-    borderTopLeftRadius: olyRadius.sm,
-    borderBottomLeftRadius: olyRadius.sm,
-  },
-  segmentLast: {
-    borderTopRightRadius: olyRadius.sm,
-    borderBottomRightRadius: olyRadius.sm,
-  },
-});
 
 /* ── Main Screen ───────────────────────────────────────── */
 
@@ -361,21 +268,21 @@ export default function DailyCheckIn() {
   const [readiness, setReadiness] = useState(
     dailyCheckIn?.mental_readiness ?? 6
   );
-  const [sorenessLevels, setSorenessLevels] = useState<Record<string, number>>(
+  const [sorenessLevels, setSorenessLevels] = useState<Record<string, string>>(
     () => {
-      const initial: Record<string, number> = {};
+      const initial: Record<string, string> = {};
       SORENESS_AREAS.forEach((area) => {
-        initial[area] = 0;
+        initial[area] = "None";
       });
       // Restore from existing check-in if available
       if (dailyCheckIn?.sore_areas) {
         dailyCheckIn.sore_areas.forEach((area) => {
-          // Match title-case keys (e.g. "KNEES" → "Knees")
           const matched = SORENESS_AREAS.find(
             (a) => a.toUpperCase() === area.toUpperCase()
           );
           if (matched) {
-            initial[matched] = Math.min(3, Math.max(1, Math.round(dailyCheckIn.intensity / 3)));
+            const idx = Math.min(3, Math.max(1, Math.round(dailyCheckIn.intensity / 3)));
+            initial[matched] = SORENESS_OPTIONS[idx];
           }
         });
       }
@@ -393,18 +300,21 @@ export default function DailyCheckIn() {
     router.back();
   };
 
-  const handleSorenessChange = (area: string, level: number) => {
-    setSorenessLevels((prev) => ({ ...prev, [area]: level }));
+  const handleSorenessChange = (area: string, value: string) => {
+    setSorenessLevels((prev) => ({ ...prev, [area]: value }));
   };
 
   const handleSubmit = async () => {
-    // Build sore_areas from areas with level > 0 (uppercase for API)
+    // Build sore_areas from areas with level > None (uppercase for API)
     const soreAreas = Object.entries(sorenessLevels)
-      .filter(([_, level]) => level > 0)
+      .filter(([_, value]) => value !== "None")
       .map(([area]) => area.toUpperCase());
 
     // Max soreness intensity across all areas (scale 0-3 → 0-10)
-    const maxSoreness = Math.max(0, ...Object.values(sorenessLevels));
+    const numericLevels = Object.values(sorenessLevels).map(
+      (v) => SORENESS_OPTIONS.indexOf(v)
+    );
+    const maxSoreness = Math.max(0, ...numericLevels);
     const muscleSorenessScale = Math.round((maxSoreness / 3) * 10);
     const intensityScale = Math.round((maxSoreness / 3) * 10);
 
@@ -530,11 +440,13 @@ export default function DailyCheckIn() {
             <Text style={styles.sectionLabel}>SORENESS</Text>
             <View style={styles.card}>
               {SORENESS_AREAS.map((area) => (
-                <SorenessTrack
+                <AnalysisSegment
                   key={area}
-                  area={area}
-                  level={sorenessLevels[area] ?? 0}
-                  onChange={(level) => handleSorenessChange(area, level)}
+                  title={area}
+                  value={sorenessLevels[area] ?? "None"}
+                  options={SORENESS_OPTIONS}
+                  valueTextMap={SORENESS_TEXT_MAP}
+                  onChange={(value) => handleSorenessChange(area, value)}
                 />
               ))}
             </View>
