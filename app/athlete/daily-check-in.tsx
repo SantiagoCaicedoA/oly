@@ -1,17 +1,17 @@
 /**
- * Daily Check-In — Redesigned v2.1
+ * Daily Check-In — Redesigned v2.2
  *
  * Visual redesign using Oly Design System tokens.
  * API mutation & navigation flow unchanged.
  *
- * v2.1: Premium pass — killed card borders, refined slider,
- *       softened greeting hierarchy, added breathing room.
+ * v2.2: Readiness pills → OlySegmentedControl for consistency.
  *
  * Sections: Header, Greeting, Sleep, Readiness, Soreness,
  *           Bodyweight, Notes, Submit
  */
 
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
+import { OlySegmentedControl } from "@/src/oly-components/molecules/OlySegmentedControl";
 import {
   olyTypography,
   olyLetterSpacing,
@@ -525,36 +525,15 @@ export default function DailyCheckIn() {
           {/* ── Readiness ── */}
           <View style={styles.sectionBlock}>
             <Text style={styles.sectionLabel}>HOW READY DO YOU FEEL?</Text>
-            <View style={styles.pillRow}>
-              {READINESS_OPTIONS.map((option) => {
-                const isActive = readiness === option.value;
-                return (
-                  <TouchableOpacity
-                    key={option.value}
-                    style={[
-                      styles.readinessPill,
-                      isActive && styles.readinessPillActive,
-                    ]}
-                    onPress={() => {
-                      Haptics.impactAsync(
-                        Haptics.ImpactFeedbackStyle.Light
-                      );
-                      setReadiness(option.value);
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Text
-                      style={[
-                        styles.readinessPillText,
-                        isActive && styles.readinessPillTextActive,
-                      ]}
-                    >
-                      {option.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            <OlySegmentedControl
+              segments={READINESS_OPTIONS.map((o) => o.label)}
+              activeIndex={READINESS_OPTIONS.findIndex(
+                (o) => o.value === readiness
+              )}
+              onChange={(index) =>
+                setReadiness(READINESS_OPTIONS[index].value)
+              }
+            />
           </View>
 
           {/* ── Soreness ── */}
@@ -729,30 +708,6 @@ const styles = StyleSheet.create({
   sleepUnit: {
     ...olyTypography.body,
     color: olyColors.text.secondary,
-  },
-
-  // ── Readiness pills ──
-  pillRow: {
-    flexDirection: "row",
-    gap: olySpacing[8],
-  },
-  readinessPill: {
-    flex: 1,
-    height: olyLayout.minTouchTarget,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.card,
-  },
-  readinessPillActive: {
-    backgroundColor: olyPalette.primary,
-  },
-  readinessPillText: {
-    ...olyTypography.bodySmall,
-    color: olyColors.text.primary,
-  },
-  readinessPillTextActive: {
-    color: olyColors.text.onBrand,
   },
 
   // ── Divider ──
