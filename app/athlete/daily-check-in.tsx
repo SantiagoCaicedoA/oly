@@ -4,16 +4,16 @@
  * Visual redesign using Oly Design System tokens.
  * API mutation & navigation flow unchanged.
  *
- * v2.2: Readiness pills → OlySegmentedControl for consistency.
+ * v2.2: Readiness chips match lift-analysis pill pattern.
  *
  * Sections: Header, Greeting, Sleep, Readiness, Soreness,
  *           Bodyweight, Notes, Submit
  */
 
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
-import { OlySegmentedControl } from "@/src/oly-components/molecules/OlySegmentedControl";
 import {
   olyTypography,
+  olyFonts,
   olyLetterSpacing,
 } from "@/src/oly-theme/oly-typography";
 import {
@@ -525,15 +525,33 @@ export default function DailyCheckIn() {
           {/* ── Readiness ── */}
           <View style={styles.sectionBlock}>
             <Text style={styles.sectionLabel}>HOW READY DO YOU FEEL?</Text>
-            <OlySegmentedControl
-              segments={READINESS_OPTIONS.map((o) => o.label)}
-              activeIndex={READINESS_OPTIONS.findIndex(
-                (o) => o.value === readiness
-              )}
-              onChange={(index) =>
-                setReadiness(READINESS_OPTIONS[index].value)
-              }
-            />
+            <View style={styles.chipsRow}>
+              {READINESS_OPTIONS.map((option) => {
+                const isActive = readiness === option.value;
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[styles.chip, isActive && styles.chipActive]}
+                    onPress={() => {
+                      Haptics.impactAsync(
+                        Haptics.ImpactFeedbackStyle.Light
+                      );
+                      setReadiness(option.value);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        isActive && styles.chipTextActive,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
 
           {/* ── Soreness ── */}
@@ -708,6 +726,33 @@ const styles = StyleSheet.create({
   sleepUnit: {
     ...olyTypography.body,
     color: olyColors.text.secondary,
+  },
+
+  // ── Readiness chips (matches lift-analysis pattern) ──
+  chipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: olySpacing[8],
+  },
+  chip: {
+    paddingHorizontal: olySpacing[12],
+    paddingVertical: olySpacing[8],
+    borderRadius: olyRadius.full,
+    borderWidth: 1,
+    borderColor: olyColors.border.brandUnselected,
+    backgroundColor: olyColors.bg.activeHighlight,
+  },
+  chipActive: {
+    backgroundColor: olyColors.bg.cardSelected,
+    borderColor: olyColors.border.brand,
+  },
+  chipText: {
+    ...olyTypography.bodySmall,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.secondary,
+  },
+  chipTextActive: {
+    color: olyColors.text.primary,
   },
 
   // ── Divider ──
