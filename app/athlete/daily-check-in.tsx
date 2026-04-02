@@ -1,13 +1,13 @@
 /**
- * Daily Check-In — Redesigned v2.6
+ * Daily Check-In — Redesigned v2.7
  *
  * Visual redesign using Oly Design System tokens.
  * API mutation & navigation flow unchanged.
  *
- * v2.6: Renamed readiness to "How's your energy today?"
- *       Default remains Normal (value 6).
+ * v2.7: Added stress level section (None/Low/Moderate/High).
+ *       stress_level now maps directly instead of faking from readiness.
  *
- * Sections: Header, Greeting, Sleep, Energy, Soreness,
+ * Sections: Header, Greeting, Sleep, Energy, Stress, Soreness,
  *           Bodyweight, Notes, Submit
  */
 
@@ -66,6 +66,13 @@ const READINESS_OPTIONS = [
   { label: "Normal", value: 6 },
   { label: "Good", value: 8 },
   { label: "Great", value: 10 },
+] as const;
+
+const STRESS_OPTIONS = [
+  { label: "None", value: 0 },
+  { label: "Low", value: 3 },
+  { label: "Moderate", value: 6 },
+  { label: "High", value: 10 },
 ] as const;
 
 const SORENESS_AREAS = [
@@ -268,6 +275,9 @@ export default function DailyCheckIn() {
   const [readiness, setReadiness] = useState(
     dailyCheckIn?.mental_readiness ?? 6
   );
+  const [stressLevel, setStressLevel] = useState(
+    dailyCheckIn?.stress_level ?? 3
+  );
   const [sorenessLevels, setSorenessLevels] = useState<Record<string, string>>(
     () => {
       const initial: Record<string, string> = {};
@@ -322,7 +332,7 @@ export default function DailyCheckIn() {
       day: todayKey,
       daily_check_in: {
         sleep_quality: sleepHoursToQuality(sleepHours),
-        stress_level: 10 - readiness, // inverse: high readiness = low stress
+        stress_level: stressLevel,
         mental_readiness: readiness,
         motivation: readinessToMotivation(readiness),
         muscle_soreness: muscleSorenessScale,
@@ -418,6 +428,38 @@ export default function DailyCheckIn() {
                         Haptics.ImpactFeedbackStyle.Light
                       );
                       setReadiness(option.value);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        isActive && styles.chipTextActive,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* ── Stress ── */}
+          <View style={styles.sectionBlock}>
+            <Text style={styles.sectionLabel}>HOW STRESSED ARE YOU?</Text>
+            <View style={styles.chipsRow}>
+              {STRESS_OPTIONS.map((option) => {
+                const isActive = stressLevel === option.value;
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[styles.chip, isActive && styles.chipActive]}
+                    onPress={() => {
+                      Haptics.impactAsync(
+                        Haptics.ImpactFeedbackStyle.Light
+                      );
+                      setStressLevel(option.value);
                     }}
                     activeOpacity={0.7}
                   >
@@ -609,7 +651,7 @@ const styles = StyleSheet.create({
     color: olyColors.text.secondary,
   },
 
-  // ── Energy chips (matches lift-analysis pattern) ──
+  // ── Chips (energy + stress, matches lift-analysis pattern) ──
   chipsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
