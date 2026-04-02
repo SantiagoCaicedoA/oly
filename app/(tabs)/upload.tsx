@@ -1,9 +1,8 @@
-import { Redirect } from "expo-router";
 import React from "react";
-import { StyleSheet } from "react-native";
+import { View } from "react-native";
 
 export default function Upload() {
-  return <Redirect href={"/athlete/create-new-post"} />;
+  // This tab uses a custom tabBarButton in the layout that handles navigation.
+  // Returning null prevents an infinite redirect loop when pressing back.
+  return <View />;
 }
-
-const styles = StyleSheet.create({});

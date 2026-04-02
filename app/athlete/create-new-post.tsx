@@ -11,6 +11,7 @@ import { Typography } from "@/utils/custom-styles";
 import { getFirstError } from "@/utils/get-error";
 import { createPostSchema } from "@/utils/validation-schemas";
 import { yupResolver } from "@hookform/resolvers/yup";
+import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import * as VideoThumbnails from "expo-video-thumbnails";
@@ -55,6 +56,7 @@ export default function CreateNewPost() {
   const [thumbnailUri, setThumbnailUri] = useState<string | null>(null);
   const [loadingMedia, setLoadingMedia] = useState(false);
   const [selectedOpt, setSelectedOpt] = useState<string>("");
+  const [liftOptions, setLiftOptions] = useState([...LIFT_NAME_OPTIONS]);
   const user = useSelector((state: RootState) => state.auth.user);
 
   const { showSuccess, showError } = useToast();
@@ -89,8 +91,8 @@ export default function CreateNewPost() {
   });
   useEffect(() => {
     if (exerciseName) {
-      if (!LIFT_NAME_OPTIONS.includes(exerciseName)) {
-        LIFT_NAME_OPTIONS.push(exerciseName);
+      if (!liftOptions.includes(exerciseName)) {
+        setLiftOptions((prev) => [...prev, exerciseName]);
       }
 
       setSelectedOpt(exerciseName);
@@ -208,7 +210,15 @@ export default function CreateNewPost() {
         const { uri: thumb } = await VideoThumbnails.getThumbnailAsync(uri, {
           time: 1000,
         });
-        setThumbnailUri(thumb);
+
+       
+        const compressedThumb = await ImageManipulator.manipulateAsync(
+          thumb,
+          [{ resize: { width: 720 } }], 
+          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG } 
+        );
+
+        setThumbnailUri(compressedThumb.uri);
       } catch (e) {
         console.log("Thumbnail error:", e);
       } finally {
@@ -377,7 +387,7 @@ export default function CreateNewPost() {
         <View style={{ gap: scale(5) }}>
           <Text style={styles.liftTitle}>LIFT NAME</Text>
           <View style={styles.chipsContainer}>
-            {LIFT_NAME_OPTIONS.map((opt) => (
+            {liftOptions.map((opt) => (
               <TouchableOpacity
                 key={opt}
                 style={[

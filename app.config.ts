@@ -82,7 +82,7 @@ function loadEnv(variant: AppVariant): void {
     // Create default .env file
     const defaultEnv =
       variant === "dev"
-        ? `APP_VARIANT=dev\nAPI_URL=https://api.dev.olyapp.com`
+        ? `APP_VARIANT=dev\nAPI_URL=https://api.olytraining.com`
         : `APP_VARIANT=prod\nAPI_URL=https://api.olyapp.com`;
 
     fs.writeFileSync(envPath, defaultEnv);

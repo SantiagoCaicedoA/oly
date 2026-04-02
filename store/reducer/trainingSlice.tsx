@@ -1,3 +1,4 @@
+import { DayPlan } from "@/types/api/dashboard";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 export interface ExerciseSet {
@@ -25,9 +26,9 @@ export interface Exercise {
   time: string;
   no_of_set: number;
   sets: ExerciseSet[];
-  reps: number | null;
-  weight_lifted: number | null;
-  rpm_percent: number | null;
+  reps?: number | null;
+  weight_lifted?: number | null;
+  rpm_percent?: number | null;
   coach_note: string;
   coach_prescription?: string;
   key_cues_of_specific_lift?: string[];
@@ -50,13 +51,13 @@ export interface DayData {
 }
 
 export interface Days {
-  monday: DayData;
-  tuesday: DayData;
-  wednesday: DayData;
-  thursday: DayData;
-  friday: DayData;
-  saturday: DayData;
-  sunday: DayData;
+  monday: DayPlan;
+  tuesday: DayPlan;
+  wednesday: DayPlan;
+  thursday: DayPlan;
+  friday: DayPlan;
+  saturday: DayPlan;
+  sunday: DayPlan;
 }
 
 export interface ProfileSnapshot {
@@ -66,7 +67,6 @@ export interface ProfileSnapshot {
 }
 
 interface TrainingState {
-  weekStart: string | null;
   days: Days | null;
   isFirstWeek: boolean;
   profileSnapshot: ProfileSnapshot | null;
@@ -79,7 +79,6 @@ interface TrainingState {
 }
 
 const initialState: TrainingState = {
-  weekStart: null,
   days: null,
   isFirstWeek: false,
   profileSnapshot: null,
@@ -95,17 +94,23 @@ const trainingSlice = createSlice({
   name: "training",
   initialState,
   reducers: {
-    setTrainingData: (state, action: PayloadAction<any>) => {
-      const apiData = action.payload?.data ?? action.payload;
-      if (!apiData) return;
-      const { week_start, days, is_first_week, profile_snapshot } = apiData;
-      state.weekStart = week_start;
-      state.days = days;
-      state.isFirstWeek = is_first_week;
-      state.profileSnapshot = profile_snapshot;
-      if (state.selectedDayKey && days?.[state.selectedDayKey as keyof Days]) {
-        state.selectedDayExercises =
-          days[state.selectedDayKey as keyof Days].exercises;
+    setTrainingData: (state, action: PayloadAction<{ data: { days: Days; is_first_week: boolean; profile_snapshot: ProfileSnapshot } }>) => {
+      const response = action.payload;
+      if (!response?.data?.days) return;
+
+      const apiData = response.data;
+
+      // Extract days from nested structure as per actual API response
+      state.days = apiData.days;
+      state.isFirstWeek = apiData.is_first_week ?? false;
+      state.profileSnapshot = apiData.profile_snapshot ?? null;
+
+      // Update selected day exercises if a day is already selected
+      if (state.selectedDayKey) {
+        const dayKey = state.selectedDayKey as keyof Days;
+        if (state.days && state.days[dayKey]) {
+          state.selectedDayExercises = state.days[dayKey].exercises;
+        }
       }
     },
     setSelectedExercise: (

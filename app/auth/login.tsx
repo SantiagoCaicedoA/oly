@@ -48,12 +48,16 @@ export default function Login() {
 
     try {
       const result = await login(payload).unwrap();
+      console.log("result", JSON.stringify(result, null, 2));
 
       showSuccess("Login Successfull", "Welcome back!");
       dispatch(
         loginSuccess({
           user: result.data,
-          token: result.token,
+          token: {
+            token: result.token,
+            refresh_token: result.refresh_token,
+          },
         }),
       );
       router.replace("/(tabs)/home");
