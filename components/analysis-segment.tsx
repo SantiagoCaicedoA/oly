@@ -1,8 +1,9 @@
-import { useTheme } from "@/context/theme-context";
-import { Typography } from "@/utils/custom-styles";
+import { olyTypography, olyFonts, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
+import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olySpacing } from "@/src/oly-theme/oly-spacing";
+import { olyRadius } from "@/src/oly-theme/oly-radius";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { scale } from "react-native-size-matters";
 
 type AnalysisSegmentProps = {
   title: string;
@@ -19,88 +20,89 @@ export default function AnalysisSegment({
   valueTextMap,
   onChange,
 }: AnalysisSegmentProps) {
-  const { colors } = useTheme();
-
-  const styles = StyleSheet.create({
-    rowContainer: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      marginBottom: scale(6),
-    },
-    subHeading: {
-      fontSize: Typography.fontSize.sm,
-      fontWeight: Typography.fontWeight.normal,
-      letterSpacing: Typography.letterSpacing.normal,
-      color: colors.textSecondary,
-      textTransform: "uppercase",
-    },
-    intensity: {
-      fontSize: Typography.fontSize.base,
-      fontWeight: Typography.fontWeight.semibold,
-      letterSpacing: Typography.letterSpacing.normal,
-      color: colors.text,
-    },
-    segmentedContainer: {
-      flexDirection: "row",
-      borderRadius: scale(10),
-      paddingHorizontal: scale(4),
-      borderColor: colors.primary,
-      borderWidth: scale(1),
-      backgroundColor: colors.lightBlue,
-      paddingVertical: scale(5),
-      marginBottom: scale(10),
-    },
-    segment: {
-      flex: 1,
-      paddingVertical: scale(10),
-      borderRadius: scale(10),
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    label: {
-      fontSize: Typography.fontSize.sm,
-      fontWeight: Typography.fontWeight.normal,
-      letterSpacing: Typography.letterSpacing.normal,
-    },
-  });
+  const activeIndex = options.indexOf(value);
 
   return (
-    <>
-      <View style={styles.rowContainer}>
-        <Text style={styles.subHeading}>{title}</Text>
-        <Text style={styles.intensity}>{valueTextMap[value]}</Text>
+    <View style={styles.container}>
+      {/* Title row */}
+      <View style={styles.titleRow}>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.valueLabel}>{valueTextMap[value] ?? value}</Text>
       </View>
 
-      <View style={styles.segmentedContainer}>
-        {options.map((opt) => {
-          const isActive = value === opt;
+      {/* Segmented bar */}
+      <View style={styles.barRow}>
+        {options.map((opt, i) => {
+          const isFilled = i === activeIndex;
+          const isFirst = i === 0;
+          const isLast = i === options.length - 1;
 
           return (
             <TouchableOpacity
               key={opt}
               style={[
                 styles.segment,
-                {
-                  backgroundColor: isActive ? colors.primary : colors.lightBlue,
-                },
+                isFilled ? styles.segmentFilled : styles.segmentEmpty,
+                isFirst && styles.segmentFirst,
+                isLast && styles.segmentLast,
               ]}
-              activeOpacity={0.8}
               onPress={() => onChange(opt)}
-            >
-              <Text
-                style={[
-                  styles.label,
-                  {
-                    color: isActive ? colors.text : colors.textSecondary,
-                  },
-                ]}
-              >
-                {opt}
-              </Text>
-            </TouchableOpacity>
+              activeOpacity={0.7}
+            />
           );
         })}
       </View>
-    </>
+
+    </View>
   );
 }
+
+const BAR_HEIGHT = 6;
+
+const styles = StyleSheet.create({
+  container: {
+    gap: olySpacing[8],
+    marginBottom: olySpacing[20],
+  },
+
+  /* Title row */
+  titleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  title: {
+    ...olyTypography.body,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.primary,
+  },
+  valueLabel: {
+    ...olyTypography.bodySmall,
+    color: olyColors.text.secondary,
+  },
+
+  /* Bar */
+  barRow: {
+    flexDirection: "row",
+    gap: olySpacing[4],
+  },
+  segment: {
+    flex: 1,
+    height: BAR_HEIGHT,
+  },
+  segmentFilled: {
+    backgroundColor: olyColors.text.primary,
+  },
+  segmentEmpty: {
+    backgroundColor: olyColors.border.default,
+  },
+  segmentFirst: {
+    borderTopLeftRadius: olyRadius.sm,
+    borderBottomLeftRadius: olyRadius.sm,
+  },
+  segmentLast: {
+    borderTopRightRadius: olyRadius.sm,
+    borderBottomRightRadius: olyRadius.sm,
+  },
+
+});
