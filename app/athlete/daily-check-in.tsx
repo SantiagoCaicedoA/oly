@@ -1,13 +1,13 @@
 /**
- * Daily Check-In — Redesigned v2.5
+ * Daily Check-In — Redesigned v2.6
  *
  * Visual redesign using Oly Design System tokens.
  * API mutation & navigation flow unchanged.
  *
- * v2.5: Soreness uses AnalysisSegment directly (zero duplication).
- *       Readiness chips match lift-analysis pill pattern.
+ * v2.6: Renamed readiness to "How's your energy today?"
+ *       Default remains Normal (value 6).
  *
- * Sections: Header, Greeting, Sleep, Readiness, Soreness,
+ * Sections: Header, Greeting, Sleep, Energy, Soreness,
  *           Bodyweight, Notes, Submit
  */
 
@@ -403,9 +403,9 @@ export default function DailyCheckIn() {
             </View>
           </View>
 
-          {/* ── Readiness ── */}
+          {/* ── Energy ── */}
           <View style={styles.sectionBlock}>
-            <Text style={styles.sectionLabel}>HOW READY DO YOU FEEL?</Text>
+            <Text style={styles.sectionLabel}>HOW'S YOUR ENERGY TODAY?</Text>
             <View style={styles.chipsRow}>
               {READINESS_OPTIONS.map((option) => {
                 const isActive = readiness === option.value;
@@ -609,7 +609,7 @@ const styles = StyleSheet.create({
     color: olyColors.text.secondary,
   },
 
-  // ── Readiness chips (matches lift-analysis pattern) ──
+  // ── Energy chips (matches lift-analysis pattern) ──
   chipsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
