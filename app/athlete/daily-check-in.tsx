@@ -116,11 +116,6 @@ function sleepHoursToQuality(hours: number): number {
   return Math.round(((hours - SLEEP_MIN) / (SLEEP_MAX - SLEEP_MIN)) * 10);
 }
 
-/** Contextual label — keeps it informational, not judgmental */
-function getSleepContext(hours: number): string {
-  return "last night";
-}
-
 /* ── Sleep Slider Component ────────────────────────────── */
 
 interface SleepSliderProps {
@@ -520,11 +515,8 @@ export default function DailyCheckIn() {
                 </Text>
                 <Text style={styles.sleepUnit}>hrs</Text>
               </View>
-              <Text style={styles.sleepContextLabel}>
-                {getSleepContext(sleepHours)}
-              </Text>
 
-              <View style={{ marginTop: olySpacing[12] }}>
+              <View style={{ marginTop: olySpacing[16] }}>
                 <SleepSlider value={sleepHours} onChange={setSleepHours} />
               </View>
             </View>
@@ -709,7 +701,7 @@ const styles = StyleSheet.create({
     gap: olySpacing[8],
   },
   sectionLabel: {
-    ...olyTypography.caption,
+    ...olyTypography.label,
     color: olyColors.text.secondary,
     textTransform: "uppercase",
     letterSpacing: olyLetterSpacing.uppercase,
@@ -737,11 +729,6 @@ const styles = StyleSheet.create({
   sleepUnit: {
     ...olyTypography.body,
     color: olyColors.text.secondary,
-  },
-  sleepContextLabel: {
-    ...olyTypography.caption,
-    color: olyColors.text.secondary,
-    marginTop: olySpacing[4],
   },
 
   // ── Readiness pills ──
