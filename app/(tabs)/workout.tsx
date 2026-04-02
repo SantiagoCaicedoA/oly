@@ -36,11 +36,12 @@ export default function Workout() {
   const token = useSelector((state: RootState) => state.auth.token);
 
   const days = useSelector((state: RootState) => state.training.days);
+  console.log("days from redux:", days);
   const userId = useSelector((state: RootState) => state.auth.user?._id);
 
   const [fetchTraining, { data, isLoading, isError, error }] =
     useLazyGetAiTrainingQuery();
-console.log("data ", JSON.stringify(data, null, 2));
+console.log("data ", data);
 
   useEffect(() => {
     if (token) {
@@ -48,7 +49,7 @@ console.log("data ", JSON.stringify(data, null, 2));
     }
   }, [token]);
   useEffect(() => {
-    if (data) dispatch(setTrainingData(JSON.parse(JSON.stringify(data))));
+    if (data) dispatch(setTrainingData(data));
   }, [data]);
   const DAY_KEYS = [
     "sunday",
@@ -86,14 +87,19 @@ console.log("data ", JSON.stringify(data, null, 2));
       }),
     );
 
-    const today = new Date().toDateString();
-    const key = `daily_check_in_done_${userId}_${today}`;
+    const key = `daily_check_in_done_${userId}_${dayKey}`;
     const done = await AsyncStorage.getItem(key);
 
     if (done) {
-      router.push("/athlete/training-exercise");
+      router.push({
+        pathname: "/athlete/training-exercise",
+        params: { dayKey },
+      });
     } else {
-      router.push("/athlete/daily-check-in");
+      router.push({
+        pathname: "/athlete/daily-check-in",
+        params: { dayKey },
+      });
     }
   };
 

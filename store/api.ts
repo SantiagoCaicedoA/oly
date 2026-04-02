@@ -1,38 +1,49 @@
 import {
-  BaseQueryFn,
-  createApi,
-  FetchArgs,
-  fetchBaseQuery,
-  FetchBaseQueryError,
+    BaseQueryFn,
+    createApi,
+    FetchArgs,
+    fetchBaseQuery,
+    FetchBaseQueryError,
 } from "@reduxjs/toolkit/query/react";
 
 import { API_BASE_URL, API_ROUTES } from "@/utils/api-routes";
 
 import {
-  AuthState,
-  LoginValues,
-  SignupResponse,
-  SignUpValues
+    AuthState,
+    LoginValues,
+    SignupResponse,
+    SignUpValues
 } from "@/types/api/auth";
 import {
-  AiTrainingResponse,
-  CreateNewPostResponse,
-  CustomSetPayload,
-  CustomSetResponse,
-  DailyCheckInPayload,
-  GetPostByIdResponse,
-  GetPostsParams,
-  GetPostsResponse,
-  LikeUnlikeResponse,
-  UpdateTrainingPayload,
-  UpdateTrainingResponse,
+    CreateNewPostResponse,
+    CustomSetPayload,
+    CustomSetResponse,
+    DailyCheckInPayload,
+    GetPostByIdResponse,
+    GetPostsParams,
+    GetPostsResponse,
+    LikeUnlikeResponse,
+    UpdateTrainingPayload,
+    UpdateTrainingResponse
 } from "@/types/api/dashboard";
 import {
-  OnboardingApiPayload,
-  OnboardingApiResponse,
-  UploadAthleteVideoResponse,
-  UploadProfileImageResponse,
+    OnboardingApiPayload,
+    OnboardingApiResponse,
+    UploadAthleteVideoResponse,
+    UploadProfileImageResponse,
 } from "@/types/api/onboarding";
+
+import { Days, ProfileSnapshot } from "@/store/reducer/trainingSlice";
+
+interface GetAiTrainingResponse {
+  data: {
+    days: Days;
+    is_first_week: boolean;
+    profile_snapshot: ProfileSnapshot;
+    week_start?: string;
+  };
+  success: boolean;
+}
 
 interface RootState {
   auth: AuthState;
@@ -172,7 +183,7 @@ export const api = createApi({
       providesTags: ["Athlete"],
     }),
 
-    getAiTraining: builder.query<AiTrainingResponse, void>({
+    getAiTraining: builder.query<GetAiTrainingResponse, void>({
       query: () => ({
         url: API_ROUTES.ATHLETE.GET_AI_TRAINING,
         method: "GET",

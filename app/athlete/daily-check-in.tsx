@@ -79,7 +79,6 @@ export default function DailyCheckIn() {
     string | null
   >(null);
 
-  const todayKey = dayKeyParam || selectedDayKeyFromRedux || DAY_KEYS[new Date().getDay()];
   const userId = useSelector((state: RootState) => state.auth.user?._id);
   const [submitCheckIn, { isLoading }] = useDailyCheckInMutation();
   const handleAreaIntensityChange = (area: string, value: number) => {
@@ -94,7 +93,7 @@ export default function DailyCheckIn() {
   };
   const handleStartPress = async () => {
     const payload: DailyCheckInPayload = {
-      day: todayKey,
+      day: dayKey,
       daily_check_in: {
         sleep_quality: sleepQuality,
         stress_level: stressLevel,
@@ -111,15 +110,26 @@ export default function DailyCheckIn() {
     try {
       const result = await submitCheckIn(payload).unwrap();
 
-      const today = new Date().toDateString();
-      const key = `daily_check_in_done_${userId}_${today}`;
+      const key = `daily_check_in_done_${userId}_${dayKey}`;
       await AsyncStorage.setItem(key, "true");
 
-      router.push("/athlete/training-exercise");
+      router.push({
+        pathname: "/athlete/training-exercise",
+        params: { dayKey },
+      });
     } catch (error) {
       console.error("Daily check-in error:", error);
       showError("Failed to save check-in. Please try again.", "Error");
     }
+  };
+  const handleSkipPress = async () => {
+    const key = `daily_check_in_done_${userId}_${dayKey}`;
+    await AsyncStorage.setItem(key, "true");
+
+    router.push({
+      pathname: "/athlete/training-exercise",
+      params: { dayKey },
+    });
   };
   const styles = StyleSheet.create({
     container: {
@@ -239,7 +249,7 @@ export default function DailyCheckIn() {
           primaryTitle={isLoading ? "SAVING" : "START"}
           secondaryTitle="Skip"
           onPrimaryPress={handleStartPress}
-          onSecondaryPress={() => router.push("athlete/training-exercise")}
+          onSecondaryPress={handleSkipPress}
         />
       </ScrollView>
       {isLoading && (
