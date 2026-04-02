@@ -1,10 +1,10 @@
 /**
- * Daily Check-In — Redesigned v2.3
+ * Daily Check-In — Redesigned v2.4
  *
  * Visual redesign using Oly Design System tokens.
  * API mutation & navigation flow unchanged.
  *
- * v2.3: Soreness track → segmented bar (matches AnalysisSegment).
+ * v2.4: Soreness bar — single segment fill, primary blue only.
  *       Readiness chips match lift-analysis pill pattern.
  *
  * Sections: Header, Greeting, Sleep, Readiness, Soreness,
@@ -68,10 +68,10 @@ const READINESS_OPTIONS = [
 ] as const;
 
 const SORENESS_LEVELS = [
-  { label: "NONE", value: 0, color: olyColors.pain.none },
-  { label: "MILD", value: 1, color: olyColors.pain.minor },
-  { label: "MODERATE", value: 2, color: olyColors.pain.moderate },
-  { label: "SEVERE", value: 3, color: olyColors.pain.sharp },
+  { label: "None", value: 0 },
+  { label: "Mild", value: 1 },
+  { label: "Moderate", value: 2 },
+  { label: "Severe", value: 3 },
 ] as const;
 
 const SORENESS_AREAS = [
@@ -265,20 +265,15 @@ const SorenessTrack: React.FC<SorenessTrackProps> = ({
       {/* Title row — same layout as AnalysisSegment titleRow */}
       <View style={sorenessStyles.titleRow}>
         <Text style={sorenessStyles.title}>{area}</Text>
-        <Text
-          style={[
-            sorenessStyles.valueLabel,
-            { color: currentLevel.color },
-          ]}
-        >
+        <Text style={sorenessStyles.valueLabel}>
           {currentLevel.label}
         </Text>
       </View>
 
-      {/* Segmented bar — same as AnalysisSegment barRow */}
+      {/* Segmented bar — only selected segment fills */}
       <View style={sorenessStyles.barRow}>
         {SORENESS_LEVELS.map((sl, index) => {
-          const isFilled = index <= level;
+          const isSelected = index === level;
           const isFirst = index === 0;
           const isLast = index === SORENESS_LEVELS.length - 1;
 
@@ -288,8 +283,8 @@ const SorenessTrack: React.FC<SorenessTrackProps> = ({
               style={[
                 sorenessStyles.segment,
                 {
-                  backgroundColor: isFilled
-                    ? currentLevel.color
+                  backgroundColor: isSelected
+                    ? olyPalette.primary
                     : olyColors.border.default,
                 },
                 isFirst && sorenessStyles.segmentFirst,
