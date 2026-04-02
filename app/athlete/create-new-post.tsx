@@ -56,6 +56,7 @@ export default function CreateNewPost() {
   const [thumbnailUri, setThumbnailUri] = useState<string | null>(null);
   const [loadingMedia, setLoadingMedia] = useState(false);
   const [selectedOpt, setSelectedOpt] = useState<string>("");
+  const [liftOptions, setLiftOptions] = useState([...LIFT_NAME_OPTIONS]);
   const user = useSelector((state: RootState) => state.auth.user);
 
   const { showSuccess, showError } = useToast();
@@ -90,8 +91,8 @@ export default function CreateNewPost() {
   });
   useEffect(() => {
     if (exerciseName) {
-      if (!LIFT_NAME_OPTIONS.includes(exerciseName)) {
-        LIFT_NAME_OPTIONS.push(exerciseName);
+      if (!liftOptions.includes(exerciseName)) {
+        setLiftOptions((prev) => [...prev, exerciseName]);
       }
 
       setSelectedOpt(exerciseName);
@@ -386,7 +387,7 @@ export default function CreateNewPost() {
         <View style={{ gap: scale(5) }}>
           <Text style={styles.liftTitle}>LIFT NAME</Text>
           <View style={styles.chipsContainer}>
-            {LIFT_NAME_OPTIONS.map((opt) => (
+            {liftOptions.map((opt) => (
               <TouchableOpacity
                 key={opt}
                 style={[
