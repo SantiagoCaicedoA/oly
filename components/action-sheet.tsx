@@ -109,7 +109,9 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
     }, [wasPain]);
 
     const handlePress = async () => {
-      if (!exercise) return;
+      if (!exercise) return; // only the single set being edited. Therefore, this handler MUST perform a merge/upsert
+      // by \`set_number\`, rather than a full array replacement, to avoid wiping out other sets.
+      // IMPORTANT: The frontend (e.g., action-sheet.tsx) often sends partial updates containing
       const payload: UpdateTrainingPayload = {
         day: selectedDayKey ?? "",
         exercises: [

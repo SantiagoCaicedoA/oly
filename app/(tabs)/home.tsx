@@ -57,6 +57,13 @@ export default function Home() {
     }
   }, [page, postsData]);
 
+  
+  useEffect(() => {
+    setAllPosts([]);
+    setPage(1);
+    setHasMore(true);
+  }, [token]);
+
   const handlePostPress = (post_id: string) => {
     router.push({
       pathname: "/athlete/post-expanded",
