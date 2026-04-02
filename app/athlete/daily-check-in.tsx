@@ -1,10 +1,11 @@
 /**
- * Daily Check-In — Redesigned v2.2
+ * Daily Check-In — Redesigned v2.3
  *
  * Visual redesign using Oly Design System tokens.
  * API mutation & navigation flow unchanged.
  *
- * v2.2: Readiness chips match lift-analysis pill pattern.
+ * v2.3: Soreness track → segmented bar (matches AnalysisSegment).
+ *       Readiness chips match lift-analysis pill pattern.
  *
  * Sections: Header, Greeting, Sleep, Readiness, Soreness,
  *           Bodyweight, Notes, Submit
@@ -74,10 +75,10 @@ const SORENESS_LEVELS = [
 ] as const;
 
 const SORENESS_AREAS = [
-  "KNEES",
-  "LOWER BACK",
-  "SHOULDERS",
-  "WRISTS",
+  "Knees",
+  "Lower Back",
+  "Shoulders",
+  "Wrists",
 ] as const;
 
 const SLEEP_MIN = 4;
@@ -242,13 +243,15 @@ const sliderStyles = StyleSheet.create({
   },
 });
 
-/* ── Soreness Track Component ──────────────────────────── */
+/* ── Soreness Track Component (matches AnalysisSegment bar) ── */
 
 interface SorenessTrackProps {
   area: string;
   level: number;
   onChange: (level: number) => void;
 }
+
+const SORENESS_BAR_HEIGHT = 6;
 
 const SorenessTrack: React.FC<SorenessTrackProps> = ({
   area,
@@ -259,12 +262,12 @@ const SorenessTrack: React.FC<SorenessTrackProps> = ({
 
   return (
     <View style={sorenessStyles.row}>
-      {/* Header: area name + level label */}
-      <View style={sorenessStyles.rowHeader}>
-        <Text style={sorenessStyles.areaLabel}>{area}</Text>
+      {/* Title row — same layout as AnalysisSegment titleRow */}
+      <View style={sorenessStyles.titleRow}>
+        <Text style={sorenessStyles.title}>{area}</Text>
         <Text
           style={[
-            sorenessStyles.levelLabel,
+            sorenessStyles.valueLabel,
             { color: currentLevel.color },
           ]}
         >
@@ -272,46 +275,32 @@ const SorenessTrack: React.FC<SorenessTrackProps> = ({
         </Text>
       </View>
 
-      {/* Discrete dots track */}
-      <View style={sorenessStyles.track}>
+      {/* Segmented bar — same as AnalysisSegment barRow */}
+      <View style={sorenessStyles.barRow}>
         {SORENESS_LEVELS.map((sl, index) => {
-          const isActive = index <= level;
-          const isCurrent = index === level;
+          const isFilled = index <= level;
+          const isFirst = index === 0;
+          const isLast = index === SORENESS_LEVELS.length - 1;
+
           return (
             <TouchableOpacity
               key={sl.label}
-              style={sorenessStyles.dotTouchArea}
+              style={[
+                sorenessStyles.segment,
+                {
+                  backgroundColor: isFilled
+                    ? currentLevel.color
+                    : olyColors.border.default,
+                },
+                isFirst && sorenessStyles.segmentFirst,
+                isLast && sorenessStyles.segmentLast,
+              ]}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 onChange(index);
               }}
               activeOpacity={0.7}
-            >
-              {/* Connector line (skip for first dot) */}
-              {index > 0 && (
-                <View
-                  style={[
-                    sorenessStyles.connector,
-                    {
-                      backgroundColor: index <= level
-                        ? currentLevel.color
-                        : olyColors.border.default,
-                    },
-                  ]}
-                />
-              )}
-              {/* Dot */}
-              <View
-                style={[
-                  sorenessStyles.dot,
-                  isActive && {
-                    backgroundColor: currentLevel.color,
-                    borderColor: currentLevel.color,
-                  },
-                  isCurrent && sorenessStyles.dotCurrent,
-                ]}
-              />
-            </TouchableOpacity>
+            />
           );
         })}
       </View>
@@ -321,54 +310,38 @@ const SorenessTrack: React.FC<SorenessTrackProps> = ({
 
 const sorenessStyles = StyleSheet.create({
   row: {
-    paddingVertical: olySpacing[16],
+    gap: olySpacing[8],
+    marginBottom: olySpacing[20],
   },
-  rowHeader: {
+  titleRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: olySpacing[12],
   },
-  areaLabel: {
-    ...olyTypography.label,
+  title: {
+    ...olyTypography.body,
+    fontFamily: olyFonts.medium,
     color: olyColors.text.primary,
-    textTransform: "uppercase",
-    letterSpacing: olyLetterSpacing.uppercase,
   },
-  levelLabel: {
-    ...olyTypography.label,
-    textTransform: "uppercase",
-    letterSpacing: olyLetterSpacing.uppercase,
+  valueLabel: {
+    ...olyTypography.bodySmall,
+    color: olyColors.text.secondary,
   },
-  track: {
+  barRow: {
     flexDirection: "row",
-    alignItems: "center",
-    height: 20,
+    gap: olySpacing[4],
   },
-  dotTouchArea: {
+  segment: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    height: olyLayout.minTouchTarget,
-    justifyContent: "center",
+    height: SORENESS_BAR_HEIGHT,
   },
-  connector: {
-    flex: 1,
-    height: 2,
-    marginRight: -2,
+  segmentFirst: {
+    borderTopLeftRadius: olyRadius.sm,
+    borderBottomLeftRadius: olyRadius.sm,
   },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "transparent",
-    borderWidth: 2,
-    borderColor: olyColors.border.default,
-  },
-  dotCurrent: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+  segmentLast: {
+    borderTopRightRadius: olyRadius.sm,
+    borderBottomRightRadius: olyRadius.sm,
   },
 });
 
@@ -402,9 +375,12 @@ export default function DailyCheckIn() {
       // Restore from existing check-in if available
       if (dailyCheckIn?.sore_areas) {
         dailyCheckIn.sore_areas.forEach((area) => {
-          const key = area.toUpperCase();
-          if (key in initial) {
-            initial[key] = Math.min(3, Math.max(1, Math.round(dailyCheckIn.intensity / 3)));
+          // Match title-case keys (e.g. "KNEES" → "Knees")
+          const matched = SORENESS_AREAS.find(
+            (a) => a.toUpperCase() === area.toUpperCase()
+          );
+          if (matched) {
+            initial[matched] = Math.min(3, Math.max(1, Math.round(dailyCheckIn.intensity / 3)));
           }
         });
       }
@@ -427,10 +403,10 @@ export default function DailyCheckIn() {
   };
 
   const handleSubmit = async () => {
-    // Build sore_areas from areas with level > 0
+    // Build sore_areas from areas with level > 0 (uppercase for API)
     const soreAreas = Object.entries(sorenessLevels)
       .filter(([_, level]) => level > 0)
-      .map(([area]) => area);
+      .map(([area]) => area.toUpperCase());
 
     // Max soreness intensity across all areas (scale 0-3 → 0-10)
     const maxSoreness = Math.max(0, ...Object.values(sorenessLevels));
@@ -558,15 +534,13 @@ export default function DailyCheckIn() {
           <View style={styles.sectionBlock}>
             <Text style={styles.sectionLabel}>SORENESS</Text>
             <View style={styles.card}>
-              {SORENESS_AREAS.map((area, index) => (
-                <React.Fragment key={area}>
-                  {index > 0 && <View style={styles.divider} />}
-                  <SorenessTrack
-                    area={area}
-                    level={sorenessLevels[area] ?? 0}
-                    onChange={(level) => handleSorenessChange(area, level)}
-                  />
-                </React.Fragment>
+              {SORENESS_AREAS.map((area) => (
+                <SorenessTrack
+                  key={area}
+                  area={area}
+                  level={sorenessLevels[area] ?? 0}
+                  onChange={(level) => handleSorenessChange(area, level)}
+                />
               ))}
             </View>
           </View>
@@ -753,12 +727,6 @@ const styles = StyleSheet.create({
   },
   chipTextActive: {
     color: olyColors.text.primary,
-  },
-
-  // ── Divider ──
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: olyColors.border.default,
   },
 
   // ── Bodyweight ──
