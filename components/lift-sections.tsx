@@ -32,8 +32,6 @@ export default function LiftSections({
     },
     container: {
       backgroundColor: colors.surface,
-      borderWidth: scale(0.3),
-      borderColor: colors.text,
       padding: scale(12),
       borderRadius: scale(6),
       marginTop: scale(6),

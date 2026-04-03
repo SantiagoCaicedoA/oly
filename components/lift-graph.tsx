@@ -1,93 +1,137 @@
-import { Images } from "@/assets";
-import { useTheme } from "@/context/theme-context";
-import { Typography } from "@/utils/custom-styles";
-import React, { useState } from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
-import { scale } from "react-native-size-matters";
+import { olyTypography, olyFonts, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
+import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
+import { olyRadius } from "@/src/oly-theme/oly-radius";
+import { olyElevation } from "@/src/oly-theme/oly-elevation";
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
+
+/* ── Mock data — will be replaced with real lift history ── */
+const MOCK_DATA = [
+  { label: "FEB 3", value: 105, isToday: false },
+  { label: "FEB 7", value: 110, isToday: false },
+  { label: "FEB 12", value: 112, isToday: false },
+  { label: "FEB 17", value: 118, isToday: false },
+  { label: "TODAY", value: 120, isToday: true },
+];
+
+const MAX_BAR_HEIGHT = 60;
+
 interface LiftGraphProps {
   liftName: string;
 }
+
 export default function LiftGraph({ liftName }: LiftGraphProps) {
-  const { colors } = useTheme();
-  const [showOptions, setShowOptions] = useState(false);
+  const maxValue = Math.max(...MOCK_DATA.map((d) => d.value));
 
-  const handleOutsidePress = () => {
-    if (showOptions) {
-      setShowOptions(false);
-    }
-  };
-  const styles = StyleSheet.create({
-    container: {
-      backgroundColor: colors.surface,
-    },
-    optionIcon: {
-      width: scale(12),
-      height: scale(15),
-    },
-    headerContainer: {
-      flexDirection: "row",
-      alignItems: "center",
-      marginBottom: scale(8),
-      justifyContent: "space-between",
-    },
-    heading: {
-      fontSize: Typography.fontSize.lg,
-      fontWeight: Typography.fontWeight.normal,
-      lineHeight: Typography.lineHeight.normal,
-      color: colors.text,
-      width: scale(200),
-    },
-    graphContainer: {
-      backgroundColor: colors.surface,
-      paddingHorizontal: scale(25),
-      borderRadius: scale(12),
-      borderColor: colors.textSecondary,
-      borderWidth: scale(0.3),
-      paddingVertical: scale(15),
-    },
-    graph: {
-      width: "100%",
-      height: scale(140),
-    },
-    optionsWrapper: {
-      position: "relative",
-    },
-    dropdownText: {
-      color: colors.text,
-      fontSize: Typography.fontSize.md,
-    },
-    dropdown: {
-      position: "absolute",
-      top: scale(25),
-      right: 0,
-      backgroundColor: colors.surface,
-      paddingHorizontal: scale(14),
-      paddingVertical: scale(10),
-      borderRadius: scale(8),
-      minWidth: scale(120),
-      zIndex: 999,
-      elevation: 8,
-      alignItems: "center",
-    },
-    wrapper: {
-      flex: 0,
-    },
-  });
   return (
-    <Pressable style={styles.wrapper} onPress={handleOutsidePress}>
-      <>
-        <View style={styles.headerContainer}>
-          <Text style={styles.heading}>{liftName}</Text>
-        </View>
+    <View style={styles.wrapper}>
+      <Text style={styles.sectionLabel}>PROGRESSION</Text>
 
-        <View style={styles.graphContainer}>
-          <Image
-            source={Images.bargraph}
-            style={styles.graph}
-            resizeMode="contain"
-          />
+      <View style={styles.card}>
+        {/* Bars */}
+        <View style={styles.barsRow}>
+          {MOCK_DATA.map((item, i) => {
+            const barHeight =
+              (item.value / maxValue) * MAX_BAR_HEIGHT;
+
+            return (
+              <View key={i} style={styles.barCol}>
+                <Text
+                  style={[
+                    styles.barValue,
+                    item.isToday && styles.barValueActive,
+                  ]}
+                >
+                  {item.value}
+                  <Text style={styles.barUnit}> kg</Text>
+                </Text>
+                <View style={styles.barTrack}>
+                  <View
+                    style={[
+                      styles.bar,
+                      {
+                        height: barHeight,
+                        backgroundColor: item.isToday
+                          ? olyColors.intensity.high
+                          : olyColors.bg.activeHighlight,
+                      },
+                    ]}
+                  />
+                </View>
+                <Text
+                  style={[
+                    styles.barLabel,
+                    item.isToday && styles.barLabelActive,
+                  ]}
+                >
+                  {item.label}
+                </Text>
+              </View>
+            );
+          })}
         </View>
-      </>
-    </Pressable>
+      </View>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  wrapper: {
+    gap: olyLayout.sectionHeaderGap,
+  },
+  sectionLabel: {
+    ...olyTypography.label,
+    color: olyColors.text.secondary,
+    letterSpacing: olyLetterSpacing.uppercase,
+  },
+  card: {
+    backgroundColor: olyPalette.card,
+    borderRadius: olyRadius.lg,
+    padding: olyLayout.cardPadding,
+  },
+
+  /* Bars */
+  barsRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    gap: olySpacing[8],
+  },
+  barCol: {
+    flex: 1,
+    alignItems: "center",
+    gap: olySpacing[4],
+  },
+  barValue: {
+    ...olyTypography.caption,
+    color: olyColors.text.secondary,
+  },
+  barValueActive: {
+    color: olyColors.text.primary,
+    fontFamily: olyFonts.medium,
+  },
+  barUnit: {
+    ...olyTypography.caption,
+    color: olyColors.text.secondary,
+  },
+  barTrack: {
+    width: "100%",
+    height: MAX_BAR_HEIGHT,
+    justifyContent: "flex-end",
+    borderRadius: olyRadius.sm,
+    overflow: "hidden",
+  },
+  bar: {
+    width: "100%",
+    borderRadius: olyRadius.sm,
+  },
+  barLabel: {
+    ...olyTypography.caption,
+    color: olyColors.text.secondary,
+  },
+  barLabelActive: {
+    color: olyColors.text.primary,
+    fontFamily: olyFonts.medium,
+  },
+});

@@ -1,9 +1,7 @@
-import { useTheme } from "@/context/theme-context";
+import { olySpacing } from "@/src/oly-theme/oly-spacing";
 import { Exercise } from "@/store/reducer/trainingSlice";
-import { Typography } from "@/utils/custom-styles";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { scale } from "react-native-size-matters";
+import { StyleSheet, View } from "react-native";
 import TrainingDetail from "./training-detail";
 
 interface TodaysTrainingProps {
@@ -15,48 +13,39 @@ export default function TodaysTraining({
   trainings,
   onPressItem,
 }: TodaysTrainingProps) {
-  const { colors } = useTheme();
-
-  const styles = StyleSheet.create({
-    container: {
-      marginTop: scale(6),
-      gap: scale(12),
-    },
-    heading: {
-      fontSize: Typography.fontSize.base,
-      fontWeight: Typography.fontWeight.normal,
-      color: colors.textSecondary,
-      letterSpacing: Typography.letterSpacing.normal,
-    },
-    rowContainer: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-    },
-    start: {
-      fontSize: Typography.fontSize.base,
-      fontWeight: Typography.fontWeight.medium,
-      color: colors.text,
-      letterSpacing: Typography.letterSpacing.normal,
-    },
-  });
   return (
-    <View>
-      <View style={styles.rowContainer}>
-        <Text style={styles.heading}>TODAY'S TRAINING</Text>
-        {/* <Text style={styles.start}>START</Text> */}
-      </View>
+    <View style={styles.container}>
+      <View style={styles.list}>
+        {trainings.map((item, index) => {
+          const completedSets = item.sets
+            ? item.sets.filter((s) => s.isComplete).length
+            : 0;
 
-      <View style={styles.container}>
-        {trainings.map((item, index) => (
-          <TrainingDetail
-            key={index}
-            name={item.exercise_name}
-            time={item.time}
-            sets={`${item.no_of_set} sets`}
-            onPress={() => onPressItem?.(item)}
-          />
-        ))}
+          return (
+            <TrainingDetail
+              key={index}
+              name={item.exercise_name}
+              totalSets={item.no_of_set}
+              reps={item.reps}
+              weight={item.weight_lifted}
+              rpmPercent={item.rpm_percent}
+              time={item.time}
+              completedSets={completedSets}
+              exerciseSets={item.sets ?? []}
+              onStartExercise={() => onPressItem?.(item)}
+            />
+          );
+        })}
       </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    gap: olySpacing[12],
+  },
+  list: {
+    gap: olySpacing[8],
+  },
+});

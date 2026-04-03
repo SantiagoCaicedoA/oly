@@ -20,15 +20,11 @@ export const olyElevation = {
   /** Level 1 — Cards, sheet surfaces, tab bar */
   level1: {
     backgroundColor: olyPalette.card,
-    borderWidth: 1,
-    borderColor: `rgba(226, 232, 240, 0.3)`,
   },
 
   /** Level 2 — Nested cards, popovers, dropdowns */
   level2: {
     backgroundColor: olyPalette.cardElevated,
-    borderWidth: 1,
-    borderColor: `rgba(226, 232, 240, 0.3)`,
   },
 } as const;
 

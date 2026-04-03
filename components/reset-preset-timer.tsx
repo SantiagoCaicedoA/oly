@@ -1,8 +1,9 @@
-import { useTheme } from "@/context/theme-context";
-import { Typography } from "@/utils/custom-styles";
+import { olyTypography, olyFonts, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
+import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
+import { olyRadius } from "@/src/oly-theme/oly-radius";
 import React from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { scale } from "react-native-size-matters";
 
 export type LiftItem = {
   label: string;
@@ -22,112 +23,82 @@ export default function ResetPresetTimer({
   checkedValues,
   onToggle,
 }: ResetPresetTimerProps) {
-  const { colors } = useTheme();
-
-  const styles = StyleSheet.create({
-    container: {
-      gap: scale(6),
-    },
-    heading: {
-      color: colors.textSecondary,
-      fontSize: Typography.fontSize.md,
-      fontWeight: Typography.fontWeight.normal,
-      letterSpacing: Typography.letterSpacing.normal,
-    },
-    card: {
-      borderColor: colors.text,
-      borderWidth: 0.3,
-      borderRadius: scale(8),
-      backgroundColor: colors.surface,
-      paddingHorizontal: scale(12),
-    },
-    row: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      paddingVertical: scale(12),
-    },
-    left: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: scale(12),
-    },
-    image: {
-      width: scale(20),
-      height: scale(20),
-      resizeMode: "contain",
-    },
-    name: {
-      fontSize: Typography.fontSize.md,
-      fontWeight: Typography.fontWeight.bold,
-      letterSpacing: Typography.letterSpacing.normal,
-    },
-    divider: {
-      height: 0.5,
-      backgroundColor: colors.textSecondary,
-      opacity: 0.3,
-    },
-    checkbox: {
-      width: scale(22),
-      height: scale(22),
-      borderRadius: scale(11),
-      borderWidth: scale(2),
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    checkmark: {
-      fontSize: Typography.fontSize.sm,
-      fontWeight: Typography.fontWeight.bold,
-      color: colors.text,
-    },
-  });
-
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>{title.toUpperCase()}</Text>
+      <Text style={styles.heading}>{title}</Text>
 
-      <View style={styles.card}>
+      <View style={styles.rowGroup}>
         {items.map((item, index) => {
-          const isLast = index === items.length - 1;
-          const isChecked = checkedValues[index];
-          const textColor = isChecked ? colors.text : colors.textSecondary;
+          const isActive = checkedValues[index];
 
           return (
-            <View key={`${item.label}-${index}`}>
-              <View style={styles.row}>
-                <View style={styles.left}>
-                  <Image source={item.icon} style={styles.image} />
-
-                  <Text style={[styles.name, { color: textColor }]}>
-                    {item.label}
-                  </Text>
-                </View>
-
-                <TouchableOpacity
-                  onPress={() => onToggle(index)}
-                  activeOpacity={0.7}
-                >
-                  <View
-                    style={[
-                      styles.checkbox,
-                      {
-                        borderColor: colors.primary,
-                        backgroundColor: isChecked
-                          ? colors.primary
-                          : "transparent",
-                      },
-                    ]}
-                  >
-                    {isChecked && <Text style={styles.checkmark}>✓</Text>}
-                  </View>
-                </TouchableOpacity>
-              </View>
-
-              {!isLast && <View style={styles.divider} />}
-            </View>
+            <TouchableOpacity
+              key={`${item.label}-${index}`}
+              style={[styles.row, isActive && styles.rowActive]}
+              onPress={() => onToggle(index)}
+              activeOpacity={0.7}
+            >
+              <Image
+                source={item.icon}
+                style={[
+                  styles.image,
+                  {
+                    tintColor: isActive
+                      ? olyColors.text.primary
+                      : olyColors.text.secondary,
+                  },
+                ]}
+              />
+              <Text style={[styles.name, isActive && styles.nameActive]}>
+                {item.label}
+              </Text>
+            </TouchableOpacity>
           );
         })}
       </View>
     </View>
   );
 }
+
+/* ── Styles ──────────────────────────────────────────── */
+
+const styles = StyleSheet.create({
+  container: {
+    gap: olySpacing[8],
+  },
+  heading: {
+    ...olyTypography.label,
+    color: olyColors.text.secondary,
+    textTransform: "uppercase",
+    letterSpacing: olyLetterSpacing.uppercase,
+  },
+  rowGroup: {
+    gap: olySpacing[8],
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: olySpacing[12],
+    backgroundColor: olyPalette.cardElevated,
+    borderRadius: olyRadius.lg,
+    paddingHorizontal: olyLayout.cardPadding,
+    paddingVertical: olyLayout.listItemPadding,
+    minHeight: olyLayout.gymTouchTarget,
+  },
+  rowActive: {
+    backgroundColor: olyColors.bg.activeHighlight,
+  },
+  image: {
+    width: 20,
+    height: 20,
+    resizeMode: "contain",
+  },
+  name: {
+    ...olyTypography.body,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.secondary,
+  },
+  nameActive: {
+    color: olyColors.text.primary,
+  },
+});

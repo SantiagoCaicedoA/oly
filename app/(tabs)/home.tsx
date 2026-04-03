@@ -151,7 +151,16 @@ export default function Home() {
       <SafeAreaView style={styles.container}>
         <View style={styles.stickyHeader}>
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>COMMUNITY</Text>
+            <View style={styles.headerLeft}>
+              <TouchableOpacity
+                style={styles.profileAvatar}
+                onPress={() => router.push("/athlete/my-profile")}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.profileAvatarText}>OF</Text>
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>COMMUNITY</Text>
+            </View>
             <View style={styles.headerIcons}>
               <TouchableOpacity hitSlop={olySpacing[8]} activeOpacity={0.6}>
                 <Ionicons
@@ -272,6 +281,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: olySpacing[12],
     paddingHorizontal: olyLayout.screenPadding,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: olySpacing[12],
+  },
+  profileAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: olyPalette.cardElevated,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  profileAvatarText: {
+    fontSize: 11,
+    fontFamily: olyTypography.caption.fontFamily,
+    fontWeight: "500",
+    color: olyColors.text.secondary,
   },
   headerTitle: {
     ...olyTypography.title2,

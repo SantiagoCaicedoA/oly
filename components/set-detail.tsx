@@ -1,17 +1,22 @@
-import { useTheme } from "@/context/theme-context";
-import { Typography } from "@/utils/custom-styles";
-import { getBarColor } from "@/utils/get-color";
+import { olyTypography, olyFonts, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
+import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
+import { olyRadius } from "@/src/oly-theme/oly-radius";
+import { olyElevation } from "@/src/oly-theme/oly-elevation";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { scale } from "react-native-size-matters";
+import { LinearGradient } from "expo-linear-gradient";
+
+/* ── Constants ──────────────────────────────────────── */
+
 interface SetDetailProps {
   setNumber: number;
   reps: number;
   weight: number;
   rpm: number;
   onPress?: () => void;
-  barColor?: string;
   isComplete?: boolean;
+  isMiss?: boolean;
 }
 
 export default function SetDetail({
@@ -20,93 +25,159 @@ export default function SetDetail({
   weight,
   rpm,
   onPress,
-  barColor,
   isComplete = false,
+  isMiss = false,
 }: SetDetailProps) {
-  const { colors } = useTheme();
+  const rowContent = (
+    <TouchableOpacity
+      style={styles.row}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      {/* SET label · reps */}
+      <Text style={[styles.setLabel, isMiss && styles.textMiss]}>
+        SET {setNumber}
+      </Text>
+      <Text style={[styles.separator, isMiss && styles.textMiss]}>·</Text>
+      <Text style={[styles.setReps, isMiss && styles.textMiss]}>
+        {reps} reps
+      </Text>
 
-  const styles = StyleSheet.create({
-    container: {
-      borderColor: colors.primary,
-      borderWidth: scale(1),
-      borderRadius: scale(15),
-      padding: scale(18),
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      backgroundColor: isComplete ? colors.lightBlue : "transparent",
-    },
-    setContainer: {
-      flexDirection: "row",
-      gap: scale(5),
-    },
-    weightContainer: {
-      borderRadius: scale(12),
-      alignItems: "center",
-      justifyContent: "center",
-      paddingHorizontal: scale(8),
-      paddingVertical: scale(3),
-      backgroundColor: colors.lightBlue,
-      borderColor: colors.primary,
-      borderWidth: scale(1),
-    },
-    rpeContainer: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: scale(8),
-    },
-    checkbox: {
-      width: scale(20),
-      height: scale(20),
-      borderRadius: scale(10),
-      borderWidth: scale(2),
-      borderColor: colors.primary,
-      backgroundColor: isComplete ? colors.primary : "transparent",
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    checkmark: {
-      fontSize: Typography.fontSize.sm,
-      fontWeight: Typography.fontWeight.bold,
-      color: colors.text,
-    },
-    setText: {
-      fontSize: Typography.fontSize.xs,
-      fontWeight: Typography.fontWeight.bold,
-      letterSpacing: Typography.letterSpacing.normal,
-      color: isComplete ? colors.text : colors.textSecondary,
-    },
-    weightText: {
-      fontSize: Typography.fontSize.md,
-      fontWeight: Typography.fontWeight.normal,
-      letterSpacing: Typography.letterSpacing.normal,
-      color: isComplete ? colors.text : colors.textSecondary,
-    },
-  });
+      <View style={{ flex: 1 }} />
 
-  return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
-      <View
-        style={{
-          height: scale(15),
-          backgroundColor: barColor || getBarColor(rpm),
-          width: scale(2),
-        }}
-      />
-      <View style={styles.setContainer}>
-        <Text style={styles.setText}>SET {setNumber}</Text>
-        <Text style={styles.setText}>{reps} REPS</Text>
-      </View>
-      <View style={styles.weightContainer}>
-        <Text style={styles.weightText}>{weight} kg</Text>
-      </View>
+      {/* Posted/miss dot */}
+      {isComplete && !isMiss && (
+        <View style={styles.postedDot} />
+      )}
+      {isMiss && (
+        <View style={styles.missDot} />
+      )}
 
-      <View style={styles.weightContainer}>
-        <Text style={styles.weightText}>{rpm} %</Text>
-      </View>
-      <View style={styles.checkbox}>
-        {isComplete && <Text style={styles.checkmark}>✓</Text>}
-      </View>
+      {/* Weight pill */}
+      <Text
+        style={[
+          styles.weightPill,
+          isComplete && !isMiss && styles.weightPillComplete,
+          isMiss && styles.weightPillMiss,
+        ]}
+      >
+        {weight} kg
+      </Text>
+
+      {/* RPM % */}
+      <Text style={[styles.rpm, isMiss && styles.textMiss]}>
+        {rpm}%
+      </Text>
+
     </TouchableOpacity>
   );
+
+  /* Completed sets get gradient wrapper */
+  if (isComplete && !isMiss) {
+    return (
+      <LinearGradient
+        colors={olyColors.bg.cardMade.colors as unknown as string[]}
+        start={olyColors.bg.cardMade.start}
+        end={olyColors.bg.cardMade.end}
+        style={styles.cardComplete}
+      >
+        {rowContent}
+      </LinearGradient>
+    );
+  }
+
+  return (
+    <View style={[styles.card, isMiss && styles.cardMiss]}>
+      {rowContent}
+    </View>
+  );
 }
+
+const styles = StyleSheet.create({
+  /* Card variants */
+  card: {
+    backgroundColor: olyPalette.card,
+    borderRadius: olyRadius.lg,
+  },
+  cardComplete: {
+    borderRadius: olyRadius.lg,
+  },
+  cardMiss: {
+    opacity: 0.5,
+  },
+
+  /* Row layout */
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: olyLayout.gymTouchTarget,
+    paddingVertical: olySpacing[16],
+    paddingRight: olySpacing[16],
+    paddingLeft: olySpacing[12],
+    gap: olySpacing[8],
+  },
+
+  /* Set label */
+  setLabel: {
+    ...olyTypography.label,
+    color: olyColors.text.secondary,
+    letterSpacing: olyLetterSpacing.uppercase,
+  },
+  separator: {
+    ...olyTypography.bodySmall,
+    color: olyColors.text.disabled,
+  },
+  setReps: {
+    ...olyTypography.bodySmall,
+    color: olyColors.text.secondary,
+  },
+
+  /* Dots */
+  postedDot: {
+    width: 6,
+    height: 6,
+    borderRadius: olyRadius.full,
+    backgroundColor: olyPalette.primary,
+  },
+  missDot: {
+    width: 6,
+    height: 6,
+    borderRadius: olyRadius.full,
+    backgroundColor: olyColors.lift.missed,
+  },
+
+  /* Weight pill */
+  weightPill: {
+    ...olyTypography.bodySmall,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.primary,
+    backgroundColor: olyColors.bg.activeHighlight,
+    borderRadius: olyRadius.full,
+    borderWidth: 1,
+    borderColor: olyColors.border.brandUnselected,
+    paddingHorizontal: olySpacing[12],
+    paddingVertical: olySpacing[4],
+    overflow: "hidden",
+  },
+  weightPillComplete: {
+    backgroundColor: olyColors.bg.activeHighlight,
+    borderColor: olyColors.border.focus,
+    color: olyPalette.white,
+  },
+  weightPillMiss: {
+    backgroundColor: "transparent",
+    borderColor: olyColors.border.default,
+    color: olyColors.text.disabled,
+  },
+
+  /* RPM */
+  rpm: {
+    ...olyTypography.bodySmall,
+    color: olyColors.text.secondary,
+  },
+
+  /* States */
+  textMiss: {
+    color: olyColors.text.disabled,
+  },
+});

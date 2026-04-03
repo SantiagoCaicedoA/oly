@@ -20,8 +20,6 @@ export default function Effort({ effort_value = 0 }: EffortProps) {
     container: {
       backgroundColor: colors.surface,
       borderRadius: scale(12),
-      borderWidth: 0.3,
-      borderColor: colors.text,
       paddingHorizontal: scale(12),
       paddingVertical: scale(15),
     },

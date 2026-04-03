@@ -67,8 +67,6 @@ export default function SessionDetail({
     },
     container: {
       borderRadius: scale(15),
-      borderColor: colors.text,
-      borderWidth: scale(0.3),
       backgroundColor: colors.surface,
       overflow: "hidden",
     },

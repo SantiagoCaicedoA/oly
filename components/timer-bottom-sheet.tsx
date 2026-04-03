@@ -1,9 +1,12 @@
 import { Images } from "@/assets";
 import CustomButton from "@/constants/custom-button";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
-import { useTheme } from "@/context/theme-context";
-import { Typography } from "@/utils/custom-styles";
+import { olyTypography, olyFonts, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
+import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
+import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
+import * as Haptics from "expo-haptics";
 import React, { forwardRef, useMemo, useRef, useState } from "react";
 import {
   Keyboard,
@@ -14,7 +17,6 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { scale } from "react-native-size-matters";
 import ResetPresetTimer from "./reset-preset-timer";
 type Props = {
   onStartTimer: (seconds: number) => void;
@@ -36,9 +38,7 @@ const TimerBottomSheet = forwardRef<BottomSheetModal, Props>(
     },
     ref,
   ) => {
-    const { colors } = useTheme();
-
-    const snapPoints = useMemo(() => ["50%", "90%"], []);
+    const snapPoints = useMemo(() => ["65%", "90%"], []);
     const [checkedValues, setCheckedValues] = useState<boolean[]>([
       false,
       false,
@@ -80,6 +80,7 @@ const TimerBottomSheet = forwardRef<BottomSheetModal, Props>(
     };
 
     const handleTimerSelect = (timer: string) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       if (timer.includes("s")) {
         const sec = timer.replace("s", "");
         setMinutes("0");
@@ -96,82 +97,13 @@ const TimerBottomSheet = forwardRef<BottomSheetModal, Props>(
       setLastSelectedTimer(selectedTimer);
       onStartTimer(totalSeconds);
     };
-    const styles = StyleSheet.create({
-      contentContainer: {
-        flex: 1,
-        backgroundColor: colors.background,
-        padding: scale(20),
-        marginBottom: scale(12),
-      },
-      restTime: {
-        fontSize: Typography.fontSize.md,
-        fontWeight: Typography.fontWeight.normal,
-        letterSpacing: Typography.letterSpacing.normal,
-        color: colors.textSecondary,
-        textAlign: "center",
-        textTransform: "uppercase",
-      },
-      timerContainer: {
-        alignItems: "center",
-        marginVertical: scale(10),
-      },
-      timer: {
-        fontSize: Typography.fontSize["2xl"],
-        fontWeight: Typography.fontWeight.bold,
-        letterSpacing: Typography.letterSpacing.normal,
-        color: colors.text,
-        textAlign: "center",
-      },
-      timerInput: {
-        fontSize: Typography.fontSize["2xl"],
-        fontWeight: Typography.fontWeight.bold,
-        letterSpacing: Typography.letterSpacing.normal,
-        color: colors.text,
-        textAlign: "center",
-      },
-      timerText: {
-        fontSize: Typography.fontSize.md,
-        fontWeight: Typography.fontWeight.normal,
-        letterSpacing: Typography.letterSpacing.normal,
-        color: colors.textSecondary,
-        marginTop: scale(20),
-        marginBottom: scale(12),
-        textTransform: "uppercase",
-      },
-      timerOptionsContainer: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        gap: scale(8),
-        marginBottom: scale(24),
-      },
-      chip: {
-        paddingHorizontal: scale(15),
-        paddingVertical: scale(8),
-        borderRadius: scale(24),
-        borderWidth: scale(1),
-        borderColor: colors.primary,
-        backgroundColor: colors.lightBlue,
-      },
-      chipSelected: {
-        backgroundColor: colors.primary,
-        borderColor: colors.primary,
-      },
-      chipText: {
-        fontSize: Typography.fontSize.base,
-        fontWeight: "500",
-        color: colors.text,
-      },
-      chipTextSelected: {
-        color: colors.text,
-      },
-    });
 
     return (
       <BottomSheetModal
         ref={ref}
         snapPoints={snapPoints}
-        backgroundStyle={{ backgroundColor: colors.background }}
-        handleIndicatorStyle={{ backgroundColor: colors.text }}
+        backgroundStyle={{ backgroundColor: olyPalette.card }}
+        handleIndicatorStyle={{ backgroundColor: olyColors.text.disabled }}
       >
         <BottomSheetView style={styles.contentContainer}>
           <TouchableWithoutFeedback
@@ -182,21 +114,17 @@ const TimerBottomSheet = forwardRef<BottomSheetModal, Props>(
             }}
           >
             <View style={{ flex: 1 }}>
-              <Text style={styles.restTime}>REST TIME</Text>
+              <Text style={styles.sectionLabel}>REST TIME</Text>
 
               <View style={styles.timerContainer}>
                 {isEditing ? (
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <TouchableOpacity
                       onPress={() => minutesRef.current?.focus()}
-                      // style={{
-                      //   width: scale(80),
-                      //   alignItems: "center",
-                      // }}
                     >
                       <TextInput
                         ref={minutesRef}
-                        style={[styles.timerInput]}
+                        style={styles.timerInput}
                         value={minutes}
                         onChangeText={(text) => setMinutes(formatMinutes(text))}
                         onFocus={() => {
@@ -207,14 +135,13 @@ const TimerBottomSheet = forwardRef<BottomSheetModal, Props>(
                         autoFocus
                       />
                     </TouchableOpacity>
-                    <Text style={styles.timer}>:</Text>
+                    <Text style={styles.timerDisplay}>:</Text>
                     <TouchableOpacity
                       onPress={() => secondsRef.current?.focus()}
-                      // style={{ width: scale(100), alignItems: "center" }}
                     >
                       <TextInput
                         ref={secondsRef}
-                        style={[styles.timerInput]}
+                        style={styles.timerInput}
                         value={seconds}
                         onChangeText={(text) => setSeconds(formatSeconds(text))}
                         onFocus={() => {
@@ -228,27 +155,25 @@ const TimerBottomSheet = forwardRef<BottomSheetModal, Props>(
                   </View>
                 ) : (
                   <TouchableOpacity onPress={() => setIsEditing(true)}>
-                    <Text style={styles.timer}>{selectedTimer}</Text>
+                    <Text style={styles.timerDisplay}>{selectedTimer}</Text>
                   </TouchableOpacity>
                 )}
               </View>
 
-              <Text style={styles.timerText}>TIMER OPTIONS</Text>
-
-              <View style={styles.timerOptionsContainer}>
+              <View style={styles.chipsRow}>
                 {TIMER_OPTIONS.map((timer) => {
                   const isSelected = selectedTimer === timer;
                   return (
                     <TouchableOpacity
                       key={timer}
-                      style={[styles.chip, isSelected && styles.chipSelected]}
+                      style={[styles.chip, isSelected && styles.chipActive]}
                       onPress={() => handleTimerSelect(timer)}
                       activeOpacity={0.7}
                     >
                       <Text
                         style={[
                           styles.chipText,
-                          isSelected && styles.chipTextSelected,
+                          isSelected && styles.chipTextActive,
                         ]}
                       >
                         {timer}
@@ -258,16 +183,19 @@ const TimerBottomSheet = forwardRef<BottomSheetModal, Props>(
                 })}
               </View>
 
-              <ResetPresetTimer
-                title="RESET PRESETS"
-                checkedValues={checkedValues}
-                onToggle={toggleItem}
-                items={[
-                  { label: "Auto start rest", icon: Images.play },
-                  { label: "Sound notification", icon: Images.sound },
-                ]}
-              />
-              <View style={{ marginTop: scale(15) }}>
+              <View style={{ marginTop: olySpacing[24] }}>
+                <ResetPresetTimer
+                  title="SETTINGS"
+                  checkedValues={checkedValues}
+                  onToggle={toggleItem}
+                  items={[
+                    { label: "Auto start rest", icon: Images.play },
+                    { label: "Sound notification", icon: Images.sound },
+                  ]}
+                />
+              </View>
+
+              <View style={{ marginTop: olySpacing[24] }}>
                 {isTimerActive && !hasTimerChanged ? (
                   <ActionButtonsRow
                     primaryTitle={isTimerRunning ? "STOP" : "RESUME"}
@@ -296,5 +224,69 @@ const TimerBottomSheet = forwardRef<BottomSheetModal, Props>(
     );
   },
 );
+
+/* ── Styles ──────────────────────────────────────────── */
+
+const styles = StyleSheet.create({
+  contentContainer: {
+    flex: 1,
+    paddingHorizontal: olyLayout.screenPadding,
+    paddingTop: olySpacing[16],
+    paddingBottom: olySpacing[40],
+  },
+  sectionLabel: {
+    ...olyTypography.label,
+    color: olyColors.text.secondary,
+    textTransform: "uppercase",
+    letterSpacing: olyLetterSpacing.uppercase,
+    textAlign: "center",
+  },
+  timerContainer: {
+    alignItems: "center",
+    marginVertical: olySpacing[16],
+  },
+  timerDisplay: {
+    ...olyTypography.display,
+    fontSize: 56,
+    lineHeight: 64,
+    color: olyColors.text.primary,
+    textAlign: "center",
+  },
+  timerInput: {
+    ...olyTypography.display,
+    fontSize: 56,
+    lineHeight: 64,
+    color: olyColors.text.primary,
+    textAlign: "center",
+  },
+  chipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: olySpacing[8],
+  },
+  chip: {
+    paddingHorizontal: olySpacing[16],
+    paddingVertical: olySpacing[8],
+    borderRadius: olyRadius.full,
+    borderWidth: 1,
+    borderColor: olyColors.border.brandUnselected,
+    backgroundColor: olyColors.bg.activeHighlight,
+    minWidth: olyLayout.minTouchTarget,
+    alignItems: "center",
+  },
+  chipActive: {
+    backgroundColor: olyColors.bg.cardSelected,
+    borderColor: olyColors.border.brand,
+  },
+  chipText: {
+    ...olyTypography.bodySmall,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.secondary,
+  },
+  chipTextActive: {
+    color: olyColors.text.primary,
+  },
+});
 
 export default TimerBottomSheet;

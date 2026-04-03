@@ -1,13 +1,15 @@
-import { TabBarContext } from "@/app/(tabs)/_layout";
-import { Images } from "@/assets";
-import { useTheme } from "@/context/theme-context";
+import { olyTypography, olyFonts, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
+import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
+import { olyRadius } from "@/src/oly-theme/oly-radius";
+import { Ionicons } from "@expo/vector-icons";
 import {
   useCommentOnPostMutation,
   useDeleteCommentMutation,
   useGetCommentsQuery,
 } from "@/store/api";
-import { Typography } from "@/utils/custom-styles";
 import {
+  BottomSheetBackdrop,
   BottomSheetFooter,
   BottomSheetFooterProps,
   BottomSheetModal,
@@ -17,174 +19,153 @@ import {
 import React, {
   forwardRef,
   useCallback,
-  useContext,
-  useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 import {
   ActivityIndicator,
-  Image,
   Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { scale } from "react-native-size-matters";
 import CommentCard from "./comment-card";
+
 interface CommentBottomSheetProps {
   postId: string;
 }
+
 const CommentBottomSheet = forwardRef<
   BottomSheetModal,
   CommentBottomSheetProps
 >(({ postId }, ref) => {
-  const { colors } = useTheme();
   const [enabled, setEnabled] = useState(false);
-  const snapPoints = useMemo(() => ["50%", "90%"], []);
-  const { hideTabBar, showTabBar } = useContext(TabBarContext);
+  const snapPoints = useMemo(() => ["60%", "90%"], []);
   const commentInputRef = useRef<any>(null);
-  const commentText = useRef("");
+  const [commentText, setCommentText] = useState("");
 
-  const [commentOnPost, { isLoading }] = useCommentOnPostMutation();
-  const { data: commentsData } = useGetCommentsQuery(
-    { postId },
-    { skip: !enabled },
-  );
+  /* Reply state — ref mirrors state to avoid stale closures in callbacks */
+  const [replyTo, setReplyTo] = useState<{
+    commentId: string;
+    userName: string;
+  } | null>(null);
+  const replyToRef = useRef<{ commentId: string; userName: string } | null>(null);
+
+  const [commentOnPost, { isLoading: isSending }] =
+    useCommentOnPostMutation();
+  const {
+    data: commentsData,
+    isLoading: isLoadingComments,
+    isFetching,
+  } = useGetCommentsQuery({ postId }, { skip: !enabled });
   const [deleteComment] = useDeleteCommentMutation();
-  useEffect(() => {
-    if (commentsData) {
-    }
-  }, [commentsData]);
 
   const comments = commentsData?.data ?? [];
+  const showLoading = enabled
+    ? !commentsData || isLoadingComments || isFetching
+    : true;
+
   const handleSendComment = async () => {
-    if (!commentText.current.trim()) return;
+    if (!commentText.trim()) return;
     try {
-      await commentOnPost({ postId, text: commentText.current }).unwrap();
-      commentText.current = "";
-      commentInputRef.current?.clear();
+      await commentOnPost({
+        postId,
+        text: commentText,
+        parentComment: replyToRef.current?.commentId ?? null,
+      }).unwrap();
+      setCommentText("");
+      replyToRef.current = null;
+      setReplyTo(null);
     } catch (error) {
       console.error("Comment error:", error);
     }
   };
 
-  const styles = StyleSheet.create({
-    contentContainer: {
-      paddingHorizontal: scale(10),
-      paddingBottom: scale(80),
+  const handleReply = useCallback(
+    (commentId: string, userName: string) => {
+      replyToRef.current = { commentId, userName };
+      setReplyTo({ commentId, userName });
+      setCommentText("");
+      setTimeout(() => commentInputRef.current?.focus(), 100);
     },
-    footer: {
-      borderTopColor: colors.text,
-      borderTopWidth: scale(1),
-      backgroundColor: colors.headerBackground,
-      paddingHorizontal: scale(10),
-      paddingVertical: scale(20),
-      paddingBottom: Platform.OS === "ios" ? scale(10) : scale(10),
-    },
-    messageContainer: {
-      flex: 1,
-      borderColor: colors.text,
-      borderWidth: scale(1),
-      borderRadius: scale(15),
-      padding: scale(15),
-      color: colors.text,
-    },
-    sendIcon: {
-      width: scale(20),
-      height: scale(20),
-    },
-    sendContainer: {
-      backgroundColor: colors.lightBlue,
-      borderColor: colors.primary,
-      borderWidth: scale(1),
-      borderRadius: scale(25),
-      alignItems: "center",
-      justifyContent: "center",
-      padding: scale(12),
-    },
-    commentHeading: {
-      fontSize: Typography.fontSize.md,
-      fontWeight: Typography.fontWeight.bold,
-      letterSpacing: Typography.letterSpacing.normal,
-      color: colors.text,
-      textAlign: "center",
-      marginVertical: scale(10),
-    },
-    emptyContainer: {
-      alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: scale(40),
-      paddingHorizontal: scale(20),
-    },
-    emptyTitle: {
-      fontSize: Typography.fontSize.lg,
-      fontWeight: Typography.fontWeight.bold,
-      marginBottom: scale(8),
-    },
-    emptyText: {
-      fontSize: Typography.fontSize.md,
-      textAlign: "center",
-    },
-    loaderContainer: {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      justifyContent: "center",
-      alignItems: "center",
-      zIndex: 999,
-      borderRadius: scale(15),
-      backgroundColor: "rgba(0, 0, 0, 0.35)",
-    },
-  });
-  const renderEmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <Text style={[styles.emptyTitle, { color: colors.text }]}>
-        No comments yet
-      </Text>
-      <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-        Be the first to share your thoughts
-      </Text>
-    </View>
+    [],
   );
+
+  const renderBackdrop = useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop
+        {...props}
+        disappearsOnIndex={-1}
+        appearsOnIndex={0}
+        opacity={0.7}
+      />
+    ),
+    [],
+  );
+
   const renderFooter = useCallback(
     (props: BottomSheetFooterProps) => (
       <BottomSheetFooter {...props} bottomInset={0}>
         <View style={styles.footer}>
-          <View
-            style={{
-              flexDirection: "row",
-              gap: scale(5),
-              alignItems: "center",
-            }}
-          >
+          {replyTo && (
+            <View style={styles.replyStrip}>
+              <TouchableOpacity
+                onPress={() => {
+                  replyToRef.current = null;
+                  setReplyTo(null);
+                  setCommentText("");
+                }}
+                hitSlop={olySpacing[8]}
+              >
+                <Ionicons
+                  name="close"
+                  size={14}
+                  color={olyColors.text.disabled}
+                />
+              </TouchableOpacity>
+              <Text style={styles.replyStripText}>
+                Replying to{" "}
+                <Text style={styles.replyStripName}>@{replyTo.userName}</Text>
+              </Text>
+            </View>
+          )}
+          <View style={styles.inputRow}>
             <BottomSheetTextInput
-              style={styles.messageContainer}
-              placeholder="Message"
-              placeholderTextColor={colors.textSecondary}
-              onChangeText={(text) => {
-                commentText.current = text;
-              }}
+              style={styles.messageInput}
+              placeholder={
+                replyTo
+                  ? `Reply to @${replyTo.userName}...`
+                  : "Message"
+              }
+              placeholderTextColor={olyColors.text.disabled}
+              value={commentText}
+              onChangeText={setCommentText}
               ref={commentInputRef}
               multiline
             />
-
             <TouchableOpacity
-              style={styles.sendContainer}
+              style={styles.sendButton}
               onPress={handleSendComment}
-              disabled={isLoading}
+              disabled={isSending}
+              activeOpacity={0.7}
             >
-              <Image source={Images.send} style={styles.sendIcon} />
+              {isSending ? (
+                <ActivityIndicator size="small" color={olyPalette.white} />
+              ) : (
+                <Ionicons
+                  name="send"
+                  size={18}
+                  color={olyColors.text.onBrand}
+                />
+              )}
             </TouchableOpacity>
           </View>
         </View>
       </BottomSheetFooter>
     ),
-    [colors, isLoading],
+    [isSending, replyTo, commentText],
   );
 
   return (
@@ -193,12 +174,18 @@ const CommentBottomSheet = forwardRef<
       index={0}
       onChange={(index) => {
         if (index >= 0) setEnabled(true);
-        else setEnabled(false);
+        else {
+          setEnabled(false);
+          replyToRef.current = null;
+          setReplyTo(null);
+          setCommentText("");
+        }
       }}
       enableDynamicSizing={false}
       snapPoints={snapPoints}
-      backgroundStyle={{ backgroundColor: colors.background }}
-      handleIndicatorStyle={{ backgroundColor: colors.text }}
+      backgroundStyle={styles.sheetBg}
+      handleIndicatorStyle={styles.handle}
+      backdropComponent={renderBackdrop}
       footerComponent={renderFooter}
       keyboardBehavior="extend"
       keyboardBlurBehavior="restore"
@@ -207,30 +194,137 @@ const CommentBottomSheet = forwardRef<
       enableDismissOnClose={true}
     >
       <BottomSheetScrollView
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <>
-          {isLoading && (
-            <View style={styles.loaderContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
-            </View>
-          )}
-          <Text style={styles.commentHeading}>Comments</Text>
-          {comments.length === 0
-            ? renderEmptyState()
-            : comments.map((comment: any) => (
-                <CommentCard
-                  key={comment._id}
-                  comment={comment}
-                  postId={postId}
-                />
-              ))}
-        </>
+        <Text style={styles.heading}>Comments</Text>
+
+        {showLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={olyPalette.primary} />
+          </View>
+        ) : comments.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyTitle}>No comments yet</Text>
+            <Text style={styles.emptyText}>
+              Be the first to share your thoughts
+            </Text>
+          </View>
+        ) : (
+          comments.map((comment: any) => (
+            <CommentCard
+              key={comment._id}
+              comment={comment}
+              postId={postId}
+              onReply={handleReply}
+            />
+          ))
+        )}
       </BottomSheetScrollView>
     </BottomSheetModal>
   );
 });
 
 export default CommentBottomSheet;
+
+/* ── Styles ──────────────────────────────────────────── */
+
+const styles = StyleSheet.create({
+  sheetBg: {
+    backgroundColor: olyPalette.background,
+    borderTopLeftRadius: olyRadius.lg,
+    borderTopRightRadius: olyRadius.lg,
+  },
+  handle: {
+    backgroundColor: olyColors.text.disabled,
+    width: 36,
+  },
+  scrollContent: {
+    paddingHorizontal: olyLayout.screenPadding,
+    paddingBottom: 100,
+  },
+
+  /* Header */
+  heading: {
+    ...olyTypography.bodySmall,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.secondary,
+    textAlign: "center",
+    paddingVertical: olySpacing[12],
+  },
+
+  /* Empty state */
+  emptyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: olySpacing[40],
+    paddingHorizontal: olySpacing[20],
+    gap: olySpacing[8],
+  },
+  emptyTitle: {
+    ...olyTypography.body,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.primary,
+  },
+  emptyText: {
+    ...olyTypography.bodySmall,
+    color: olyColors.text.secondary,
+    textAlign: "center",
+  },
+
+  /* Footer input */
+  footer: {
+    borderTopWidth: 1,
+    borderTopColor: olyColors.border.default,
+    backgroundColor: olyPalette.background,
+    paddingHorizontal: olyLayout.screenPadding,
+    paddingTop: olySpacing[8],
+    paddingBottom: Platform.OS === "ios" ? olySpacing[24] : olySpacing[12],
+  },
+  replyStrip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: olySpacing[8],
+    paddingBottom: olySpacing[8],
+  },
+  replyStripText: {
+    ...olyTypography.caption,
+    color: olyColors.text.disabled,
+  },
+  replyStripName: {
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.secondary,
+  },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: olySpacing[8],
+  },
+  messageInput: {
+    flex: 1,
+    ...olyTypography.bodySmall,
+    color: olyColors.text.primary,
+    borderWidth: 1,
+    borderColor: olyColors.border.default,
+    borderRadius: olyRadius.full,
+    paddingHorizontal: olySpacing[16],
+    paddingVertical: olySpacing[12],
+    maxHeight: 100,
+  },
+  sendButton: {
+    width: olyLayout.minTouchTarget,
+    height: olyLayout.minTouchTarget,
+    borderRadius: olyRadius.full,
+    backgroundColor: olyPalette.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  /* Loading */
+  loadingContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: olySpacing[40],
+  },
+});

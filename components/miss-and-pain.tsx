@@ -1,8 +1,10 @@
-import { useTheme } from "@/context/theme-context";
-import { Typography } from "@/utils/custom-styles";
+import { olyTypography, olyFonts, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
+import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
+import { olyRadius } from "@/src/oly-theme/oly-radius";
+import { olyElevation } from "@/src/oly-theme/oly-elevation";
 import React from "react";
 import { StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
-import { scale } from "react-native-size-matters";
 import AnalysisSegment from "./analysis-segment";
 
 const FAIL_OPTIONS = ["Pull", "Turnover", "Catch / overhead"];
@@ -17,6 +19,7 @@ const WHERE_OPTIONS = [
   "Ankle",
   "Other",
 ];
+
 interface MissAndPainProps {
   wasMiss: boolean;
   onWasMissChange: (value: boolean) => void;
@@ -48,201 +51,202 @@ export default function MissAndPain({
   wherePain,
   onWherePainChange,
 }: MissAndPainProps) {
-  const { colors } = useTheme();
-
-  const styles = StyleSheet.create({
-    header: {
-      //marginBottom: scale(12),
-    },
-    title: {
-      fontSize: Typography.fontSize.md,
-      fontWeight: Typography.fontWeight.normal,
-      color: colors.textSecondary,
-
-      textTransform: "uppercase",
-    },
-    container: {
-      backgroundColor: colors.surface,
-      borderRadius: scale(16),
-      borderWidth: scale(0.3),
-      borderColor: colors.text,
-      paddingHorizontal: scale(20),
-      paddingVertical: scale(20),
-    },
-    switchRow: {
-      // marginBottom: wasMiss ? scale(1) : 0,
-    },
-    switchQuestion: {
-      fontSize: Typography.fontSize.md,
-      fontWeight: Typography.fontWeight.normal,
-      color: colors.textSecondary,
-
-      textTransform: "uppercase",
-    },
-    switchContainer: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: scale(20),
-    },
-    switchAnswer: {
-      fontSize: Typography.fontSize.md,
-      fontWeight: Typography.fontWeight.bold,
-      color: colors.text,
-    },
-    sectionTitle: {
-      fontSize: Typography.fontSize.md,
-      fontWeight: Typography.fontWeight.normal,
-      color: colors.textSecondary,
-
-      textTransform: "uppercase",
-    },
-    chipsContainer: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: scale(5),
-      marginVertical: scale(12),
-    },
-    chip: {
-      paddingHorizontal: scale(15),
-      paddingVertical: scale(8),
-      borderRadius: scale(24),
-      borderWidth: scale(1),
-      borderColor: colors.primary,
-      backgroundColor: colors.lightBlue,
-    },
-    chipSelected: {
-      backgroundColor: colors.primary,
-      borderColor: colors.primary,
-    },
-    chipText: {
-      fontSize: Typography.fontSize.base,
-      fontWeight: "500",
-      color: colors.text,
-    },
-    chipTextSelected: {
-      color: colors.text,
-    },
-  });
-
   return (
-    <>
-      <View style={styles.header}>
-        <Text style={styles.title}>Miss & Pain</Text>
+    <View style={styles.wrapper}>
+      {/* Missed Lift toggle card */}
+      <View style={styles.toggleCard}>
+        <View style={styles.toggleInfo}>
+          <Text style={styles.toggleTitle}>Missed Lift</Text>
+          <Text style={styles.toggleDesc}>Mark if you did not complete the lift</Text>
+        </View>
+        <Switch
+          value={wasMiss}
+          onValueChange={onWasMissChange}
+          trackColor={{
+            false: olyColors.border.default,
+            true: olyPalette.primary,
+          }}
+          thumbColor={olyPalette.white}
+        />
       </View>
 
-      <View style={styles.container}>
-        <View style={styles.switchRow}>
-          <Text style={styles.switchQuestion}>WAS IT A MISS?</Text>
-          <View style={styles.switchContainer}>
-            <Text style={styles.switchAnswer}>{wasMiss ? "Yes" : "No"}</Text>
-            <Switch
-              value={wasMiss}
-              onValueChange={onWasMissChange}
-              trackColor={{ false: colors.textSecondary, true: colors.primary }}
-              thumbColor={colors.text}
-            />
+      {/* Miss details (expanded) */}
+      {wasMiss && (
+        <View style={styles.detailCard}>
+          <Text style={styles.detailLabel}>WHERE DID IT FAIL?</Text>
+          <View style={styles.chipsRow}>
+            {FAIL_OPTIONS.map((opt) => {
+              const isSelected = failLocation === opt;
+              return (
+                <TouchableOpacity
+                  key={opt}
+                  style={[styles.chip, isSelected && styles.chipActive]}
+                  onPress={() => onFailLocationChange(opt)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      isSelected && styles.chipTextActive,
+                    ]}
+                  >
+                    {opt}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <Text style={styles.detailLabel}>MISSED WHERE?</Text>
+          <View style={styles.chipsRow}>
+            {MISSED_OPTIONS.map((opt) => {
+              const isSelected = missedWhere === opt;
+              return (
+                <TouchableOpacity
+                  key={opt}
+                  style={[styles.chip, isSelected && styles.chipActive]}
+                  onPress={() => onMissedWhereChange(opt)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      isSelected && styles.chipTextActive,
+                    ]}
+                  >
+                    {opt}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
+      )}
 
-        {wasMiss && (
-          <>
-            <Text style={styles.sectionTitle}>WHERE DID IT FAIL?</Text>
-            <View style={styles.chipsContainer}>
-              {FAIL_OPTIONS.map((opt) => {
-                const isSelected = failLocation === opt;
-                return (
-                  <TouchableOpacity
-                    key={opt}
-                    style={[styles.chip, isSelected && styles.chipSelected]}
-                    onPress={() => onFailLocationChange(opt)}
-                    activeOpacity={0.7}
-                  >
-                    <Text
-                      style={[
-                        styles.chipText,
-                        isSelected && styles.chipTextSelected,
-                      ]}
-                    >
-                      {opt}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            <Text style={styles.sectionTitle}>MISSED WHERE?</Text>
-            <View style={styles.chipsContainer}>
-              {MISSED_OPTIONS.map((opt) => {
-                const isSelected = missedWhere === opt;
-                return (
-                  <TouchableOpacity
-                    key={opt}
-                    style={[styles.chip, isSelected && styles.chipSelected]}
-                    onPress={() => onMissedWhereChange(opt)}
-                    activeOpacity={0.7}
-                  >
-                    <Text
-                      style={[
-                        styles.chipText,
-                        isSelected && styles.chipTextSelected,
-                      ]}
-                    >
-                      {opt}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </>
-        )}
-        <View style={styles.switchRow}>
-          <Text style={styles.switchQuestion}>ANY PAIN OR DISCOMFORT?</Text>
-          <View style={styles.switchContainer}>
-            <Text style={styles.switchAnswer}>{wasPain ? "Yes" : "No"}</Text>
-            <Switch
-              value={wasPain}
-              onValueChange={onWasPainChange}
-              trackColor={{ false: colors.textSecondary, true: colors.primary }}
-              thumbColor={colors.text}
-            />
-          </View>
-          {wasPain && (
-            <>
-              <AnalysisSegment
-                title="Pain Level"
-                value={painLevel}
-                options={["None", "Minor", "Moderate", "Sharp"]}
-                valueTextMap={painLevelTextMap}
-                onChange={onPainLevelChange}
-              />
-              <Text style={styles.sectionTitle}>WHERE?</Text>
-              <View style={styles.chipsContainer}>
-                {WHERE_OPTIONS.map((opt) => {
-                  const isSelected = wherePain === opt;
-                  return (
-                    <TouchableOpacity
-                      key={opt}
-                      style={[styles.chip, isSelected && styles.chipSelected]}
-                      onPress={() => onWherePainChange(opt)}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          isSelected && styles.chipTextSelected,
-                        ]}
-                      >
-                        {opt}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </>
-          )}
+      {/* Pain / Discomfort toggle card */}
+      <View style={styles.toggleCard}>
+        <View style={styles.toggleInfo}>
+          <Text style={styles.toggleTitle}>Pain / Discomfort</Text>
+          <Text style={styles.toggleDesc}>Flag for coach review</Text>
         </View>
+        <Switch
+          value={wasPain}
+          onValueChange={onWasPainChange}
+          trackColor={{
+            false: olyColors.border.default,
+            true: olyPalette.primary,
+          }}
+          thumbColor={olyPalette.white}
+        />
       </View>
-    </>
+
+      {/* Pain details (expanded) */}
+      {wasPain && (
+        <View style={styles.detailCard}>
+          <AnalysisSegment
+            title="Pain Level"
+            value={painLevel}
+            options={["None", "Minor", "Moderate", "Sharp"]}
+            valueTextMap={painLevelTextMap}
+            onChange={onPainLevelChange}
+          />
+
+          <Text style={styles.detailLabel}>WHERE?</Text>
+          <View style={styles.chipsRow}>
+            {WHERE_OPTIONS.map((opt) => {
+              const isSelected = wherePain === opt;
+              return (
+                <TouchableOpacity
+                  key={opt}
+                  style={[styles.chip, isSelected && styles.chipActive]}
+                  onPress={() => onWherePainChange(opt)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      isSelected && styles.chipTextActive,
+                    ]}
+                  >
+                    {opt}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      )}
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  wrapper: {
+    gap: olySpacing[12],
+  },
+
+  /* Toggle cards */
+  toggleCard: {
+    ...olyElevation.level1,
+    borderRadius: olyRadius.lg,
+    padding: olyLayout.cardPadding,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: olySpacing[12],
+  },
+  toggleInfo: {
+    flex: 1,
+    gap: olySpacing[4],
+  },
+  toggleTitle: {
+    ...olyTypography.body,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.primary,
+  },
+  toggleDesc: {
+    ...olyTypography.bodySmall,
+    color: olyColors.text.secondary,
+  },
+
+  /* Detail expansion */
+  detailCard: {
+    ...olyElevation.level1,
+    borderRadius: olyRadius.lg,
+    padding: olyLayout.cardPadding,
+    gap: olySpacing[12],
+  },
+  detailLabel: {
+    ...olyTypography.caption,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.secondary,
+    letterSpacing: olyLetterSpacing.uppercase,
+  },
+
+  /* Chips */
+  chipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: olySpacing[8],
+  },
+  chip: {
+    paddingHorizontal: olySpacing[12],
+    paddingVertical: olySpacing[8],
+    borderRadius: olyRadius.full,
+    borderWidth: 1,
+    borderColor: olyColors.border.brandUnselected,
+    backgroundColor: olyColors.bg.activeHighlight,
+  },
+  chipActive: {
+    backgroundColor: olyColors.bg.cardSelected,
+    borderColor: olyColors.border.brand,
+  },
+  chipText: {
+    ...olyTypography.bodySmall,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.secondary,
+  },
+  chipTextActive: {
+    color: olyColors.text.primary,
+  },
+});

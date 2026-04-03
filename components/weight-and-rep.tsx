@@ -1,14 +1,22 @@
-import { useTheme } from "@/context/theme-context";
-import { Typography } from "@/utils/custom-styles";
+import { olyTypography, olyFonts, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
+import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olySpacing } from "@/src/oly-theme/oly-spacing";
+import { olyRadius } from "@/src/oly-theme/oly-radius";
+import { olyElevation } from "@/src/oly-theme/oly-elevation";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { scale } from "react-native-size-matters";
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+
+/* ── Constants ──────────────────────────────────────── */
+const STEPPER_SIZE = 32;
 
 interface WeightAndRepProps {
   weight: number;
   onWeightChange: (value: number) => void;
   reps: number;
   onRepsChange: (value: number) => void;
+  prescribedWeight?: number;
+  prescribedRpm?: number;
+  prescribedReps?: string;
 }
 
 export default function WeightAndRep({
@@ -16,134 +24,183 @@ export default function WeightAndRep({
   onWeightChange,
   reps,
   onRepsChange,
+  prescribedWeight,
+  prescribedRpm,
+  prescribedReps,
 }: WeightAndRepProps) {
-  const { colors } = useTheme();
-
   const handleIncrement = (type: "weight" | "reps") => {
-    if (type === "weight") {
-      onWeightChange(weight + 1);
-    } else {
-      onRepsChange(reps + 1);
-    }
+    if (type === "weight") onWeightChange(weight + 1);
+    else onRepsChange(reps + 1);
   };
 
   const handleDecrement = (type: "weight" | "reps") => {
-    if (type === "weight" && weight > 0) {
-      onWeightChange(weight - 1);
-    } else if (type === "reps" && reps > 0) {
-      onRepsChange(reps - 1);
-    }
+    if (type === "weight" && weight > 0) onWeightChange(weight - 1);
+    else if (type === "reps" && reps > 0) onRepsChange(reps - 1);
   };
 
-  const styles = StyleSheet.create({
-    container: {
-      flexDirection: "row",
-      gap: scale(16),
-    },
-    section: {
-      flex: 1,
-    },
-    label: {
-      fontSize: Typography.fontSize.md,
-      fontWeight: Typography.fontWeight.normal,
-      color: colors.textSecondary,
-      marginBottom: scale(8),
-      textTransform: "uppercase",
-    },
-    controlContainer: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      backgroundColor: colors.surface,
-      borderRadius: scale(12),
-      borderWidth: scale(0.3),
-      borderColor: colors.text,
-      paddingVertical: scale(4),
-      paddingHorizontal: scale(12),
-    },
-    button: {
-      width: scale(15),
-      height: scale(15),
-      borderRadius: scale(20),
-      backgroundColor: colors.text,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    buttonText: {
-      fontSize: Typography.fontSize.base,
-      fontWeight: Typography.fontWeight.normal,
-      color: colors.background,
-    },
-    valueContainer: {
-      alignItems: "center",
-    },
-    value: {
-      fontSize: Typography.fontSize.md,
-      fontWeight: Typography.fontWeight.normal,
-      color: colors.text,
-    },
-    unit: {
-      fontSize: Typography.fontSize.xs,
-      fontWeight: Typography.fontWeight.light,
-      color: colors.textSecondary,
-      textTransform: "uppercase",
-      marginTop: scale(2),
-    },
-  });
+  /* Deviation check */
+  const weightDeviates =
+    prescribedWeight != null && weight !== prescribedWeight;
+  const repsDeviates =
+    prescribedReps != null && String(reps) !== prescribedReps;
 
   return (
     <View style={styles.container}>
-      <View style={styles.section}>
-        <Text style={styles.label}>Weight Lifted</Text>
-        <View style={styles.controlContainer}>
+      {/* Weight */}
+      <View style={styles.half}>
+        <Text style={styles.label}>WEIGHT</Text>
+        <View style={styles.stepperCard}>
           <TouchableOpacity
-            style={styles.button}
+            style={styles.stepperButton}
             onPress={() => handleDecrement("weight")}
             activeOpacity={0.7}
           >
-            <Text style={styles.buttonText}>−</Text>
+            <Text style={styles.stepperIcon}>−</Text>
           </TouchableOpacity>
-
-          <View style={styles.valueContainer}>
-            <Text style={styles.value}>{weight}</Text>
-            <Text style={styles.unit}>kg</Text>
+          <View style={styles.valueCol}>
+            <TextInput
+              style={[
+                styles.heroValue,
+                weightDeviates && styles.heroDeviated,
+              ]}
+              value={String(weight)}
+              onChangeText={(t) => {
+                const n = parseInt(t, 10);
+                if (!isNaN(n)) onWeightChange(n);
+                else if (t === "") onWeightChange(0);
+              }}
+              keyboardType="number-pad"
+              selectTextOnFocus
+            />
+            <Text style={styles.unit}>KG</Text>
           </View>
-
           <TouchableOpacity
-            style={styles.button}
+            style={styles.stepperButton}
             onPress={() => handleIncrement("weight")}
             activeOpacity={0.7}
           >
-            <Text style={styles.buttonText}>+</Text>
+            <Text style={styles.stepperIcon}>+</Text>
           </TouchableOpacity>
         </View>
+        {prescribedWeight != null && (
+          <Text style={[styles.prescribed, weightDeviates && styles.prescribedWarn]}>
+            Rx: {prescribedWeight} kg
+            {prescribedRpm != null ? ` · ${prescribedRpm}%` : ""}
+          </Text>
+        )}
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.label}>Reps</Text>
-        <View style={styles.controlContainer}>
+      {/* Reps */}
+      <View style={styles.half}>
+        <Text style={styles.label}>REPS</Text>
+        <View style={styles.stepperCard}>
           <TouchableOpacity
-            style={styles.button}
+            style={styles.stepperButton}
             onPress={() => handleDecrement("reps")}
             activeOpacity={0.7}
           >
-            <Text style={styles.buttonText}>−</Text>
+            <Text style={styles.stepperIcon}>−</Text>
           </TouchableOpacity>
-
-          <View style={styles.valueContainer}>
-            <Text style={styles.value}>{reps}</Text>
-            <Text style={styles.unit}>reps</Text>
+          <View style={styles.valueCol}>
+            <TextInput
+              style={[
+                styles.heroValue,
+                repsDeviates && styles.heroDeviated,
+              ]}
+              value={String(reps)}
+              onChangeText={(t) => {
+                const n = parseInt(t, 10);
+                if (!isNaN(n)) onRepsChange(n);
+                else if (t === "") onRepsChange(0);
+              }}
+              keyboardType="number-pad"
+              selectTextOnFocus
+            />
+            <Text style={styles.unit}>REPS</Text>
           </View>
-
           <TouchableOpacity
-            style={styles.button}
+            style={styles.stepperButton}
             onPress={() => handleIncrement("reps")}
             activeOpacity={0.7}
           >
-            <Text style={styles.buttonText}>+</Text>
+            <Text style={styles.stepperIcon}>+</Text>
           </TouchableOpacity>
         </View>
+        {prescribedReps != null && (
+          <Text style={[styles.prescribed, repsDeviates && styles.prescribedWarn]}>
+            Rx: {prescribedReps}
+          </Text>
+        )}
       </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: "row",
+    gap: olySpacing[12],
+  },
+  half: {
+    flex: 1,
+    gap: olySpacing[4],
+  },
+
+  /* Label */
+  label: {
+    ...olyTypography.label,
+    color: olyColors.text.secondary,
+    letterSpacing: olyLetterSpacing.uppercase,
+  },
+
+  /* Stepper card */
+  stepperCard: {
+    ...olyElevation.level1,
+    borderRadius: olyRadius.lg,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: olySpacing[12],
+    paddingHorizontal: olySpacing[12],
+  },
+  stepperButton: {
+    width: STEPPER_SIZE,
+    height: STEPPER_SIZE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stepperIcon: {
+    ...olyTypography.title2,
+    color: olyColors.text.secondary,
+    lineHeight: 28,
+  },
+  valueCol: {
+    alignItems: "center",
+    gap: olySpacing[4],
+  },
+  heroValue: {
+    ...olyTypography.title2,
+    color: olyColors.text.primary,
+    textAlign: "center",
+    minWidth: 40,
+    padding: 0,
+  },
+  heroDeviated: {
+    color: olyColors.text.primary,
+  },
+  unit: {
+    ...olyTypography.caption,
+    color: olyColors.text.secondary,
+    letterSpacing: olyLetterSpacing.uppercase,
+  },
+
+  /* Prescription */
+  prescribed: {
+    ...olyTypography.caption,
+    color: olyColors.text.disabled,
+    textAlign: "center",
+  },
+  prescribedWarn: {
+    color: olyColors.text.secondary,
+  },
+});

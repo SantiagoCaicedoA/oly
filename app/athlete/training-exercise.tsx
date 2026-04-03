@@ -1,4 +1,3 @@
-import { Images } from "@/assets";
 import ActionSheet from "@/components/action-sheet";
 import ExerciseSection from "@/components/exercise-section";
 import LiftGraph from "@/components/lift-graph";
@@ -6,13 +5,16 @@ import SetDetail from "@/components/set-detail";
 import TalkToCoach from "@/components/talk-to-coach";
 import TimerBottomSheet from "@/components/timer-bottom-sheet";
 import CustomButton from "@/constants/custom-button";
-import { useTheme } from "@/context/theme-context";
+import { olyTypography, olyFonts, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
+import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
+import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { useToast } from "@/context/toast-context";
 import { useCustomSetMutation } from "@/store/api";
 import { Days, ExerciseSet } from "@/store/reducer/trainingSlice";
 import { RootState } from "@/store/store";
 import { CustomSetPayload } from "@/types/api/dashboard";
-import { Typography } from "@/utils/custom-styles";
+import { Ionicons } from "@expo/vector-icons";
 import {
   BottomSheetModal,
   BottomSheetModalProvider,
@@ -21,20 +23,18 @@ import { router } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { scale } from "react-native-size-matters";
 import { useSelector } from "react-redux";
 
 export default function TrainingExercise() {
-  const { colors } = useTheme();
   const { showSuccess, showError } = useToast();
   const [checkedSetNumbers, setCheckedSetNumbers] = useState<Set<number>>(
     new Set(),
@@ -77,13 +77,12 @@ export default function TrainingExercise() {
     ) ?? 0,
   );
   const exerciseData = selectedDayExercises?.[activeIndex] ?? null;
+
   useEffect(() => {
     if (!selectedSet || !exerciseData) return;
-
     const updatedSet = exerciseData.sets?.find(
       (s) => s.set_number === selectedSet.set_number,
     );
-
     if (updatedSet) {
       setSelectedSet({ ...updatedSet });
     }
@@ -91,7 +90,6 @@ export default function TrainingExercise() {
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-
     if (isTimerRunning && timeRemaining > 0) {
       interval = setInterval(() => {
         setTimeRemaining((prev) => {
@@ -103,7 +101,6 @@ export default function TrainingExercise() {
         });
       }, 1000);
     }
-
     return () => clearInterval(interval);
   }, [isTimerRunning, timeRemaining]);
 
@@ -112,9 +109,8 @@ export default function TrainingExercise() {
     const secs = totalSeconds % 60;
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
-  const handleBackPress = () => {
-    router.back();
-  };
+
+  const handleBackPress = () => router.back();
 
   const handlePressExercise = (set: ExerciseSet) => {
     setSelectedSet(set);
@@ -124,16 +120,15 @@ export default function TrainingExercise() {
   const handleStartTimer = () => {
     timerSheetRef.current?.present();
   };
+
   const handleAddSet = async () => {
     try {
       if (!selectedDayKey || !exerciseData) return;
-
       const payload: CustomSetPayload = {
         day: selectedDayKey,
         exercise_index: activeIndex,
       };
       await customSet(payload).unwrap();
-
       showSuccess("Set Added Successfully", "");
     } catch (e) {
       showError("Failed To Add Set", "Error");
@@ -143,7 +138,6 @@ export default function TrainingExercise() {
 
   const handleNextExercise = () => {
     if (!selectedDayExercises) return;
-
     if (activeIndex < selectedDayExercises.length - 1) {
       setActiveIndex((prev) => prev + 1);
       setCheckedSetNumbers(new Set());
@@ -152,129 +146,116 @@ export default function TrainingExercise() {
 
   const handlePreviousExercise = () => {
     if (!selectedDayExercises) return;
-
     if (activeIndex > 0) {
       setActiveIndex((prev) => prev - 1);
       setCheckedSetNumbers(new Set());
     }
   };
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    scrollContent: {
-      paddingVertical: scale(15),
-      paddingHorizontal: scale(14),
-      gap: scale(16),
-    },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: scale(10),
-      position: "relative",
-      backgroundColor: colors.headerBackground,
-    },
-    backButton: {
-      position: "absolute",
-      left: scale(15),
-      width: scale(12),
-      height: scale(12),
-    },
-    headerText: {
-      fontSize: Typography.fontSize.lg,
-      fontWeight: Typography.fontWeight.normal,
-      color: colors.text,
-      letterSpacing: Typography.letterSpacing.normal,
-      textAlign: "center",
-    },
-    footer: {
-      borderTopColor: colors.text,
-      borderTopWidth: scale(0.6),
-      flexDirection: "row",
-      paddingHorizontal: scale(25),
-      alignItems: "center",
-      justifyContent: "space-between",
-      backgroundColor: colors.headerBackground,
-      paddingVertical: scale(20),
-    },
-    icon: {
-      width: scale(30),
-      height: scale(20),
-      resizeMode: "contain",
-    },
-    timerContainer: {
-      borderColor: colors.text,
-      borderWidth: scale(0.5),
-      borderRadius: scale(15),
-      alignItems: "center",
-      flexDirection: "row",
-      justifyContent: "space-evenly",
-      paddingVertical: scale(12),
-      paddingHorizontal: scale(15),
-      gap: scale(12),
-    },
-    divider: {
-      height: scale(15),
 
-      borderColor: colors.text,
-      borderWidth: scale(0.3),
-    },
-    footerText: {
-      fontSize: Typography.fontSize.base,
-      fontWeight: Typography.fontWeight.light,
-      color: colors.text,
-      letterSpacing: Typography.letterSpacing.normal,
-    },
-    footerButtonContainer: {
-      gap: scale(15),
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    startText: {
-      fontSize: Typography.fontSize.sm,
-      fontWeight: Typography.fontWeight.normal,
-      color: colors.text,
-      letterSpacing: Typography.letterSpacing.normal,
-    },
-    loaderContainer: {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: "rgba(0, 0, 0, 0.35)",
-      justifyContent: "center",
-      alignItems: "center",
-      zIndex: 999,
-    },
-  });
+  /* ── Progress percentage ── */
+  const completedSets = exerciseData?.sets?.filter((s) => s.isComplete).length ?? 0;
+  const totalSets = exerciseData?.sets?.length ?? 1;
+  const progressPercent = Math.round((completedSets / totalSets) * 100);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <BottomSheetModalProvider>
         <SafeAreaView style={styles.container}>
+          {/* ── Header — back nav ── */}
           <View style={styles.header}>
             <TouchableOpacity
-              style={styles.backButton}
               onPress={handleBackPress}
+              hitSlop={olySpacing[8]}
+              style={styles.backButton}
             >
-              <Image
-                source={Images.arrowBack}
-                style={{ width: "100%", height: "100%" }}
+              <Ionicons
+                name="chevron-back"
+                size={20}
+                color={olyColors.text.primary}
               />
             </TouchableOpacity>
-
-            <Text style={styles.headerText}>
-              {exerciseData?.exercise_name ?? "LIFT"}
-            </Text>
           </View>
+
+          {/* ── Mini Timer Strip (visible when timer is active) ── */}
+          {isTimerActive && (
+            <TouchableOpacity
+              style={styles.miniTimerStrip}
+              onPress={handleStartTimer}
+              activeOpacity={0.8}
+            >
+              <View style={styles.miniTimerContent}>
+                <Text style={styles.miniTimerLabel}>REST</Text>
+                <Text style={styles.miniTimerTime}>{formatTime(timeRemaining)}</Text>
+              </View>
+              {/* Thin progress line at bottom */}
+              <View style={styles.miniTimerTrack}>
+                <View
+                  style={[
+                    styles.miniTimerFill,
+                    {
+                      width: timerDuration > 0
+                        ? `${(timeRemaining / timerDuration) * 100}%`
+                        : "0%",
+                    },
+                  ]}
+                />
+              </View>
+            </TouchableOpacity>
+          )}
 
           <ScrollView
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
+            {/* ── Exercise Title + Icons ── */}
+            <View style={styles.titleSection}>
+              <View style={styles.titleRow}>
+                <Text style={styles.exerciseTitle}>
+                  {exerciseData?.exercise_name ?? "Lift"}
+                </Text>
+                <View style={styles.titleIcons}>
+                  {!isTimerActive && (
+                    <TouchableOpacity hitSlop={olySpacing[8]} onPress={handleStartTimer}>
+                      <Ionicons
+                        name="time-outline"
+                        size={22}
+                        color={olyColors.text.secondary}
+                      />
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity hitSlop={olySpacing[8]}>
+                    <Ionicons
+                      name="ellipsis-horizontal"
+                      size={22}
+                      color={olyColors.text.secondary}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <View style={styles.detailPillsRow}>
+                <View style={styles.detailPill}>
+                  <Text style={styles.detailPillText}>
+                    Set {completedSets} of {totalSets}
+                  </Text>
+                </View>
+                {exerciseData?.rpm_percent ? (
+                  <View style={styles.detailPill}>
+                    <Text style={styles.detailPillText}>
+                      {exerciseData.rpm_percent}%
+                    </Text>
+                  </View>
+                ) : null}
+                {exerciseData?.time ? (
+                  <View style={styles.detailPill}>
+                    <Text style={styles.detailPillText}>
+                      {exerciseData.time} rest
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            </View>
+
+            {/* ── Segment Tabs ── */}
             <ExerciseSection
               count={selectedDayExercises?.length ?? 0}
               activeIndex={activeIndex}
@@ -283,26 +264,56 @@ export default function TrainingExercise() {
                 setCheckedSetNumbers(new Set());
               }}
             />
-            <LiftGraph liftName={exerciseData?.exercise_name ?? "LIFT"} />
-            <TalkToCoach coach_note={exerciseData?.coach_note} />
 
-            {exerciseData?.sets?.map((set: ExerciseSet) => (
-              <SetDetail
-                key={set.set_number}
-                setNumber={set.set_number}
-                reps={set.reps}
-                weight={set.weight}
-                rpm={set.rpm_percent}
-                isComplete={set.isComplete ?? false}
-                onPress={() => handlePressExercise(set)}
-              />
-            ))}
-
-            <CustomButton
-              title={isLoading ? "ADDING" : "ADD SET"}
-              onPress={handleAddSet}
+            {/* ── Coach Card ── */}
+            <TalkToCoach
+              coach_note={exerciseData?.coach_note}
+              key_cues={exerciseData?.key_cues_of_specific_lift}
             />
+
+            {/* ── Lift Graph ── */}
+            <LiftGraph liftName={exerciseData?.exercise_name ?? "Lift"} />
+
+            {/* ── Working Sets Section ── */}
+            <View style={styles.setsSection}>
+              <Text style={styles.sectionLabel}>WORKING SETS</Text>
+              {exerciseData?.sets?.map((set: ExerciseSet) => (
+                <SetDetail
+                  key={set.set_number}
+                  setNumber={set.set_number}
+                  reps={set.reps}
+                  weight={set.weight}
+                  rpm={set.rpm_percent}
+                  isComplete={set.isComplete ?? false}
+                  isMiss={set.was_it_a_miss ?? false}
+                  onPress={() => handlePressExercise(set)}
+                />
+              ))}
+            </View>
+
+            {/* ── Exercise Notes ── */}
+            <View style={styles.notesSection}>
+              <Text style={styles.notesLabel}>EXERCISE NOTES</Text>
+              <TextInput
+                style={styles.notesInput}
+                placeholder="Add a note (optional)"
+                placeholderTextColor={olyColors.text.disabled}
+                multiline
+                textAlignVertical="top"
+              />
+            </View>
+
+            {/* ── Actions ── */}
+            <View style={styles.actionsGroup}>
+              <TouchableOpacity style={styles.addSetButton} onPress={handleAddSet} activeOpacity={0.7}>
+                <Text style={styles.addSetText}>
+                  {isLoading ? "ADDING..." : "+ ADD SET"}
+                </Text>
+              </TouchableOpacity>
+              <CustomButton title="Post Lift" onPress={() => {}} />
+            </View>
           </ScrollView>
+
 
           <ActionSheet
             ref={bottomSheetRef}
@@ -331,54 +342,171 @@ export default function TrainingExercise() {
             }}
           />
         </SafeAreaView>
-        <View style={styles.footer}>
-          <TouchableOpacity
-            style={styles.footerButtonContainer}
-            onPress={handlePreviousExercise}
-          >
-            <Image source={Images.arrowBack} style={styles.icon} />
-            <Text style={styles.footerText}>BACK</Text>
-          </TouchableOpacity>
-          <View style={styles.timerContainer}>
-            <Image
-              source={
-                isTimerRunning
-                  ? Images.starttimmer
-                  : timeRemaining > 0
-                    ? Images.pause
-                    : Images.alarmicon
-              }
-              style={styles.icon}
-            />
 
-            <Text style={styles.startText}>
-              {isTimerRunning || timeRemaining > 0
-                ? formatTime(timeRemaining)
-                : "START"}
-            </Text>
-            <View style={styles.divider}></View>
-            <TouchableOpacity onPress={handleStartTimer}>
-              <Image source={Images.arrowup} style={styles.icon} />
-            </TouchableOpacity>
-          </View>
-          <TouchableOpacity
-            style={styles.footerButtonContainer}
-            onPress={handleNextExercise}
-          >
-            <Image
-              source={Images.arrowforward}
-              style={styles.icon}
-              tintColor={colors.text}
-            />
-            <Text style={styles.footerText}>NEXT</Text>
-          </TouchableOpacity>
-        </View>
         {isLoading && (
           <View style={styles.loaderContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
+            <ActivityIndicator size="large" color={olyPalette.primary} />
           </View>
         )}
       </BottomSheetModalProvider>
     </GestureHandlerRootView>
   );
 }
+
+/* ── Styles ──────────────────────────────────────────── */
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: olyPalette.background,
+  },
+  scrollContent: {
+    paddingHorizontal: olyLayout.screenPadding,
+    paddingBottom: 120,
+    gap: olySpacing[20],
+  },
+
+  /* Header */
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: olyLayout.screenPadding,
+    paddingVertical: olySpacing[8],
+  },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: olySpacing[4],
+  },
+  /* Mini Timer Strip */
+  miniTimerStrip: {
+    backgroundColor: olyColors.bg.subtleHighlight,
+    marginBottom: olySpacing[8],
+  },
+  miniTimerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: olyLayout.screenPadding,
+    paddingVertical: olySpacing[12],
+    gap: olySpacing[8],
+  },
+  miniTimerLabel: {
+    ...olyTypography.caption,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.secondary,
+    letterSpacing: olyLetterSpacing.uppercase,
+  },
+  miniTimerTime: {
+    ...olyTypography.caption,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.primary,
+  },
+  miniTimerTrack: {
+    height: 2,
+    backgroundColor: olyColors.border.default,
+  },
+  miniTimerFill: {
+    height: "100%",
+    backgroundColor: olyPalette.primary,
+  },
+
+  /* Title Section */
+  titleSection: {
+    gap: olySpacing[8],
+  },
+  titleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  titleIcons: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: olySpacing[12],
+    paddingTop: olySpacing[4],
+  },
+  exerciseTitle: {
+    ...olyTypography.title1,
+    color: olyColors.text.primary,
+    flex: 1,
+    marginRight: olySpacing[12],
+  },
+  detailPillsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: olySpacing[8],
+  },
+  detailPill: {
+    backgroundColor: olyColors.bg.subtleHighlight,
+    borderRadius: olyRadius.full,
+    paddingHorizontal: olySpacing[12],
+    paddingVertical: olySpacing[4],
+  },
+  detailPillText: {
+    ...olyTypography.caption,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.secondary,
+  },
+
+  /* Sets Section */
+  setsSection: {
+    gap: olyLayout.sectionHeaderGap,
+  },
+  sectionLabel: {
+    ...olyTypography.label,
+    color: olyColors.text.secondary,
+    letterSpacing: olyLetterSpacing.uppercase,
+  },
+
+  /* Add Set */
+  addSetButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    height: olyLayout.inputHeight,
+    borderWidth: 1,
+    borderColor: olyColors.border.default,
+    borderRadius: olyRadius.full,
+  },
+  addSetText: {
+    ...olyTypography.label,
+    color: olyColors.text.secondary,
+    letterSpacing: olyLetterSpacing.uppercase,
+  },
+
+  /* Exercise Notes */
+  notesSection: {
+    gap: olySpacing[8],
+  },
+  notesLabel: {
+    ...olyTypography.label,
+    color: olyColors.text.secondary,
+    letterSpacing: olyLetterSpacing.uppercase,
+  },
+  notesInput: {
+    ...olyTypography.bodySmall,
+    color: olyColors.text.primary,
+    backgroundColor: olyPalette.card,
+    borderRadius: olyRadius.lg,
+    padding: olyLayout.cardPadding,
+    minHeight: 72,
+  },
+
+  /* Actions group */
+  actionsGroup: {
+    gap: olySpacing[12],
+  },
+
+
+  /* Loader */
+  loaderContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: olyColors.bg.overlay,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 999,
+  },
+});

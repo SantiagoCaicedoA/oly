@@ -45,8 +45,6 @@ export default function LiftDetailsCard({
       letterSpacing: Typography.letterSpacing.normal,
     },
     card: {
-      borderColor: colors.text,
-      borderWidth: 0.3,
       borderRadius: scale(8),
       backgroundColor: colors.surface,
       paddingHorizontal: scale(12),

@@ -273,13 +273,13 @@ export const api = createApi({
       }),
       invalidatesTags: ["Athlete"],
     }),
-    commentOnPost: builder.mutation<any, { postId: string; text: string }>({
-      query: ({ postId, text }) => ({
+    commentOnPost: builder.mutation<any, { postId: string; text: string; parentComment?: string | null }>({
+      query: ({ postId, text, parentComment = null }) => ({
         url: API_ROUTES.ATHLETE.COMMENT_POST_BY_ID(postId),
         method: "POST",
         body: {
           text,
-          parentComment: null,
+          parentComment,
         },
       }),
       invalidatesTags: ["Athlete"],
@@ -303,6 +303,18 @@ export const api = createApi({
         invalidatesTags: ["Athlete"],
       },
     ),
+    likeComment: builder.mutation<LikeUnlikeResponse, { postId: string; commentId: string }>({
+      query: ({ postId, commentId }) => ({
+        url: API_ROUTES.ATHLETE.LIKE_COMMENT_BY_ID(postId, commentId),
+        method: "POST",
+      }),
+    }),
+    unlikeComment: builder.mutation<LikeUnlikeResponse, { postId: string; commentId: string }>({
+      query: ({ postId, commentId }) => ({
+        url: API_ROUTES.ATHLETE.UNLIKE_COMMENT_BY_ID(postId, commentId),
+        method: "DELETE",
+      }),
+    }),
   }),
 });
 
@@ -325,4 +337,6 @@ export const {
   useCommentOnPostMutation,
   useGetCommentsQuery,
   useDeleteCommentMutation,
+  useLikeCommentMutation,
+  useUnlikeCommentMutation,
 } = api;

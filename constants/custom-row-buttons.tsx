@@ -1,9 +1,10 @@
-import { useTheme } from "@/context/theme-context";
-import { Typography } from "@/utils/custom-styles";
+import { olyTypography, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
+import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
+import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { scale } from "react-native-size-matters";
 
 type ActionButtonsRowProps = {
   primaryTitle?: string;
@@ -19,43 +20,6 @@ const ActionButtonsRow: React.FC<ActionButtonsRowProps> = ({
   onSecondaryPress,
 }) => {
   const router = useRouter();
-  const { colors } = useTheme();
-  const styles = StyleSheet.create({
-    container: {
-      flexDirection: "row",
-      gap: scale(5),
-    },
-    secondaryButton: {
-      flex: 1,
-      height: scale(33),
-      borderRadius: scale(25),
-      backgroundColor: colors.lightBlue,
-      alignItems: "center",
-      justifyContent: "center",
-      borderColor: colors.primary,
-      borderWidth: 0.5,
-    },
-    primaryButton: {
-      flex: 1,
-      height: scale(33),
-      borderRadius: 28,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.primary,
-    },
-    secondaryText: {
-      fontSize: Typography.fontSize.lg,
-      fontWeight: Typography.fontWeight.medium,
-      letterSpacing: Typography.letterSpacing.normal,
-      color: colors.text,
-    },
-    primaryText: {
-      fontSize: Typography.fontSize.lg,
-      fontWeight: Typography.fontWeight.medium,
-      letterSpacing: Typography.letterSpacing.normal,
-      color: colors.text,
-    },
-  });
 
   return (
     <View style={styles.container}>
@@ -77,5 +41,40 @@ const ActionButtonsRow: React.FC<ActionButtonsRowProps> = ({
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: "row",
+    gap: olySpacing[8],
+  },
+  secondaryButton: {
+    flex: 1,
+    height: olyLayout.inputHeight,
+    borderRadius: olyRadius.full,
+    backgroundColor: olyColors.bg.activeHighlight,
+    alignItems: "center",
+    justifyContent: "center",
+    borderColor: olyColors.border.brandUnselected,
+    borderWidth: 1,
+  },
+  primaryButton: {
+    flex: 1,
+    height: olyLayout.inputHeight,
+    borderRadius: olyRadius.full,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: olyColors.button.primary.bg,
+  },
+  secondaryText: {
+    ...olyTypography.button,
+    color: olyColors.text.primary,
+    letterSpacing: olyLetterSpacing.uppercase,
+  },
+  primaryText: {
+    ...olyTypography.button,
+    color: olyColors.text.primary,
+    letterSpacing: olyLetterSpacing.uppercase,
+  },
+});
 
 export default ActionButtonsRow;

@@ -1,4 +1,3 @@
-import { useTheme } from "@/context/theme-context";
 import { olyTypography, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
 import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
@@ -20,14 +19,13 @@ export const TabBarContext = createContext({
   showTabBar: () => {},
 });
 
-const ICON_SIZE = 22;
+const ICON_SIZE = 20;
 const FAB_SIZE = 44;
 const TAB_BAR_HEIGHT = 64;
 const TAB_BAR_MARGIN_BOTTOM = 28;
 const TAB_BAR_MARGIN_H = 14;
 
 export default function TabLayout() {
-  const { colors } = useTheme();
   const [isTabBarVisible, setIsTabBarVisible] = useState(true);
 
   return (
@@ -37,30 +35,36 @@ export default function TabLayout() {
           screenOptions={{
             headerShown: false,
             tabBarActiveTintColor: olyPalette.white,
-            tabBarInactiveTintColor: olyColors.text.secondary,
+            tabBarInactiveTintColor: olyColors.text.disabled,
             tabBarStyle: isTabBarVisible
               ? {
-                  borderTopWidth: 0,
                   height: TAB_BAR_HEIGHT,
                   position: "absolute",
-                  paddingBottom: olySpacing[12],
-                  paddingTop: olySpacing[8],
-                  justifyContent: "center",
                   elevation: 0,
                   marginHorizontal: TAB_BAR_MARGIN_H,
                   marginBottom: TAB_BAR_MARGIN_BOTTOM,
-                  borderRadius: 20,
+                  borderRadius: olyRadius.lg,
                   overflow: "visible",
                   backgroundColor: olyElevation.level1.backgroundColor,
                   borderColor: olyColors.border.default,
                   borderWidth: 1,
+                  paddingHorizontal: olySpacing[8],
                 }
               : { display: "none" },
+            tabBarItemStyle: {
+              justifyContent: "center",
+              height: TAB_BAR_HEIGHT,
+              paddingTop: olySpacing[4],
+            },
+            tabBarIconStyle: {
+              marginTop: 0,
+              marginBottom: 0,
+            },
             tabBarLabelStyle: {
-              fontSize: olyTypography.caption.fontSize,
+              fontSize: 10,
               fontFamily: olyTypography.caption.fontFamily,
-              textTransform: "capitalize",
-              letterSpacing: olyLetterSpacing.uppercase,
+              textTransform: "uppercase",
+              letterSpacing: 0,
               marginTop: olySpacing[4],
             },
             tabBarShowLabel: true,
@@ -145,7 +149,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    top: 0,
+    height: TAB_BAR_HEIGHT,
+    paddingBottom: olySpacing[8],
   },
   fabTouchable: {
     justifyContent: "center",

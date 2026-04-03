@@ -11,7 +11,12 @@ import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyElevation } from "@/src/oly-theme/oly-elevation";
 import { Ionicons } from "@expo/vector-icons";
 import { getRelativeTime } from "@/utils/time";
-import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import CommentBottomSheet from "@/components/comment-bottom-sheet";
+import {
+  BottomSheetModal,
+  BottomSheetModalProvider,
+} from "@gorhom/bottom-sheet";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ResizeMode, Video } from "expo-av";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -120,6 +125,8 @@ export default function PostExpanded() {
     );
   }
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+    <BottomSheetModalProvider>
     <SafeAreaView style={styles.container}>
       {/* ── Section 1: Header Nav ── */}
       <View style={styles.navBar}>
@@ -532,7 +539,14 @@ export default function PostExpanded() {
           </TouchableOpacity>
         </View>
       </Modal>
+
+      <CommentBottomSheet
+        ref={bottomSheetRef}
+        postId={post_id as string}
+      />
     </SafeAreaView>
+    </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }
 

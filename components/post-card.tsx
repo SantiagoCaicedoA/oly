@@ -310,8 +310,6 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: olyPalette.card,
     borderRadius: olyRadius.lg,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
     marginBottom: olySpacing[20],
     overflow: "hidden",
   },

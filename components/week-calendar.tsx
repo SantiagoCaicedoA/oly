@@ -1,9 +1,10 @@
-import { useTheme } from "@/context/theme-context";
+import { olyTypography, olyFonts, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
+import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olySpacing } from "@/src/oly-theme/oly-spacing";
+import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { Days } from "@/store/reducer/trainingSlice";
-import { Typography } from "@/utils/custom-styles";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { scale } from "react-native-size-matters";
 
 const DAY_KEYS = [
   "sunday",
@@ -14,6 +15,9 @@ const DAY_KEYS = [
   "friday",
   "saturday",
 ];
+
+const WEEK_LABELS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+const CIRCLE_SIZE = 36;
 
 interface WeekCalendarProps {
   days: Days | null;
@@ -26,10 +30,6 @@ export default function WeekCalendar({
   selectedDate,
   onDateChange,
 }: WeekCalendarProps) {
-  const { colors } = useTheme();
-
-  const weekDayLabels = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
-
   const getThisWeekDates = () => {
     const today = new Date();
     const day = today.getDay();
@@ -45,122 +45,57 @@ export default function WeekCalendar({
 
   const weekDates = getThisWeekDates();
 
-  const formattedSelected = selectedDate
-    .toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-    })
-    .toUpperCase()
-    .replace(",", " ·");
-
-  const styles = StyleSheet.create({
-    container: {
-      gap: scale(10),
-      paddingHorizontal: scale(8),
-    },
-    selectedLabel: {
-      fontSize: Typography.fontSize.md,
-      fontWeight: Typography.fontWeight.semibold,
-      color: colors.text,
-      textAlign: "left",
-      alignSelf: "flex-start",
-    },
-    row: {
-      flexDirection: "row",
-      justifyContent: "flex-start",
-      gap: scale(16),
-    },
-    dayCol: {
-      alignItems: "center",
-      gap: scale(6),
-      flex: 1,
-    },
-    dayLabel: {
-      fontSize: Typography.fontSize.sm,
-      fontWeight: Typography.fontWeight.normal,
-      color: colors.textSecondary,
-    },
-    dateText: {
-      fontSize: Typography.fontSize.sm,
-      fontWeight: Typography.fontWeight.normal,
-      color: colors.textSecondary,
-    },
-    dateCircle: {
-      alignItems: "center",
-      justifyContent: "center",
-      width: scale(32),
-      height: scale(32),
-    },
-    selectedCircle: {
-      backgroundColor: colors.primary,
-      borderRadius: scale(20),
-      width: scale(32),
-      height: scale(32),
-      alignItems: "center",
-      justifyContent: "center",
-      gap: scale(2),
-    },
-    selectedDateText: {
-      fontSize: Typography.fontSize.sm,
-      fontWeight: Typography.fontWeight.normal,
-      color: colors.text,
-    },
-    dot: {
-      width: scale(4),
-      height: scale(4),
-      borderRadius: scale(2),
-      backgroundColor: colors.textSecondary,
-    },
-    dotWhite: {
-      width: scale(4),
-      height: scale(4),
-      borderRadius: scale(2),
-      backgroundColor: colors.text,
-    },
-    dotPlaceholder: {
-      width: scale(4),
-      height: scale(4),
-    },
-  });
-
   return (
     <View style={styles.container}>
-      <Text style={styles.selectedLabel}>{formattedSelected}</Text>
-
+      {/* Day labels row */}
       <View style={styles.row}>
         {weekDates.map((date, index) => {
           const dayKey = DAY_KEYS[date.getDay()] as keyof Days;
           const isTraining = days?.[dayKey]?.type === "training";
           const isSelected =
             date.toDateString() === selectedDate.toDateString();
+          const isToday = date.toDateString() === new Date().toDateString();
 
           return (
             <TouchableOpacity
               key={index}
               style={styles.dayCol}
               onPress={() => onDateChange(date)}
+              activeOpacity={0.7}
             >
-              <Text style={styles.dayLabel}>{weekDayLabels[index]}</Text>
-              {isSelected ? (
-                <View style={styles.selectedCircle}>
-                  <Text style={styles.selectedDateText}>{date.getDate()}</Text>
-                  {isTraining ? (
-                    <View style={styles.dotWhite} />
-                  ) : (
-                    <View style={styles.dotPlaceholder} />
-                  )}
-                </View>
-              ) : (
-                <View style={styles.dateCircle}>
-                  <Text style={styles.dateText}>{date.getDate()}</Text>
-                  {isTraining ? (
-                    <View style={styles.dot} />
-                  ) : (
-                    <View style={styles.dotPlaceholder} />
-                  )}
-                </View>
-              )}
+              <View style={styles.dayLabelRow}>
+                <Text
+                  style={[
+                    styles.dayLabel,
+                    isSelected && styles.dayLabelActive,
+                  ]}
+                >
+                  {WEEK_LABELS[index]}
+                </Text>
+                {isTraining && (
+                  <View style={[
+                    styles.trainingDot,
+                    isSelected && styles.trainingDotActive,
+                  ]} />
+                )}
+              </View>
+
+              <View
+                style={[
+                  styles.dateCircle,
+                  isSelected && styles.dateCircleSelected,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.dateText,
+                    isSelected && styles.dateTextSelected,
+                    isToday && !isSelected && styles.dateTextToday,
+                  ]}
+                >
+                  {date.getDate()}
+                </Text>
+              </View>
             </TouchableOpacity>
           );
         })}
@@ -168,3 +103,76 @@ export default function WeekCalendar({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    paddingVertical: olySpacing[4],
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  dayCol: {
+    alignItems: "center",
+    gap: olySpacing[4],
+    flex: 1,
+  },
+
+  /* Day labels (MON, TUE, etc.) */
+  dayLabel: {
+    fontSize: 10,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.disabled,
+    letterSpacing: olyLetterSpacing.uppercase,
+    marginBottom: olySpacing[4],
+  },
+  dayLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+  },
+  dayLabelActive: {
+    color: olyColors.text.primary,
+  },
+  trainingDot: {
+    width: 3,
+    height: 3,
+    borderRadius: olyRadius.full,
+    backgroundColor: olyColors.text.disabled,
+    marginBottom: 2,
+  },
+  trainingDotActive: {
+    backgroundColor: olyColors.text.primary,
+  },
+
+  /* Date circle */
+  dateCircle: {
+    width: CIRCLE_SIZE,
+    height: CIRCLE_SIZE,
+    borderRadius: olyRadius.full,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dateCircleSelected: {
+    backgroundColor: olyPalette.primary,
+    shadowColor: olyPalette.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+
+  /* Date text */
+  dateText: {
+    ...olyTypography.bodySmall,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.disabled,
+  },
+  dateTextSelected: {
+    color: olyPalette.white,
+    fontFamily: olyFonts.semiBold,
+  },
+  dateTextToday: {
+    color: olyColors.text.primary,
+  },
+});

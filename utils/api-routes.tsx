@@ -23,6 +23,10 @@ export const ATHLETE_ROUTES = {
   GET_COMMENTS_BY_POST_ID: (postId: string) => `/api/posts/${postId}/comments`,
   DELETE_COMMENT_BY_ID: (postId: string, commentId: string) =>
     `/api/posts/${postId}/comments/${commentId}`,
+  LIKE_COMMENT_BY_ID: (postId: string, commentId: string) =>
+    `/api/posts/${postId}/comments/${commentId}/like`,
+  UNLIKE_COMMENT_BY_ID: (postId: string, commentId: string) =>
+    `/api/posts/${postId}/comments/${commentId}/like`,
 } as const;
 export const API_ROUTES = {
   AUTH: AUTH_ROUTES,

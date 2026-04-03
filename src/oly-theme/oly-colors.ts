@@ -13,6 +13,8 @@ export const olyPalette = {
   primary: "#004AAD",
   primaryPressed: "#003A8C",
   white: "#E2E8F0",
+  /** Solid fallback for gradient background — use olyGradient for full effect */
+  background: "#0F1A24",
   card: "#1A2533",
   cardElevated: "#1E2A36",
   yellow: "#FBBF24",

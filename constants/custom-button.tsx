@@ -44,7 +44,7 @@ export default function CustomButton({
 const styles = StyleSheet.create({
   container: {
     width: "100%",
-    paddingVertical: olySpacing[12],
+    height: 52,
     backgroundColor: olyColors.button.primary.bg,
     alignItems: "center",
     justifyContent: "center",

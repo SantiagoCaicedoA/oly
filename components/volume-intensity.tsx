@@ -11,8 +11,6 @@ export default function VolumeIntensity() {
   const styles = StyleSheet.create({
     container: {
       backgroundColor: colors.surface,
-      borderWidth: scale(0.3),
-      borderColor: colors.text,
       padding: scale(18),
       borderRadius: scale(10),
       marginTop: scale(6),

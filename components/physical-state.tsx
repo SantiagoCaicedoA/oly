@@ -174,9 +174,7 @@ const PhysicalState: React.FC<PhysicalStateProps> = ({
   const styles = StyleSheet.create({
     container: {
       backgroundColor: colors.surface,
-      borderColor: colors.text,
       borderRadius: scale(12),
-      borderWidth: scale(0.3),
       paddingHorizontal: scale(20),
       paddingBottom: scale(20),
     },
