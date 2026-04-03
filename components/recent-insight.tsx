@@ -7,6 +7,26 @@ import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
+/* ── Gauge helpers ─────────────────────────────────── */
+
+const GAUGE_SIZE = 180;
+const GAUGE_STROKE = 8;
+const GAUGE_RADIUS = (GAUGE_SIZE - GAUGE_STROKE) / 2;
+
+/** Build a semicircle arc path from `startPct` (0-1) to `endPct` (0-1). */
+function gaugeArc(r: number, startPct: number, endPct: number): string {
+  const cx = GAUGE_SIZE / 2;
+  const cy = GAUGE_SIZE / 2;
+  const startAngle = Math.PI + startPct * Math.PI;
+  const endAngle = Math.PI + endPct * Math.PI;
+  const x1 = cx + r * Math.cos(startAngle);
+  const y1 = cy + r * Math.sin(startAngle);
+  const x2 = cx + r * Math.cos(endAngle);
+  const y2 = cy + r * Math.sin(endAngle);
+  const largeArc = endPct - startPct > 0.5 ? 1 : 0;
+  return `M${x1},${y1} A${r},${r} 0 ${largeArc} 1 ${x2},${y2}`;
+}
+
 /* ── Component ──────────────────────────────────────── */
 
 export default function RecentInsight() {
@@ -87,52 +107,67 @@ export default function RecentInsight() {
 
       {/* ─────────── Snatch : Clean & Jerk Ratio ─────────── */}
       <View style={styles.card}>
-        <Text style={styles.cardLabel}>SNATCH : CLEAN & JERK RATIO</Text>
+        {/* Gauge + hero number */}
+        <View style={styles.gaugeContainer}>
+          <Svg width={GAUGE_SIZE} height={GAUGE_SIZE / 2 + 8} viewBox={`0 0 ${GAUGE_SIZE} ${GAUGE_SIZE / 2 + 8}`}>
+            {/* Track arc (background) */}
+            <Path
+              d={gaugeArc(GAUGE_RADIUS, 0, 1)}
+              stroke={olyColors.border.default}
+              strokeWidth={GAUGE_STROKE}
+              fill="none"
+              strokeLinecap="round"
+            />
+            {/* Ideal zone arc (78-82% mapped to 0-1 on 70-90% range) */}
+            <Path
+              d={gaugeArc(GAUGE_RADIUS, (78 - 70) / 20, (82 - 70) / 20)}
+              stroke={olyPalette.primary}
+              strokeWidth={GAUGE_STROKE}
+              fill="none"
+              strokeLinecap="round"
+              opacity={0.35}
+            />
+            {/* Marker dot at 80% position: (80-70)/20 = 0.5 */}
+            {(() => {
+              const angle = Math.PI + 0.5 * Math.PI;
+              const cx = GAUGE_SIZE / 2 + GAUGE_RADIUS * Math.cos(angle);
+              const cy = GAUGE_SIZE / 2 + GAUGE_RADIUS * Math.sin(angle);
+              return (
+                <Path
+                  d={`M${cx - 5},${cy} a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0`}
+                  fill={olyPalette.primary}
+                />
+              );
+            })()}
+          </Svg>
 
-        {/* Hero number */}
-        <View style={styles.heroRow}>
-          <Text style={styles.heroNumber}>80</Text>
-          <Text style={styles.heroUnit}>%</Text>
+          {/* Hero number overlaid at bottom center of arc */}
+          <View style={styles.heroOverlay}>
+            <View style={styles.heroRow}>
+              <Text style={styles.heroNumber}>80</Text>
+              <Text style={styles.heroUnit}>%</Text>
+            </View>
+          </View>
         </View>
 
-        {/* Lift comparison */}
-        <View style={styles.compareRow}>
-          <View style={styles.compareItem}>
-            <View style={styles.compareValueRow}>
-              <Text style={styles.compareNumber}>120</Text>
-              <Text style={styles.compareUnit}>kg</Text>
-            </View>
-            <Text style={styles.compareLabel}>SNATCH</Text>
-          </View>
-
-          <View style={styles.compareDivider} />
-
-          <View style={styles.compareItem}>
-            <View style={styles.compareValueRow}>
-              <Text style={styles.compareNumber}>150</Text>
-              <Text style={styles.compareUnit}>kg</Text>
-            </View>
-            <Text style={styles.compareLabel}>CLEAN & JERK</Text>
-          </View>
-        </View>
-
-        {/* Ratio bar */}
-        <View style={styles.barSection}>
-          <View style={styles.barTrack}>
-            <View style={styles.barFill} />
-          </View>
-          <View style={styles.barLabels}>
-            <Text style={styles.barLabel}>70%</Text>
-            <Text style={styles.barLabelIdeal}>Ideal 78–82%</Text>
-            <Text style={styles.barLabel}>90%</Text>
-          </View>
+        {/* Lift breakdown — compact */}
+        <View style={styles.liftRow}>
+          <Text style={styles.liftText}>
+            <Text style={styles.liftValue}>120 kg </Text>
+            <Text style={styles.liftLabel}>SN</Text>
+          </Text>
+          <Text style={styles.liftDivider}>/</Text>
+          <Text style={styles.liftText}>
+            <Text style={styles.liftValue}>150 kg </Text>
+            <Text style={styles.liftLabel}>C&J</Text>
+          </Text>
         </View>
 
         {/* Coach callout */}
         <View style={styles.callout}>
           <Text style={styles.calloutText}>
             <Text style={styles.calloutBold}>Balanced lifter. </Text>
-            Ratio sits in the ideal range — both lifts are progressing proportionally.
+            Your ratio is in the ideal 78–82% range — both lifts are progressing proportionally.
           </Text>
         </View>
       </View>
@@ -217,93 +252,56 @@ const styles = StyleSheet.create({
     color: olyColors.text.primary,
   },
 
-  /* ── Ratio Card ── */
-  cardLabel: {
-    ...olyTypography.label,
-    color: olyColors.text.primary,
-    letterSpacing: olyLetterSpacing.uppercase,
+  /* ── Ratio Card — Gauge ── */
+  gaugeContainer: {
+    alignItems: "center",
+    marginTop: -olySpacing[4],
+    marginBottom: -olySpacing[8],
+  },
+  heroOverlay: {
+    position: "absolute",
+    bottom: 0,
+    alignItems: "center",
   },
   heroRow: {
     flexDirection: "row",
     alignItems: "baseline",
-    justifyContent: "center",
-    marginVertical: -olySpacing[4],
   },
   heroNumber: {
-    fontSize: 56,
-    lineHeight: 64,
+    fontSize: 40,
+    lineHeight: 48,
     fontFamily: olyFonts.medium,
     fontWeight: "500",
     color: olyColors.text.primary,
   },
   heroUnit: {
-    ...olyTypography.title2,
+    ...olyTypography.body,
     color: olyColors.text.secondary,
     marginLeft: 2,
   },
 
-  /* Compare */
-  compareRow: {
+  /* Lift row — compact inline */
+  liftRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: olySpacing[8],
   },
-  compareItem: {
-    flex: 1,
-    alignItems: "center",
-    gap: 2,
-  },
-  compareValueRow: {
+  liftText: {
     flexDirection: "row",
-    alignItems: "baseline",
-    gap: olySpacing[4],
   },
-  compareNumber: {
-    ...olyTypography.title2,
+  liftValue: {
+    ...olyTypography.bodySmall,
+    fontFamily: olyFonts.medium,
     color: olyColors.text.primary,
   },
-  compareUnit: {
+  liftLabel: {
     ...olyTypography.bodySmall,
     color: olyColors.text.secondary,
   },
-  compareLabel: {
-    ...olyTypography.caption,
-    color: olyColors.text.secondary,
-    letterSpacing: olyLetterSpacing.uppercase,
-  },
-  compareDivider: {
-    width: 1,
-    height: 36,
-    backgroundColor: olyColors.border.default,
-  },
-
-  /* Bar */
-  barSection: {
-    gap: olySpacing[4],
-  },
-  barTrack: {
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: olyColors.border.default,
-  },
-  barFill: {
-    width: "50%",
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: olyPalette.primary,
-  },
-  barLabels: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  barLabel: {
-    ...olyTypography.caption,
-    color: olyColors.text.secondary,
-  },
-  barLabelIdeal: {
-    ...olyTypography.caption,
-    fontFamily: olyFonts.medium,
-    color: olyColors.text.primary,
+  liftDivider: {
+    ...olyTypography.bodySmall,
+    color: olyColors.text.disabled,
   },
 
   /* Callout */
