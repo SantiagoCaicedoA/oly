@@ -4,9 +4,9 @@
  *
  * RULES:
  * - No shadows. Ever. They're invisible on dark surfaces.
- * - Depth = surface color + border. That's the only system.
+ * - Depth = surface color only. Background contrast provides separation.
  * - Card on background → Level 1. Card on card → Level 2. Max 2 levels.
- * - Tab bar uses Level 1 + 1px top border.
+ * - Tab bar uses its own border (managed in _layout.tsx), not elevation.
  */
 
 import { olyPalette } from "./oly-colors";
@@ -17,18 +17,14 @@ export const olyElevation = {
   /** Level 0 — Gradient background (use olyGradient with LinearGradient) */
   level0: "transparent",
 
-  /** Level 1 — Cards, sheet surfaces, tab bar */
+  /** Level 1 — Cards, sheet surfaces */
   level1: {
     backgroundColor: olyPalette.card,
-    borderWidth: 1,
-    borderColor: `rgba(226, 232, 240, 0.3)`,
   },
 
   /** Level 2 — Nested cards, popovers, dropdowns */
   level2: {
     backgroundColor: olyPalette.cardElevated,
-    borderWidth: 1,
-    borderColor: `rgba(226, 232, 240, 0.3)`,
   },
 } as const;
 
