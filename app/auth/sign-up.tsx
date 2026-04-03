@@ -84,10 +84,14 @@ export default function SignUp() {
     try {
       const result = await submitProfile(payload).unwrap();
 
+
       dispatch(
         loginSuccess({
           user: result.data,
-          token: result.token,
+          token: {
+            token: result.token,
+            refresh_token: result.refresh_token,
+          },
         }),
       );
 

@@ -8,8 +8,8 @@ export interface Athlete {
 }
 
 export interface TokenData {
-  accessToken: string;
-  refreshToken?: string;
+  token: string;
+  refresh_token?: string;
 }
 
 export interface AuthState {
@@ -42,8 +42,10 @@ export interface SignupResponseData {
 export interface SignupResponse {
   data: SignupResponseData;
   success: boolean;
-  token: TokenData;
+  token: string;
+  refresh_token?: string;
 }
+
 export interface LoginValues {
   email: string;
   password: string;

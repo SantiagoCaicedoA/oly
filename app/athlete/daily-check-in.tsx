@@ -25,6 +25,7 @@ import {
 } from "@/src/oly-theme/oly-colors";
 import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
+import { useToast } from "@/context/toast-context";
 import { useDailyCheckInMutation } from "@/store/api";
 import { Days } from "@/store/reducer/trainingSlice";
 import { RootState } from "@/store/store";
@@ -32,7 +33,8 @@ import { DailyCheckInPayload } from "@/types/api/dashboard";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import { router } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -259,9 +261,17 @@ const SORENESS_TEXT_MAP: Record<string, string> = {
 export default function DailyCheckIn() {
   // ── Redux state ──
   const user = useSelector((state: RootState) => state.auth.user);
+  const userId = useSelector((state: RootState) => state.auth.user?._id);
+  const { showError } = useToast();
+  const selectedDayKeyFromRedux = useSelector(
+    (state: RootState) => state.training.selectedDayKey,
+  );
   const days = useSelector((state: RootState) => state.training.days);
 
-  const dayKey = DAY_KEYS[new Date().getDay()] as keyof Days;
+  const { dayKey: dayKeyParam } = useLocalSearchParams<{ dayKey: string }>();
+  const dayKey = (dayKeyParam ||
+    selectedDayKeyFromRedux ||
+    DAY_KEYS[new Date().getDay()]) as keyof Days;
   const todayData = days?.[dayKey];
   const dailyCheckIn = todayData?.daily_check_in;
   const todayKey = DAY_KEYS[new Date().getDay()];
@@ -329,7 +339,7 @@ export default function DailyCheckIn() {
     const intensityScale = Math.round((maxSoreness / 3) * 10);
 
     const payload: DailyCheckInPayload = {
-      day: todayKey,
+      day: dayKey,
       daily_check_in: {
         sleep_quality: sleepHoursToQuality(sleepHours),
         stress_level: stressLevel,
@@ -343,10 +353,28 @@ export default function DailyCheckIn() {
 
     try {
       await submitCheckIn(payload).unwrap();
-      router.push("athlete/training-exercise");
+
+      const key = `daily_check_in_done_${userId}_${dayKey}`;
+      await AsyncStorage.setItem(key, "true");
+
+      router.push({
+        pathname: "/athlete/training-exercise",
+        params: { dayKey },
+      });
     } catch (error) {
       console.error("Daily check-in error:", error);
+      showError("Failed to save check-in. Please try again.", "Error");
     }
+  };
+
+  const handleSkipPress = async () => {
+    const key = `daily_check_in_done_${userId}_${dayKey}`;
+    await AsyncStorage.setItem(key, "true");
+
+    router.push({
+      pathname: "/athlete/training-exercise",
+      params: { dayKey },
+    });
   };
 
   // ── Derived ──

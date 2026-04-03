@@ -270,7 +270,7 @@ export interface RestDay {
   exercises: [];
 }
 
-export type DayPlan = TrainingDay | RestDay;
+export type DayPlan = AiTrainingDay | RestDay;
 
 export interface WeekSchedule {
   monday: DayPlan;
@@ -289,7 +289,13 @@ export interface ProfileSnapshot {
 }
 
 export interface AiTrainingPlan {
-  week_schedule: WeekSchedule;
+  monday: DayPlan;
+  tuesday: DayPlan;
+  wednesday: DayPlan;
+  thursday: DayPlan;
+  friday: DayPlan;
+  saturday: DayPlan;
+  sunday: DayPlan;
   is_first_week: boolean;
   profile_snapshot: ProfileSnapshot;
 }
