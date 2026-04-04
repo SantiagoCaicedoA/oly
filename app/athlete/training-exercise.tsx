@@ -59,6 +59,8 @@ export default function TrainingExercise() {
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [selectedSet, setSelectedSet] = useState<ExerciseSet | null>(null);
+  const [videosMap, setVideosMap] = useState<Record<number, string>>({});
+  const [savedSetNumber, setSavedSetNumber] = useState<number | null>(null);
 
   const DAY_KEYS = [
     "sunday",
@@ -141,6 +143,7 @@ export default function TrainingExercise() {
     if (activeIndex < selectedDayExercises.length - 1) {
       setActiveIndex((prev) => prev + 1);
       setCheckedSetNumbers(new Set());
+      setVideosMap({});
     }
   };
 
@@ -149,6 +152,7 @@ export default function TrainingExercise() {
     if (activeIndex > 0) {
       setActiveIndex((prev) => prev - 1);
       setCheckedSetNumbers(new Set());
+      setVideosMap({});
     }
   };
 
@@ -262,6 +266,7 @@ export default function TrainingExercise() {
               onTabChange={(index) => {
                 setActiveIndex(index);
                 setCheckedSetNumbers(new Set());
+                setVideosMap({});
               }}
             />
 
@@ -286,6 +291,8 @@ export default function TrainingExercise() {
                   rpm={set.rpm_percent}
                   isComplete={set.isComplete ?? false}
                   isMiss={set.was_it_a_miss ?? false}
+                  hasVideo={!!videosMap[set.set_number]}
+                  isJustSaved={savedSetNumber === set.set_number}
                   onPress={() => handlePressExercise(set)}
                 />
               ))}
@@ -310,7 +317,42 @@ export default function TrainingExercise() {
                   {isLoading ? "ADDING..." : "+ ADD SET"}
                 </Text>
               </TouchableOpacity>
-              <CustomButton title="Post Lift" onPress={() => {}} />
+              <CustomButton
+                title="Post Lift"
+                onPress={() => {
+                  const setsWithVideo = Object.entries(videosMap).map(
+                    ([setNum, uri]) => {
+                      const setData = exerciseData?.sets?.find(
+                        (s) => s.set_number === Number(setNum),
+                      );
+                      return {
+                        setNumber: Number(setNum),
+                        videoUri: uri,
+                        weight: setData?.weight ?? 0,
+                        rpmPercent: setData?.rpm_percent ?? 0,
+                        barSpeed: setData?.bar_speed ?? "",
+                        positionQuality: setData?.position_quality ?? "",
+                      };
+                    },
+                  );
+                  const topSet = exerciseData?.sets?.reduce(
+                    (max, s) => (s.weight > max.weight ? s : max),
+                    exerciseData.sets[0],
+                  );
+                  router.push({
+                    pathname: "/athlete/create-new-post",
+                    params: {
+                      exerciseName: exerciseData?.exercise_name ?? "",
+                      weight: String(topSet?.weight ?? 0),
+                      totalSets: String(exerciseData?.sets?.length ?? 0),
+                      rpmPercent: String(topSet?.rpm_percent ?? 0),
+                      barSpeed: topSet?.bar_speed ?? "",
+                      positionQuality: topSet?.position_quality ?? "",
+                      setsWithVideo: JSON.stringify(setsWithVideo),
+                    },
+                  });
+                }}
+              />
             </View>
           </ScrollView>
 
@@ -320,6 +362,22 @@ export default function TrainingExercise() {
             set={selectedSet}
             exercise={exerciseData}
             coachPrescription={todayData?.coach_prescription}
+            videosMap={videosMap}
+            onSaved={(setNumber) => {
+              setSavedSetNumber(setNumber);
+              setTimeout(() => setSavedSetNumber(null), 1200);
+            }}
+            onVideoChange={(setNumber, uri) => {
+              setVideosMap((prev) => {
+                const next = { ...prev };
+                if (uri) {
+                  next[setNumber] = uri;
+                } else {
+                  delete next[setNumber];
+                }
+                return next;
+              });
+            }}
           />
           <TimerBottomSheet
             ref={timerSheetRef}
