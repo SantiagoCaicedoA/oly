@@ -22,6 +22,7 @@ import {
   selectOnboardingData,
 } from "@/store/reducer/onboardingSlice";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
@@ -33,7 +34,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
@@ -43,6 +43,7 @@ import { useDispatch, useSelector } from "react-redux";
 interface OnboardingScreen6Props {
   onBack?: () => void;
   onComplete?: () => void;
+  mode?: "onboarding" | "settings";
 }
 
 interface OnboardingScreen6Values {
@@ -52,6 +53,8 @@ interface OnboardingScreen6Values {
   compMonth: string;
   compYear: string;
   training_phase: string;
+  weight_class: string;
+  target_total: string;
 }
 
 /* ── Data ──────────────────────────────────────────────── */
@@ -127,9 +130,13 @@ const WHEEL_VISIBLE_ITEMS = 5;
 export default function OnboardingScreen6({
   onBack,
   onComplete,
+  mode = "onboarding",
 }: OnboardingScreen6Props) {
+  const isSettings = mode === "settings";
   const dispatch = useDispatch();
   const onboardingData = useSelector(selectOnboardingData);
+  const navigation = useNavigation();
+  const getValuesRef = useRef<() => OnboardingScreen6Values>(() => ({} as OnboardingScreen6Values));
 
   const { control, handleSubmit, watch, setValue, getValues } =
     useForm<OnboardingScreen6Values>({
@@ -141,6 +148,8 @@ export default function OnboardingScreen6({
         compMonth: onboardingData?.compMonth ?? "",
         compYear: onboardingData?.compYear ?? "",
         training_phase: onboardingData?.training_phase ?? "",
+        weight_class: onboardingData?.weight_class ?? "",
+        target_total: onboardingData?.target_total ?? "",
       },
     });
 
@@ -148,6 +157,8 @@ export default function OnboardingScreen6({
   const trainingPhase = watch("training_phase");
   const compName = watch("competition_name");
   const compDay = watch("compDay");
+  const compMonth = watch("compMonth");
+  const compYear = watch("compYear");
 
   /* ── Validation — disable NEXT until required fields filled ── */
   const allFilled = (() => {
@@ -189,6 +200,22 @@ export default function OnboardingScreen6({
     }
     return "";
   }, [watchedValues.compDay, watchedValues.compMonth, watchedValues.compYear]);
+
+  // Weeks until competition (settings mode)
+  const weeksOut = useMemo(() => {
+    if (!compDay || !compMonth || !compYear) return null;
+    const comp = new Date(
+      parseInt(compYear, 10),
+      parseInt(compMonth, 10) - 1,
+      parseInt(compDay, 10),
+    );
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const diffMs = comp.getTime() - now.getTime();
+    if (diffMs <= 0) return null;
+    const totalDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    return Math.ceil(totalDays / 7);
+  }, [compDay, compMonth, compYear]);
 
   // Open date modal — seed temp values from form (default: 1 week from today)
   const openDateModal = useCallback(() => {
@@ -348,6 +375,40 @@ export default function OnboardingScreen6({
     }
   }, [dayItems.length, tempDay, tempMonth, tempYear, minIndices]);
 
+  /* Keep ref in sync for auto-save */
+  getValuesRef.current = getValues;
+
+  /* Auto-save on back (settings mode) — revert to "No" if competition fields incomplete */
+  useEffect(() => {
+    if (!isSettings) return;
+    const unsubscribe = navigation.addListener("beforeRemove", () => {
+      const vals = getValuesRef.current();
+      const competitionComplete =
+        vals.preparing_for_competition &&
+        vals.competition_name?.trim() &&
+        vals.compDay &&
+        vals.compMonth &&
+        vals.compYear;
+
+      const sanitized = {
+        ...onboardingData,
+        ...vals,
+        preparing_for_competition: !!competitionComplete,
+        // Clear competition fields if incomplete
+        ...(!competitionComplete && {
+          competition_name: "",
+          compDay: "",
+          compMonth: "",
+          compYear: "",
+          weight_class: "",
+          target_total: "",
+        }),
+      };
+      dispatch(saveOnboardingData(sanitized));
+    });
+    return unsubscribe;
+  }, [navigation, isSettings, dispatch, onboardingData]);
+
   /* ── Back (save progress) ── */
   const handleBack = () => {
     dispatch(saveOnboardingData({ ...onboardingData, ...getValues() }));
@@ -369,14 +430,16 @@ export default function OnboardingScreen6({
         keyboardShouldPersistTaps="handled"
       >
         {/* Title */}
-        <View style={styles.titleBlock}>
-          <Text style={styles.title} maxFontSizeMultiplier={1.2}>
-            Goals
-          </Text>
-          <Text style={styles.subtitle} maxFontSizeMultiplier={1.5}>
-            Helps the AI plan your training direction
-          </Text>
-        </View>
+        {!isSettings && (
+          <View style={styles.titleBlock}>
+            <Text style={styles.title} maxFontSizeMultiplier={1.2}>
+              Goals
+            </Text>
+            <Text style={styles.subtitle} maxFontSizeMultiplier={1.5}>
+              Helps the AI plan your training direction
+            </Text>
+          </View>
+        )}
 
         <View style={styles.formGroup}>
           {/* Preparing for Competition — YES/NO segmented control */}
@@ -387,13 +450,13 @@ export default function OnboardingScreen6({
               name="preparing_for_competition"
               render={({ field: { onChange, value } }) => (
                 <View style={styles.segmentedTrack}>
-                  <TouchableOpacity
-                    style={[
+                  <Pressable
+                    style={({ pressed }) => [
                       styles.segmentedOption,
                       value === true && styles.segmentedOptionActive,
+                      pressed && { opacity: 0.7 },
                     ]}
                     onPress={() => onChange(true)}
-                    activeOpacity={0.8}
                   >
                     <Text
                       style={[
@@ -403,14 +466,14 @@ export default function OnboardingScreen6({
                     >
                       Yes
                     </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
+                  </Pressable>
+                  <Pressable
+                    style={({ pressed }) => [
                       styles.segmentedOption,
                       value === false && styles.segmentedOptionActive,
+                      pressed && { opacity: 0.7 },
                     ]}
                     onPress={() => onChange(false)}
-                    activeOpacity={0.8}
                   >
                     <Text
                       style={[
@@ -420,14 +483,14 @@ export default function OnboardingScreen6({
                     >
                       No
                     </Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 </View>
               )}
             />
           </View>
 
-          {/* Conditional: Competition Name + Date */}
-          {isCompeting && (
+          {/* Conditional: Competition details */}
+          {isCompeting ? (
             <>
               {/* Competition Name */}
               <Controller
@@ -469,70 +532,128 @@ export default function OnboardingScreen6({
                   />
                 </Pressable>
               </View>
-            </>
-          )}
 
-          {/* Training Phase — single-select cards */}
-          <View>
-            <Text style={styles.sectionLabel}>WHERE ARE YOU RIGHT NOW</Text>
-            <Text style={styles.sectionSubtitle}>
-              So the AI knows where to pick up
-            </Text>
-            <Controller
-              control={control}
-              name="training_phase"
-              render={({ field: { onChange, value } }) => (
-                <View style={styles.phaseList}>
-                  {TRAINING_PHASES.map((phase) => {
-                    const isActive = value === phase.value;
-                    return (
-                      <Pressable
-                        key={phase.value}
-                        onPress={() => onChange(phase.value)}
-                        style={({ pressed }) => [
-                          styles.phaseCard,
-                          isActive && styles.phaseCardActive,
-                          pressed && { opacity: 0.7 },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.phaseTitle,
-                            !isActive && styles.phaseTitleInactive,
-                          ]}
-                        >
-                          {phase.title}
-                        </Text>
-                        <Text style={styles.phaseDescription}>
-                          {phase.description}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
+              {/* Weight Class (settings only) */}
+              {isSettings && (
+                <Controller
+                  control={control}
+                  name="weight_class"
+                  render={({ field: { onChange, value } }) => (
+                    <OlyFormField
+                      label="WEIGHT CLASS"
+                      placeholder="e.g. 73"
+                      value={value}
+                      onChangeText={(text) => onChange(text.replace(/[^0-9]/g, ""))}
+                      keyboardType="number-pad"
+                      maxLength={4}
+                      suffix={onboardingData?.weightUnit === "LB" ? "lbs" : "kg"}
+                    />
+                  )}
+                />
+              )}
+
+              {/* Target Total (settings only) */}
+              {isSettings && (
+                <Controller
+                  control={control}
+                  name="target_total"
+                  render={({ field: { onChange, value } }) => (
+                    <OlyFormField
+                      label="TARGET TOTAL"
+                      placeholder="e.g. 280"
+                      value={value}
+                      onChangeText={(text) => onChange(text.replace(/[^0-9]/g, ""))}
+                      keyboardType="number-pad"
+                      maxLength={4}
+                      suffix={onboardingData?.weightUnit === "LB" ? "lbs" : "kg"}
+                    />
+                  )}
+                />
+              )}
+
+              {/* Weeks out card (settings only, when date is set) */}
+              {isSettings && weeksOut && (
+                <View style={styles.weeksOutCard}>
+                  <Text style={styles.weeksOutLabel}>WEEKS OUT</Text>
+                  <Text style={styles.weeksOutValue}>
+                    {weeksOut}
+                    <Text style={styles.weeksOutUnit}> {weeksOut === 1 ? "week" : "weeks"}</Text>
+                  </Text>
                 </View>
               )}
-            />
-          </View>
+            </>
+          ) : (
+            /* No competition — quiet empty state (settings only) */
+            isSettings && (
+              <Text style={styles.emptyState}>No competition scheduled</Text>
+            )
+          )}
+
+          {/* Training Phase — only shown during onboarding */}
+          {!isSettings && (
+            <View>
+              <Text style={styles.sectionLabel}>WHERE ARE YOU RIGHT NOW</Text>
+              <Text style={styles.sectionSubtitle}>
+                So the AI knows where to pick up
+              </Text>
+              <Controller
+                control={control}
+                name="training_phase"
+                render={({ field: { onChange, value } }) => (
+                  <View style={styles.phaseList}>
+                    {TRAINING_PHASES.map((phase) => {
+                      const isActive = value === phase.value;
+                      return (
+                        <Pressable
+                          key={phase.value}
+                          onPress={() => onChange(phase.value)}
+                          style={({ pressed }) => [
+                            styles.phaseCard,
+                            isActive && styles.phaseCardActive,
+                            pressed && { opacity: 0.7 },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.phaseTitle,
+                              !isActive && styles.phaseTitleInactive,
+                            ]}
+                          >
+                            {phase.title}
+                          </Text>
+                          <Text style={styles.phaseDescription}>
+                            {phase.description}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
+              />
+            </View>
+          )}
         </View>
 
         {/* Bottom buttons */}
-        <View style={styles.bottomButtons}>
-          <OlyButton
-            label="BACK"
-            variant="secondary"
-            onPress={handleBack}
-            fullWidth
-            style={styles.halfButton}
-          />
-          <OlyButton
-            label="NEXT"
-            variant="primary"
-            onPress={handleSubmit(onSubmit)}
-            disabled={!allFilled}
-            fullWidth
-            style={styles.halfButton}
-          />
-        </View>
+        {!isSettings && (
+          <View style={styles.bottomButtons}>
+            <OlyButton
+              label="BACK"
+              variant="secondary"
+              onPress={handleBack}
+              fullWidth
+              style={styles.halfButton}
+            />
+            <OlyButton
+              label="NEXT"
+              variant="primary"
+              onPress={handleSubmit(onSubmit)}
+              disabled={!allFilled}
+              fullWidth
+              style={styles.halfButton}
+            />
+          </View>
+        )}
       </ScrollView>
 
       {/* Competition Date Scroll Wheel Modal */}
@@ -781,11 +902,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: olyPalette.card,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
   },
   segmentedOptionActive: {
     backgroundColor: olyColors.bg.activeHighlight,
+    borderWidth: 1,
     borderColor: olyPalette.primary,
   },
   segmentedText: {
@@ -808,8 +928,6 @@ const styles = StyleSheet.create({
     minHeight: olyLayout.inputHeight,
     borderRadius: olyRadius.lg,
     backgroundColor: olyPalette.card,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
   },
   dropdownButtonText: {
     ...olyTypography.body,
@@ -817,6 +935,39 @@ const styles = StyleSheet.create({
   },
   dropdownPlaceholder: {
     color: olyColors.text.disabled,
+  },
+
+  /* Weeks out card — matches competition-lifts total row */
+  weeksOutCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: olyColors.bg.subtleHighlight,
+    borderRadius: olyRadius.lg,
+    paddingHorizontal: olySpacing[16],
+    paddingVertical: olySpacing[16],
+  },
+  weeksOutLabel: {
+    ...olyTypography.caption,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.secondary,
+    letterSpacing: olyLetterSpacing.uppercase,
+  },
+  weeksOutValue: {
+    ...olyTypography.title2,
+    color: olyColors.text.primary,
+  },
+  weeksOutUnit: {
+    ...olyTypography.bodySmall,
+    color: olyColors.text.secondary,
+  },
+
+  /* Empty state */
+  emptyState: {
+    ...olyTypography.body,
+    color: olyColors.text.disabled,
+    textAlign: "center",
+    paddingVertical: olySpacing[40],
   },
 
   /* Training phase cards */
@@ -828,10 +979,9 @@ const styles = StyleSheet.create({
     paddingVertical: olySpacing[16],
     borderRadius: olyRadius.lg,
     backgroundColor: olyPalette.card,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
   },
   phaseCardActive: {
+    borderWidth: 1,
     borderColor: olyPalette.primary,
     backgroundColor: olyColors.bg.activeHighlight,
   },

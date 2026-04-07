@@ -1,8 +1,10 @@
 import { olyTypography, olyFonts, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
-import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
+import { olySpacing } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 import React from "react";
 import {
   StyleSheet,
@@ -38,12 +40,17 @@ export default function RecentLifts({
   lifts = DEFAULT_LIFTS,
   onSeeAll,
 }: RecentLiftsProps) {
+  const displayLifts = lifts.slice(0, 3);
+
   return (
     <View style={styles.section}>
       {/* Header */}
       <View style={styles.headerRow}>
         <Text style={styles.sectionLabel}>RECENT LIFTS</Text>
-        <TouchableOpacity onPress={onSeeAll} hitSlop={olySpacing[8]}>
+        <TouchableOpacity
+          onPress={onSeeAll ?? (() => router.push("/athlete/archive"))}
+          hitSlop={olySpacing[8]}
+        >
           <Ionicons
             name="chevron-forward"
             size={18}
@@ -52,32 +59,32 @@ export default function RecentLifts({
         </TouchableOpacity>
       </View>
 
-      {/* 3-up grid */}
-      <View style={styles.row}>
-        {lifts.slice(0, 3).map((lift, index) => (
+      {/* Grid — 3 columns, 2 rows */}
+      <View style={styles.grid}>
+        {displayLifts.map((lift, index) => (
           <TouchableOpacity
             key={`${lift.liftName}-${index}`}
-            style={styles.card}
-            activeOpacity={0.7}
+            style={styles.cell}
+            activeOpacity={0.85}
           >
-            {/* Thumbnail */}
             <View style={styles.thumbnail}>
-              <View style={styles.playButton}>
-                <Ionicons
-                  name="play"
-                  size={14}
-                  color={olyColors.text.primary}
-                  style={{ marginLeft: 1 }}
-                />
+              {/* Gradient bottom */}
+              <LinearGradient
+                colors={["transparent", olyPalette.black]}
+                style={styles.gradient}
+              />
+
+              {/* Weight + name overlay */}
+              <View style={styles.overlay}>
+                <Text style={styles.weight}>
+                  {lift.weight}
+                  <Text style={styles.unit}> {lift.unit ?? "kg"}</Text>
+                </Text>
+                <Text style={styles.liftName} numberOfLines={1}>
+                  {lift.liftName.toUpperCase()}
+                </Text>
               </View>
             </View>
-
-            {/* Info */}
-            <Text style={styles.weight}>
-              {lift.weight}
-              <Text style={styles.unit}> {lift.unit ?? "kg"}</Text>
-            </Text>
-            <Text style={styles.liftName}>{lift.liftName.toUpperCase()}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -86,8 +93,6 @@ export default function RecentLifts({
 }
 
 /* ── Styles ──────────────────────────────────────────── */
-
-const THUMB_HEIGHT = 100;
 
 const styles = StyleSheet.create({
   section: {
@@ -103,52 +108,55 @@ const styles = StyleSheet.create({
     color: olyColors.text.secondary,
     letterSpacing: olyLetterSpacing.uppercase,
   },
-  row: {
-    flexDirection: "row",
-    gap: olySpacing[8],
-  },
 
-  /* Card */
-  card: {
+  /* Grid */
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: olySpacing[4],
+  },
+  cell: {
     flex: 1,
-    backgroundColor: olyPalette.card,
-    borderRadius: olyRadius.lg,
+    aspectRatio: 0.85,
+    borderRadius: olyRadius.sm,
     overflow: "hidden",
   },
 
   /* Thumbnail */
   thumbnail: {
-    height: THUMB_HEIGHT,
+    flex: 1,
     backgroundColor: olyPalette.cardElevated,
-    alignItems: "center",
-    justifyContent: "center",
   },
-  playButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: `rgba(0, 0, 0, 0.5)`,
-    alignItems: "center",
-    justifyContent: "center",
+  gradient: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: "50%",
   },
 
-  /* Info */
+  /* Overlay text */
+  overlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: olySpacing[8],
+    paddingBottom: olySpacing[8],
+  },
   weight: {
     ...olyTypography.body,
     fontFamily: olyFonts.medium,
     color: olyColors.text.primary,
-    paddingHorizontal: olySpacing[12],
-    paddingTop: olySpacing[8],
   },
   unit: {
     ...olyTypography.caption,
+    fontFamily: olyFonts.regular,
     color: olyColors.text.secondary,
   },
   liftName: {
     ...olyTypography.caption,
-    color: olyColors.text.secondary,
+    color: olyColors.text.disabled,
     letterSpacing: olyLetterSpacing.uppercase,
-    paddingHorizontal: olySpacing[12],
-    paddingBottom: olySpacing[12],
   },
 });

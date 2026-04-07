@@ -28,6 +28,8 @@ interface OlyTextInputProps extends Omit<TextInputProps, "style"> {
   error?: string;
   disabled?: boolean;
   containerStyle?: ViewStyle;
+  /** Static text displayed on the right side of the input (e.g. "kg", "lbs") */
+  suffix?: string;
 }
 
 const EYE_BUTTON_WIDTH = 48;
@@ -37,6 +39,7 @@ export const OlyTextInput: React.FC<OlyTextInputProps> = ({
   disabled = false,
   containerStyle,
   secureTextEntry,
+  suffix,
   ...textInputProps
 }) => {
   const [isFocused, setIsFocused] = useState(false);
@@ -48,7 +51,7 @@ export const OlyTextInput: React.FC<OlyTextInputProps> = ({
   const getBorderColor = () => {
     if (error) return olyColors.border.error;
     if (isFocused) return olyColors.border.brand;
-    return olyColors.border.default;
+    return "transparent";
   };
 
   return (
@@ -95,6 +98,9 @@ export const OlyTextInput: React.FC<OlyTextInputProps> = ({
             />
           </Pressable>
         )}
+        {suffix && (
+          <Text style={styles.suffix}>{suffix}</Text>
+        )}
       </View>
       {error ? (
         <Text
@@ -136,6 +142,11 @@ const styles = StyleSheet.create({
     width: EYE_BUTTON_WIDTH,
     justifyContent: "center",
     alignItems: "center",
+  },
+  suffix: {
+    ...olyTypography.body,
+    color: olyColors.text.primary,
+    marginRight: olySpacing[16],
   },
   errorText: {
     ...olyTypography.caption,

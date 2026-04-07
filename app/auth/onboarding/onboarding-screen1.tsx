@@ -20,6 +20,7 @@ import { useUploadProfileImageMutation } from "@/store/api";
 import { saveOnboardingData, selectOnboardingData } from "@/store/reducer/onboardingSlice";
 import { onboardingScreen1Schema } from "@/utils/validation-schemas";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as ImagePicker from "expo-image-picker";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -41,7 +42,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -68,6 +68,7 @@ interface OnboardingScreen1Props {
   onComplete?: () => void;
   name?: string;
   email?: string;
+  mode?: "onboarding" | "settings";
 }
 
 /* ── Exposure card data ────────────────────────────────── */
@@ -176,7 +177,9 @@ function getMonthShort(value: string): string {
 export default function OnboardingScreen1({
   onComplete,
   name: authName,
+  mode = "onboarding",
 }: OnboardingScreen1Props) {
+  const isSettings = mode === "settings";
   const dispatch = useDispatch();
   const insets = useSafeAreaInsets();
   const { showToast } = useToast();
@@ -237,6 +240,26 @@ export default function OnboardingScreen1({
   });
 
   const watchedValues = watch();
+
+  /* Auto-save on back (settings mode) */
+  const navigationRef = useNavigation();
+  const getValuesRef = useRef(getValues);
+  getValuesRef.current = getValues;
+
+  useEffect(() => {
+    if (!isSettings) return;
+    const unsubscribe = navigationRef.addListener("beforeRemove", () => {
+      const values = getValuesRef.current();
+      dispatch(
+        saveOnboardingData({
+          ...onboardingData,
+          ...values,
+          heightInches: values.height_unit === "ft" ? heightInches : undefined,
+        }),
+      );
+    });
+    return unsubscribe;
+  }, [navigationRef, isSettings, dispatch, onboardingData, heightInches]);
 
   // DOB wheel picker data
   const DOB_ITEM_HEIGHT = olyLayout.minTouchTarget;
@@ -377,6 +400,7 @@ export default function OnboardingScreen1({
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {/* Title Block */}
+          {!isSettings && (
           <View style={styles.titleBlock}>
             <Text style={styles.title} maxFontSizeMultiplier={1.2}>
               Athlete profile
@@ -385,6 +409,7 @@ export default function OnboardingScreen1({
               Used to set up your training profile
             </Text>
           </View>
+          )}
 
           {/* Profile Image Section */}
           <View style={styles.profileImageContainer}>
@@ -953,25 +978,27 @@ export default function OnboardingScreen1({
           </View>
 
           {/* Submit Button */}
-          <OlyButton
-            label="Continue"
-            onPress={() => {
-              // Always save current values to Redux (even if invalid)
-              const values = getValues();
-              dispatch(
-                saveOnboardingData({
-                  ...onboardingData,
-                  ...values,
-                  heightInches: values.height_unit === "ft" ? heightInches : undefined,
-                })
-              );
-              // Only navigate if valid
-              handleSubmit(handleSubmitForm)();
-            }}
-            disabled={!isValid}
-            style={styles.submitButton}
-            fullWidth
-          />
+          {!isSettings && (
+            <OlyButton
+              label="Continue"
+              onPress={() => {
+                // Always save current values to Redux (even if invalid)
+                const values = getValues();
+                dispatch(
+                  saveOnboardingData({
+                    ...onboardingData,
+                    ...values,
+                    heightInches: values.height_unit === "ft" ? heightInches : undefined,
+                  })
+                );
+                // Only navigate if valid
+                handleSubmit(handleSubmitForm)();
+              }}
+              disabled={!isValid}
+              style={styles.submitButton}
+              fullWidth
+            />
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
   );
@@ -1062,8 +1089,6 @@ const styles = StyleSheet.create({
     minHeight: olyLayout.inputHeight,
     borderRadius: olyRadius.lg,
     backgroundColor: olyPalette.card,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
   },
   dropdownButtonText: {
     ...olyTypography.body,
@@ -1104,8 +1129,6 @@ const styles = StyleSheet.create({
     minHeight: olyLayout.inputHeight,
     borderRadius: olyRadius.lg,
     backgroundColor: olyPalette.card,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
     color: olyColors.text.primary,
   },
   countryItem: {
@@ -1225,13 +1248,12 @@ const styles = StyleSheet.create({
     minHeight: olyLayout.minTouchTarget,
     borderRadius: olyRadius.full,
     backgroundColor: olyPalette.card,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
     alignItems: "center" as const,
     justifyContent: "center" as const,
   },
   sexButtonActive: {
     backgroundColor: olyColors.bg.activeHighlight,
+    borderWidth: 1,
     borderColor: olyPalette.primary,
   },
   sexButtonText: {
@@ -1252,8 +1274,6 @@ const styles = StyleSheet.create({
     padding: olySpacing[16],
     backgroundColor: olyPalette.card,
     borderRadius: olyRadius.lg,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
     alignItems: "center" as const,
   },
   metricTitle: {
@@ -1334,11 +1354,10 @@ const styles = StyleSheet.create({
     padding: olySpacing[16],
     backgroundColor: olyPalette.card,
     borderRadius: olyRadius.lg,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
   },
   exposureCardActive: {
     backgroundColor: olyColors.bg.activeHighlight,
+    borderWidth: 1,
     borderColor: olyPalette.primary,
   },
   exposureTitle: {

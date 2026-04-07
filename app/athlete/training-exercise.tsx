@@ -11,7 +11,7 @@ import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { useToast } from "@/context/toast-context";
 import { useCustomSetMutation } from "@/store/api";
-import { Days, ExerciseSet } from "@/store/reducer/trainingSlice";
+import { Days, ExerciseSet, setVideoForSet } from "@/store/reducer/trainingSlice";
 import { RootState } from "@/store/store";
 import { CustomSetPayload } from "@/types/api/dashboard";
 import { Ionicons } from "@expo/vector-icons";
@@ -32,9 +32,10 @@ import {
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 export default function TrainingExercise() {
+  const dispatch = useDispatch();
   const { showSuccess, showError } = useToast();
   const [checkedSetNumbers, setCheckedSetNumbers] = useState<Set<number>>(
     new Set(),
@@ -59,18 +60,7 @@ export default function TrainingExercise() {
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [selectedSet, setSelectedSet] = useState<ExerciseSet | null>(null);
-  const [videosMap, setVideosMap] = useState<Record<number, string>>({});
   const [savedSetNumber, setSavedSetNumber] = useState<number | null>(null);
-
-  const DAY_KEYS = [
-    "sunday",
-    "monday",
-    "tuesday",
-    "wednesday",
-    "thursday",
-    "friday",
-    "saturday",
-  ];
 
   const todayData = days?.[selectedDayKey as keyof Days];
   const [activeIndex, setActiveIndex] = useState(
@@ -79,6 +69,15 @@ export default function TrainingExercise() {
     ) ?? 0,
   );
   const exerciseData = selectedDayExercises?.[activeIndex] ?? null;
+
+  const videosMap: Record<number, string> = {};
+  if (exerciseData?.sets) {
+    for (const s of exerciseData.sets) {
+      if (s.video_uri) {
+        videosMap[s.set_number] = s.video_uri;
+      }
+    }
+  }
 
   useEffect(() => {
     if (!selectedSet || !exerciseData) return;
@@ -143,7 +142,6 @@ export default function TrainingExercise() {
     if (activeIndex < selectedDayExercises.length - 1) {
       setActiveIndex((prev) => prev + 1);
       setCheckedSetNumbers(new Set());
-      setVideosMap({});
     }
   };
 
@@ -152,7 +150,6 @@ export default function TrainingExercise() {
     if (activeIndex > 0) {
       setActiveIndex((prev) => prev - 1);
       setCheckedSetNumbers(new Set());
-      setVideosMap({});
     }
   };
 
@@ -266,7 +263,6 @@ export default function TrainingExercise() {
               onTabChange={(index) => {
                 setActiveIndex(index);
                 setCheckedSetNumbers(new Set());
-                setVideosMap({});
               }}
             />
 
@@ -368,15 +364,13 @@ export default function TrainingExercise() {
               setTimeout(() => setSavedSetNumber(null), 1200);
             }}
             onVideoChange={(setNumber, uri) => {
-              setVideosMap((prev) => {
-                const next = { ...prev };
-                if (uri) {
-                  next[setNumber] = uri;
-                } else {
-                  delete next[setNumber];
-                }
-                return next;
-              });
+              dispatch(
+                setVideoForSet({
+                  exerciseIndex: activeIndex,
+                  setNumber,
+                  videoUri: uri,
+                }),
+              );
             }}
           />
           <TimerBottomSheet

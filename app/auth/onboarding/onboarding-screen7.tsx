@@ -20,7 +20,8 @@ import {
   saveOnboardingData,
   selectOnboardingData,
 } from "@/store/reducer/onboardingSlice";
-import React from "react";
+import { useNavigation } from "@react-navigation/native";
+import React, { useEffect, useRef } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   Pressable,
@@ -36,6 +37,7 @@ import { useDispatch, useSelector } from "react-redux";
 interface OnboardingScreen7Props {
   onBack?: () => void;
   onComplete?: () => void;
+  mode?: "onboarding" | "settings";
 }
 
 interface OnboardingScreen7Values {
@@ -99,9 +101,13 @@ const CATEGORY_KEYS: CategoryKey[] = [
 export default function OnboardingScreen7({
   onBack,
   onComplete,
+  mode = "onboarding",
 }: OnboardingScreen7Props) {
+  const isSettings = mode === "settings";
   const dispatch = useDispatch();
   const onboardingData = useSelector(selectOnboardingData);
+  const navigation = useNavigation();
+  const getValuesRef = useRef<() => OnboardingScreen7Values>(() => ({} as OnboardingScreen7Values));
 
   const { control, handleSubmit, getValues } =
     useForm<OnboardingScreen7Values>({
@@ -112,6 +118,25 @@ export default function OnboardingScreen7({
         overhead_stability: onboardingData?.overhead_stability ?? [],
       },
     });
+
+  /* Keep ref in sync for auto-save */
+  getValuesRef.current = getValues;
+
+  /* Auto-save on back (settings mode) */
+  useEffect(() => {
+    if (!isSettings) return;
+    const unsubscribe = navigation.addListener("beforeRemove", () => {
+      const data = getValuesRef.current();
+      const performance_gaps = [
+        ...data.pulling_positioning,
+        ...data.receiving_bar,
+        ...data.squat_leg_strength,
+        ...data.overhead_stability,
+      ];
+      dispatch(saveOnboardingData({ ...onboardingData, ...data, performance_gaps }));
+    });
+    return unsubscribe;
+  }, [navigation, isSettings, dispatch, onboardingData]);
 
   /* ── Back (save progress) ── */
   const handleBack = () => {
@@ -159,14 +184,16 @@ export default function OnboardingScreen7({
         keyboardShouldPersistTaps="handled"
       >
         {/* Title */}
-        <View style={styles.titleBlock}>
-          <Text style={styles.title} maxFontSizeMultiplier={1.2}>
-            Performance gaps
-          </Text>
-          <Text style={styles.subtitle} maxFontSizeMultiplier={1.5}>
-            Used to emphasize areas that need the most attention
-          </Text>
-        </View>
+        {!isSettings && (
+          <View style={styles.titleBlock}>
+            <Text style={styles.title} maxFontSizeMultiplier={1.2}>
+              Performance gaps
+            </Text>
+            <Text style={styles.subtitle} maxFontSizeMultiplier={1.5}>
+              Used to emphasize areas that need the most attention
+            </Text>
+          </View>
+        )}
 
         {/* Categories */}
         <View style={styles.formGroup}>
@@ -220,22 +247,24 @@ export default function OnboardingScreen7({
         </View>
 
         {/* Bottom buttons */}
-        <View style={styles.bottomButtons}>
-          <OlyButton
-            label="BACK"
-            variant="secondary"
-            onPress={handleBack}
-            fullWidth
-            style={styles.halfButton}
-          />
-          <OlyButton
-            label="FINISH"
-            variant="primary"
-            onPress={handleSubmit(onSubmit)}
-            fullWidth
-            style={styles.halfButton}
-          />
-        </View>
+        {!isSettings && (
+          <View style={styles.bottomButtons}>
+            <OlyButton
+              label="BACK"
+              variant="secondary"
+              onPress={handleBack}
+              fullWidth
+              style={styles.halfButton}
+            />
+            <OlyButton
+              label="FINISH"
+              variant="primary"
+              onPress={handleSubmit(onSubmit)}
+              fullWidth
+              style={styles.halfButton}
+            />
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -280,11 +309,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: olyRadius.full,
     backgroundColor: olyPalette.card,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
   },
   gapPillActive: {
     backgroundColor: olyColors.bg.activeHighlight,
+    borderWidth: 1,
     borderColor: olyPalette.primary,
   },
   gapPillText: {

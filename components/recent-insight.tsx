@@ -2,59 +2,19 @@ import { olyTypography, olyFonts, olyLetterSpacing } from "@/src/oly-theme/oly-t
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
 import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
-import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
-
-/* ── Gauge helpers ─────────────────────────────────── */
-
-const GAUGE_SIZE = 180;
-const GAUGE_STROKE = 8;
-const GAUGE_RADIUS = (GAUGE_SIZE - GAUGE_STROKE) / 2;
-
-/** Build a semicircle arc path from `startPct` (0-1) to `endPct` (0-1). */
-function gaugeArc(r: number, startPct: number, endPct: number): string {
-  const cx = GAUGE_SIZE / 2;
-  const cy = GAUGE_SIZE / 2;
-  const startAngle = Math.PI + startPct * Math.PI;
-  const endAngle = Math.PI + endPct * Math.PI;
-  const x1 = cx + r * Math.cos(startAngle);
-  const y1 = cy + r * Math.sin(startAngle);
-  const x2 = cx + r * Math.cos(endAngle);
-  const y2 = cy + r * Math.sin(endAngle);
-  const largeArc = endPct - startPct > 0.5 ? 1 : 0;
-  return `M${x1},${y1} A${r},${r} 0 ${largeArc} 1 ${x2},${y2}`;
-}
 
 /* ── Component ──────────────────────────────────────── */
 
 export default function RecentInsight() {
   return (
     <View style={styles.section}>
-      {/* Section header */}
-      <View style={styles.headerRow}>
-        <Text style={styles.sectionLabel}>RECENT INSIGHT</Text>
-        <TouchableOpacity hitSlop={olySpacing[8]}>
-          <Ionicons
-            name="chevron-forward"
-            size={18}
-            color={olyColors.text.secondary}
-          />
-        </TouchableOpacity>
-      </View>
-
       {/* ─────────── Feeling vs Performance ─────────── */}
-      <TouchableOpacity style={styles.card} activeOpacity={0.7}>
-        {/* Title row */}
-        <View style={styles.titleRow}>
-          <Text style={styles.cardTitle}>Feeling vs Performance</Text>
-          <Ionicons
-            name="chevron-forward"
-            size={16}
-            color={olyColors.text.secondary}
-          />
-        </View>
+      <View style={styles.card}>
+        {/* Title */}
+        <Text style={styles.cardTitle}>Feeling vs Performance</Text>
 
         {/* Legend */}
         <View style={styles.legendRow}>
@@ -68,7 +28,7 @@ export default function RecentInsight() {
           </View>
         </View>
 
-        {/* Graph — mock curves, will be replaced with live data */}
+        {/* Graph — mock curves */}
         <View style={styles.graphArea}>
           <View style={[styles.graphGridLine, { top: 0 }]} />
           <View style={[styles.graphGridLine, { top: "50%" }]} />
@@ -80,14 +40,12 @@ export default function RecentInsight() {
             preserveAspectRatio="none"
             style={StyleSheet.absoluteFillObject}
           >
-            {/* Snatch — brand blue */}
             <Path
               d="M0,65 C50,60 100,30 150,20 C200,10 250,45 300,40"
               stroke={olyPalette.primary}
               strokeWidth={2.5}
               fill="none"
             />
-            {/* Clean & Jerk — muted white */}
             <Path
               d="M0,55 C50,50 100,50 150,45 C200,40 250,50 300,48"
               stroke={olyColors.text.disabled}
@@ -99,75 +57,54 @@ export default function RecentInsight() {
 
         {/* Insight */}
         <Text style={styles.insightText}>
-          Your <Text style={styles.textBold}>best performance</Text> sessions
-          correlate with <Text style={styles.textBold}>moderate RPE</Text> during
-          de-load phase
+          Your <Text style={styles.bold}>best sessions</Text> happen
+          when energy is <Text style={styles.bold}>high</Text> and stress
+          is <Text style={styles.bold}>low</Text> — typically after rest days
         </Text>
-      </TouchableOpacity>
+      </View>
 
       {/* ─────────── Snatch : Clean & Jerk Ratio ─────────── */}
       <View style={styles.card}>
-        {/* Gauge + hero number */}
-        <View style={styles.gaugeContainer}>
-          <Svg width={GAUGE_SIZE} height={GAUGE_SIZE / 2 + 8} viewBox={`0 0 ${GAUGE_SIZE} ${GAUGE_SIZE / 2 + 8}`}>
-            {/* Track arc (background) */}
-            <Path
-              d={gaugeArc(GAUGE_RADIUS, 0, 1)}
-              stroke={olyColors.border.default}
-              strokeWidth={GAUGE_STROKE}
-              fill="none"
-              strokeLinecap="round"
-            />
-            {/* Ideal zone arc (78-82% mapped to 0-1 on 70-90% range) */}
-            <Path
-              d={gaugeArc(GAUGE_RADIUS, (78 - 70) / 20, (82 - 70) / 20)}
-              stroke={olyPalette.primary}
-              strokeWidth={GAUGE_STROKE}
-              fill="none"
-              strokeLinecap="round"
-              opacity={0.35}
-            />
-            {/* Marker dot at 80% position: (80-70)/20 = 0.5 */}
-            {(() => {
-              const angle = Math.PI + 0.5 * Math.PI;
-              const cx = GAUGE_SIZE / 2 + GAUGE_RADIUS * Math.cos(angle);
-              const cy = GAUGE_SIZE / 2 + GAUGE_RADIUS * Math.sin(angle);
-              return (
-                <Path
-                  d={`M${cx - 5},${cy} a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0`}
-                  fill={olyPalette.primary}
-                />
-              );
-            })()}
-          </Svg>
+        {/* Label */}
+        <Text style={styles.ratioLabel}>SNATCH : CLEAN & JERK RATIO</Text>
 
-          {/* Hero number overlaid at bottom center of arc */}
-          <View style={styles.heroOverlay}>
-            <View style={styles.heroRow}>
-              <Text style={styles.heroNumber}>80</Text>
-              <Text style={styles.heroUnit}>%</Text>
-            </View>
+        {/* Hero */}
+        <View style={styles.heroRow}>
+          <Text style={styles.heroNumber}>80</Text>
+          <Text style={styles.heroUnit}>%</Text>
+        </View>
+
+        {/* Lifts — subdued, supporting data */}
+        <View style={styles.liftsRow}>
+          <View style={styles.liftItem}>
+            <Text style={styles.liftValue}>120<Text style={styles.liftUnit}> kg</Text></Text>
+            <Text style={styles.liftName}>SNATCH</Text>
+          </View>
+          <View style={styles.liftDivider} />
+          <View style={styles.liftItem}>
+            <Text style={styles.liftValue}>150<Text style={styles.liftUnit}> kg</Text></Text>
+            <Text style={styles.liftName}>CLEAN & JERK</Text>
           </View>
         </View>
 
-        {/* Lift breakdown — compact */}
-        <View style={styles.liftRow}>
-          <Text style={styles.liftText}>
-            <Text style={styles.liftValue}>120 kg </Text>
-            <Text style={styles.liftLabel}>SN</Text>
-          </Text>
-          <Text style={styles.liftDivider}>/</Text>
-          <Text style={styles.liftText}>
-            <Text style={styles.liftValue}>150 kg </Text>
-            <Text style={styles.liftLabel}>C&J</Text>
-          </Text>
+        {/* Bar — muted track, blue fill, dot marker */}
+        <View style={styles.barBlock}>
+          <View style={styles.barTrack}>
+            <View style={styles.barFill} />
+            <View style={styles.barDot} />
+          </View>
+          <View style={styles.barLabels}>
+            <Text style={styles.barEndpoint}>70%</Text>
+            <Text style={styles.barIdeal}>Ideal 78–82%</Text>
+            <Text style={styles.barEndpoint}>90%</Text>
+          </View>
         </View>
 
-        {/* Coach callout */}
+        {/* Callout */}
         <View style={styles.callout}>
           <Text style={styles.calloutText}>
-            <Text style={styles.calloutBold}>Balanced lifter. </Text>
-            Your ratio is in the ideal 78–82% range — both lifts are progressing proportionally.
+            <Text style={styles.bold}>Balanced lifter. </Text>
+            Ratio sits in the ideal range — both lifts are progressing proportionally.
           </Text>
         </View>
       </View>
@@ -182,16 +119,6 @@ const styles = StyleSheet.create({
   section: {
     gap: olySpacing[12],
   },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  sectionLabel: {
-    ...olyTypography.label,
-    color: olyColors.text.secondary,
-    letterSpacing: olyLetterSpacing.uppercase,
-  },
 
   /* Shared card */
   card: {
@@ -202,11 +129,6 @@ const styles = StyleSheet.create({
   },
 
   /* ── Graph Card ── */
-  titleRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
   cardTitle: {
     ...olyTypography.body,
     fontFamily: olyFonts.medium,
@@ -247,61 +169,106 @@ const styles = StyleSheet.create({
     color: olyColors.text.secondary,
     lineHeight: 20,
   },
-  textBold: {
-    fontFamily: olyFonts.medium,
-    color: olyColors.text.primary,
-  },
 
-  /* ── Ratio Card — Gauge ── */
-  gaugeContainer: {
-    alignItems: "center",
-    marginTop: -olySpacing[4],
-    marginBottom: -olySpacing[8],
-  },
-  heroOverlay: {
-    position: "absolute",
-    bottom: 0,
-    alignItems: "center",
+  /* ── Ratio Card ── */
+  ratioLabel: {
+    ...olyTypography.caption,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.secondary,
+    letterSpacing: olyLetterSpacing.uppercase,
   },
   heroRow: {
     flexDirection: "row",
     alignItems: "baseline",
+    justifyContent: "center",
   },
   heroNumber: {
-    fontSize: 40,
-    lineHeight: 48,
+    fontSize: 56,
+    lineHeight: 64,
     fontFamily: olyFonts.medium,
     fontWeight: "500",
     color: olyColors.text.primary,
   },
   heroUnit: {
-    ...olyTypography.body,
+    ...olyTypography.title2,
     color: olyColors.text.secondary,
-    marginLeft: 2,
+    marginLeft: olySpacing[4],
   },
 
-  /* Lift row — compact inline */
-  liftRow: {
+  /* Lifts */
+  liftsRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: olySpacing[8],
   },
-  liftText: {
-    flexDirection: "row",
+  liftItem: {
+    flex: 1,
+    alignItems: "center",
+    gap: olySpacing[4],
   },
   liftValue: {
-    ...olyTypography.bodySmall,
+    ...olyTypography.body,
     fontFamily: olyFonts.medium,
     color: olyColors.text.primary,
   },
-  liftLabel: {
-    ...olyTypography.bodySmall,
+  liftUnit: {
+    ...olyTypography.caption,
+    fontFamily: olyFonts.regular,
     color: olyColors.text.secondary,
   },
-  liftDivider: {
-    ...olyTypography.bodySmall,
+  liftName: {
+    ...olyTypography.caption,
     color: olyColors.text.disabled,
+    letterSpacing: olyLetterSpacing.uppercase,
+  },
+  liftDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: olyColors.border.default,
+  },
+
+  /* Bar */
+  barBlock: {
+    gap: olySpacing[4],
+  },
+  barTrack: {
+    height: olySpacing[4],
+    borderRadius: olySpacing[4] / 2,
+    backgroundColor: olyColors.border.default,
+    position: "relative",
+  },
+  barFill: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    width: "50%",
+    height: olySpacing[4],
+    borderRadius: olySpacing[4] / 2,
+    backgroundColor: olyPalette.primary,
+  },
+  barDot: {
+    position: "absolute",
+    left: "50%",
+    marginLeft: -olySpacing[4],
+    top: -olySpacing[4],
+    width: olySpacing[12],
+    height: olySpacing[12],
+    borderRadius: olySpacing[12] / 2,
+    backgroundColor: olyPalette.primary,
+  },
+  barLabels: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  barEndpoint: {
+    ...olyTypography.caption,
+    color: olyColors.text.disabled,
+  },
+  barIdeal: {
+    ...olyTypography.caption,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.secondary,
   },
 
   /* Callout */
@@ -315,7 +282,9 @@ const styles = StyleSheet.create({
     color: olyColors.text.secondary,
     lineHeight: 20,
   },
-  calloutBold: {
+
+  /* Shared */
+  bold: {
     fontFamily: olyFonts.medium,
     color: olyColors.text.primary,
   },

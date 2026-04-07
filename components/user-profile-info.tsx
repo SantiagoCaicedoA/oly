@@ -3,7 +3,7 @@ import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
 import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface UserProfileInfoProps {
   isOwnProfile?: boolean;
@@ -12,96 +12,118 @@ interface UserProfileInfoProps {
 export default function UserProfileInfo({ isOwnProfile = false }: UserProfileInfoProps) {
   return (
     <View style={styles.wrapper}>
-      {/* ── Avatar + Info Row ── */}
-      <View style={styles.topRow}>
-        {/* Avatar */}
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>OF</Text>
-        </View>
-
-        {/* Name, username, stats */}
-        <View style={styles.infoCol}>
-          {/* Name + badge */}
-          <View style={styles.nameRow}>
-            <Text style={styles.name}>Oscar Figueroa</Text>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>ATHLETE</Text>
-            </View>
+      {/* ── Identity block ── */}
+      <View style={styles.identityBlock}>
+        <View style={styles.topRow}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>OF</Text>
           </View>
 
-          <Text style={styles.username}>@oscar.figueroa</Text>
-
-          {/* Stats */}
-          <View style={styles.statsRow}>
-            <View>
-              <Text style={styles.statNumber}>142</Text>
-              <Text style={styles.statLabel}>FOLLOWERS</Text>
+          <View style={styles.nameCol}>
+            <View style={styles.nameRow}>
+              <Text style={styles.name}>Oscar Figueroa</Text>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>ATHLETE</Text>
+              </View>
             </View>
-            <View>
-              <Text style={styles.statNumber}>112</Text>
-              <Text style={styles.statLabel}>FOLLOWING</Text>
-            </View>
+            <Text style={styles.username}>@oscar.figueroa</Text>
           </View>
         </View>
+
+        <Text style={styles.bio}>
+          Olympic gold medalist in weightlifting. Passionate about fitness and
+          inspiring others.
+        </Text>
+      </View>
+
+      {/* ── Stats + Rank ── */}
+      <View style={styles.dataRow}>
+        <TouchableOpacity style={styles.statItem} activeOpacity={0.7}>
+          <Text style={styles.statNumber}>142</Text>
+          <Text style={styles.statLabel}> followers</Text>
+        </TouchableOpacity>
+        <Text style={styles.statDot}>·</Text>
+        <TouchableOpacity style={styles.statItem} activeOpacity={0.7}>
+          <Text style={styles.statNumber}>112</Text>
+          <Text style={styles.statLabel}> following</Text>
+        </TouchableOpacity>
+        {isOwnProfile && (
+          <TouchableOpacity style={styles.rankPill} activeOpacity={0.7}>
+            <Text style={styles.rankPillText}>
+              <Text style={styles.rankPillNumber}>#12</Text> in Calgary
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* ── Action Buttons ── */}
       {isOwnProfile ? (
-        <TouchableOpacity style={styles.editButton} activeOpacity={0.8}>
-          <Text style={styles.editButtonText}>EDIT PROFILE</Text>
-        </TouchableOpacity>
+        <View style={styles.buttonRow}>
+          <TouchableOpacity style={styles.primaryButton} activeOpacity={0.8}>
+            <Text style={styles.primaryButtonText}>EDIT PROFILE</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            activeOpacity={0.8}
+            onPress={() => {
+              Share.share({
+                message: "Check out my profile on OLY!",
+              });
+            }}
+          >
+            <Text style={styles.secondaryButtonText}>SHARE PROFILE</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <View style={styles.buttonRow}>
-          <TouchableOpacity style={styles.followButton} activeOpacity={0.8}>
-            <Text style={styles.followButtonText}>FOLLOW</Text>
+          <TouchableOpacity style={styles.primaryButton} activeOpacity={0.8}>
+            <Text style={styles.primaryButtonText}>FOLLOW</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.messageButton} activeOpacity={0.8}>
-            <Text style={styles.messageButtonText}>MESSAGE</Text>
+          <TouchableOpacity style={styles.secondaryButton} activeOpacity={0.8}>
+            <Text style={styles.secondaryButtonText}>MESSAGE</Text>
           </TouchableOpacity>
         </View>
       )}
-
-      {/* ── Bio ── */}
-      <Text style={styles.bio}>
-        Olympic gold medalist in weightlifting. Passionate about fitness and
-        inspiring others.
-      </Text>
     </View>
   );
 }
 
 /* ── Styles ──────────────────────────────────────────── */
 
-const AVATAR_SIZE = 90;
+const AVATAR_SIZE = 72;
 
 const styles = StyleSheet.create({
   wrapper: {
-    gap: olySpacing[16],
+    gap: olySpacing[12],
   },
 
-  /* Top row: avatar + info */
+  /* Identity — avatar, name, bio grouped tight */
+  identityBlock: {
+    gap: olySpacing[12],
+  },
   topRow: {
     flexDirection: "row",
-    gap: olySpacing[16],
-    alignItems: "flex-start",
+    gap: olySpacing[12],
+    alignItems: "center",
   },
   avatar: {
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
     backgroundColor: olyPalette.cardElevated,
-    borderWidth: 2,
-    borderColor: olyColors.text.disabled,
+    borderWidth: 1,
+    borderColor: olyColors.border.default,
     alignItems: "center",
     justifyContent: "center",
   },
   avatarText: {
-    ...olyTypography.title2,
+    ...olyTypography.body,
+    fontFamily: olyFonts.medium,
     color: olyColors.text.secondary,
   },
 
-  /* Info column */
-  infoCol: {
+  /* Name column */
+  nameCol: {
     flex: 1,
     gap: olySpacing[4],
   },
@@ -112,14 +134,14 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   name: {
-    ...olyTypography.title2,
+    ...olyTypography.number,
     color: olyColors.text.primary,
   },
   badge: {
     backgroundColor: olyPalette.primary,
     borderRadius: olyRadius.sm,
     paddingHorizontal: olySpacing[8],
-    paddingVertical: 2,
+    paddingVertical: olySpacing[4],
   },
   badgeText: {
     ...olyTypography.caption,
@@ -131,20 +153,53 @@ const styles = StyleSheet.create({
     ...olyTypography.bodySmall,
     color: olyColors.text.secondary,
   },
-  statsRow: {
+
+  /* Bio */
+  bio: {
+    ...olyTypography.bodySmall,
+    color: olyColors.text.secondary,
+    lineHeight: 20,
+  },
+
+  /* Stats */
+  dataRow: {
     flexDirection: "row",
-    gap: olySpacing[24],
-    marginTop: olySpacing[4],
+    alignItems: "baseline",
+  },
+
+  /* Rank */
+  rankPill: {
+    marginLeft: "auto",
+    backgroundColor: olyPalette.card,
+    borderRadius: olyRadius.full,
+    paddingHorizontal: olySpacing[12],
+    paddingVertical: olySpacing[4],
+  },
+  rankPillText: {
+    ...olyTypography.bodySmall,
+    color: olyColors.text.secondary,
+  },
+  rankPillNumber: {
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.primary,
+  },
+  statItem: {
+    flexDirection: "row",
+    alignItems: "baseline",
   },
   statNumber: {
-    ...olyTypography.title2,
+    ...olyTypography.bodySmall,
     fontFamily: olyFonts.medium,
     color: olyColors.text.primary,
   },
   statLabel: {
-    ...olyTypography.caption,
+    ...olyTypography.bodySmall,
     color: olyColors.text.secondary,
-    letterSpacing: olyLetterSpacing.uppercase,
+  },
+  statDot: {
+    ...olyTypography.bodySmall,
+    color: olyColors.text.disabled,
+    marginHorizontal: olySpacing[8],
   },
 
   /* Buttons */
@@ -152,22 +207,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: olySpacing[8],
   },
-  followButton: {
+  primaryButton: {
     flex: 1,
-    height: olyLayout.inputHeight,
+    height: olyLayout.minTouchTarget,
     backgroundColor: olyPalette.primary,
     borderRadius: olyRadius.full,
     alignItems: "center",
     justifyContent: "center",
   },
-  followButtonText: {
-    ...olyTypography.button,
+  primaryButtonText: {
+    ...olyTypography.bodySmall,
+    fontFamily: olyFonts.medium,
     color: olyColors.text.onBrand,
     letterSpacing: olyLetterSpacing.uppercase,
   },
-  messageButton: {
+  secondaryButton: {
     flex: 1,
-    height: olyLayout.inputHeight,
+    height: olyLayout.minTouchTarget,
     backgroundColor: "transparent",
     borderRadius: olyRadius.full,
     borderWidth: 1,
@@ -175,30 +231,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  messageButtonText: {
-    ...olyTypography.button,
+  secondaryButtonText: {
+    ...olyTypography.bodySmall,
+    fontFamily: olyFonts.medium,
     color: olyColors.text.primary,
     letterSpacing: olyLetterSpacing.uppercase,
-  },
-  editButton: {
-    height: olyLayout.inputHeight,
-    backgroundColor: "transparent",
-    borderRadius: olyRadius.full,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  editButtonText: {
-    ...olyTypography.button,
-    color: olyColors.text.primary,
-    letterSpacing: olyLetterSpacing.uppercase,
-  },
-
-  /* Bio */
-  bio: {
-    ...olyTypography.body,
-    color: olyColors.text.secondary,
-    lineHeight: 22,
   },
 });

@@ -19,6 +19,17 @@ export default function AthleteLayout() {
       <Stack.Screen name="my-profile" />
       <Stack.Screen name="add-exercise" />
       <Stack.Screen name="archive" />
+      <Stack.Screen name="settings" />
+      <Stack.Screen name="settings-personal-bests" />
+      <Stack.Screen name="settings-availability" />
+      <Stack.Screen name="settings-training-preference" />
+      <Stack.Screen name="settings-equipment" />
+      <Stack.Screen name="settings-focus-areas" />
+      <Stack.Screen name="settings-injuries" />
+      <Stack.Screen name="settings-user-info" />
+      <Stack.Screen name="settings-coach-preferences" />
+      <Stack.Screen name="settings-notifications" />
+      <Stack.Screen name="settings-privacy" />
     </Stack>
   );
 }

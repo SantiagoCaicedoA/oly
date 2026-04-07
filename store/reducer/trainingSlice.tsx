@@ -16,6 +16,7 @@ export interface ExerciseSet {
   pain_where?: string[];
   key_cues?: string[];
   coach_prescription?: string;
+  video_uri?: string;
   intent: string;
   context: string;
   isComplete: boolean;
@@ -125,10 +126,25 @@ const trainingSlice = createSlice({
       state.selectedDayKey = action.payload.dayKey;
       state.selectedDayExercises = action.payload.exercises;
     },
+    setVideoForSet: (
+      state,
+      action: PayloadAction<{
+        exerciseIndex: number;
+        setNumber: number;
+        videoUri: string | null;
+      }>,
+    ) => {
+      const { exerciseIndex, setNumber, videoUri } = action.payload;
+      const exercise = state.selectedDayExercises?.[exerciseIndex];
+      if (!exercise) return;
+      const set = exercise.sets?.find((s) => s.set_number === setNumber);
+      if (!set) return;
+      set.video_uri = videoUri ?? undefined;
+    },
     clearTrainingData: () => initialState,
   },
 });
 
-export const { setTrainingData, clearTrainingData, setSelectedExercise } =
+export const { setTrainingData, clearTrainingData, setSelectedExercise, setVideoForSet } =
   trainingSlice.actions;
 export default trainingSlice.reducer;

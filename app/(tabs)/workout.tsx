@@ -57,12 +57,10 @@ export default function Workout() {
   const [phaseExpanded, setPhaseExpanded] = useState(false);
   const token = useSelector((state: RootState) => state.auth.token);
   const days = useSelector((state: RootState) => state.training.days);
-  console.log("days from redux:", days);
   const userId = useSelector((state: RootState) => state.auth.user?._id);
 
   const [fetchTraining, { data, isLoading, isError, error }] =
     useLazyGetAiTrainingQuery();
-console.log("data ", data);
 
   useEffect(() => {
     if (token) {

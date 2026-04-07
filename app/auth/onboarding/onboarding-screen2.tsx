@@ -21,13 +21,14 @@ import {
 } from "@/src/oly-theme/oly-colors";
 import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
-import { olyElevation, olyOverlay } from "@/src/oly-theme/oly-elevation";
+import { olyOverlay } from "@/src/oly-theme/oly-elevation";
 import { useToast } from "@/context/toast-context";
 import { useUploadAthleteVideoMutation } from "@/store/api";
 import { saveOnboardingData, selectOnboardingData } from "@/store/reducer/onboardingSlice";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import React, { useState } from "react";
+import { useNavigation } from "@react-navigation/native";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActionSheetIOS,
   ActivityIndicator,
@@ -37,7 +38,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
@@ -47,6 +48,7 @@ import { useDispatch, useSelector } from "react-redux";
 interface OnboardingScreen2Props {
   onBack?: () => void;
   onComplete?: () => void;
+  mode?: "onboarding" | "settings";
 }
 
 type LiftCategory = "classic" | "variation" | "squat" | "press";
@@ -86,6 +88,11 @@ const PRESS_LIFTS = [
 const ACCURACY_OPTIONS = ["Tested", "Estimated", "Unsure"] as const;
 type AccuracyValue = (typeof ACCURACY_OPTIONS)[number];
 
+/* ── Unit conversion helpers ── */
+const KG_TO_LB = 2.20462;
+const kgToLb = (kg: number): number => Math.round(kg * KG_TO_LB);
+const lbToKg = (lb: number): number => Math.round(lb / KG_TO_LB);
+
 const CATEGORIES: {
   key: LiftCategory;
   title: string;
@@ -102,7 +109,9 @@ const CATEGORIES: {
 export default function OnboardingScreen2({
   onComplete,
   onBack,
+  mode = "onboarding",
 }: OnboardingScreen2Props) {
+  const isSettings = mode === "settings";
   const { showSuccess, showError } = useToast();
   const dispatch = useDispatch();
   const onboardingData = useSelector(selectOnboardingData);
@@ -130,6 +139,42 @@ export default function OnboardingScreen2({
     () => onboardingData?.accuracy ?? "Estimated",
   );
 
+  /* Unit preference from screen 1 */
+  const isLbs = onboardingData?.weightUnit === "LB";
+  const unitLabel = isLbs ? "lbs" : "kg";
+  const toDisplay = isLbs ? kgToLb : (v: number) => v;
+  const toStorage = isLbs ? lbToKg : (v: number) => v;
+
+  /* ── Auto-save on back (settings mode only) ── */
+  const navigation = useNavigation();
+  const liftValuesRef = useRef(liftValues);
+  const accuracyRef = useRef(accuracy);
+  const liftVideosRef = useRef(liftVideos);
+  liftValuesRef.current = liftValues;
+  accuracyRef.current = accuracy;
+  liftVideosRef.current = liftVideos;
+
+  useEffect(() => {
+    if (!isSettings) return;
+
+    const unsubscribe = navigation.addListener("beforeRemove", () => {
+      const vals = liftValuesRef.current;
+      dispatch(
+        saveOnboardingData({
+          accuracy: accuracyRef.current,
+          olympic_lifts: vals.classic.map((v) => v > 0),
+          squats: vals.squat.map((v) => v > 0),
+          press: vals.press.map((v) => v > 0),
+          variations: vals.variation.map((v) => v > 0),
+          liftValues: vals,
+          liftVideos: liftVideosRef.current,
+        }),
+      );
+    });
+
+    return unsubscribe;
+  }, [navigation, isSettings, dispatch]);
+
   /* ── Handlers ── */
 
   const handleValueChange = (
@@ -137,9 +182,10 @@ export default function OnboardingScreen2({
     index: number,
     value: number,
   ) => {
+    const storedValue = toStorage(value);
     setLiftValues((prev) => ({
       ...prev,
-      [category]: prev[category].map((v, i) => (i === index ? value : v)),
+      [category]: prev[category].map((v, i) => (i === index ? storedValue : v)),
     }));
   };
 
@@ -284,8 +330,9 @@ export default function OnboardingScreen2({
     index: number,
     item: { label: string },
   ) => {
-    const weight = liftValues[category][index];
-    const hasValue = weight > 0;
+    const storedWeight = liftValues[category][index];
+    const weight = toDisplay(storedWeight);
+    const hasValue = storedWeight > 0;
     const key = getLiftKey({ category, index, label: item.label });
     const hasVideo = !!liftVideos[key];
     const isLast = index === lifts.length - 1;
@@ -303,25 +350,28 @@ export default function OnboardingScreen2({
           </Text>
 
           <View style={styles.liftRight}>
-            <TouchableOpacity
-              onPress={() =>
-                showVideoOptions({ category, index, label: item.label })
-              }
-              hitSlop={olySpacing[12]}
-              style={hasVideo ? styles.videoIconActive : undefined}
-            >
-              <Ionicons
-                name={hasVideo ? "videocam" : "videocam-outline"}
-                size={20}
-                color={
-                  hasVideo
-                    ? olyPalette.primary
-                    : hasValue
-                      ? olyColors.text.secondary
-                      : olyColors.text.disabled
+            {/* Video icon: only show in onboarding mode */}
+            {!isSettings && (
+              <Pressable
+                onPress={() =>
+                  showVideoOptions({ category, index, label: item.label })
                 }
-              />
-            </TouchableOpacity>
+                hitSlop={olySpacing[12]}
+                style={({ pressed }) => [hasVideo ? styles.videoIconActive : undefined, pressed && { opacity: 0.7 }]}
+              >
+                <Ionicons
+                  name={hasVideo ? "videocam" : "videocam-outline"}
+                  size={20}
+                  color={
+                    hasVideo
+                      ? olyPalette.primary
+                      : hasValue
+                        ? olyColors.text.secondary
+                        : olyColors.text.disabled
+                  }
+                />
+              </Pressable>
+            )}
 
             <TextInput
               style={[
@@ -334,8 +384,8 @@ export default function OnboardingScreen2({
               ]}
               value={weight === 0 ? "0" : weight.toString()}
               onChangeText={(text) => {
-                const numValue = parseInt(text) || 0;
-                handleValueChange(category, index, numValue);
+                const displayValue = parseInt(text) || 0;
+                handleValueChange(category, index, displayValue);
               }}
               keyboardType="number-pad"
               maxLength={4}
@@ -351,7 +401,7 @@ export default function OnboardingScreen2({
                 },
               ]}
             >
-              kg
+              {unitLabel}
             </Text>
           </View>
         </View>
@@ -385,14 +435,16 @@ export default function OnboardingScreen2({
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.titleBlock}>
-        <Text style={styles.title} maxFontSizeMultiplier={1.2}>
-          Current strength
-        </Text>
-        <Text style={styles.subtitle} maxFontSizeMultiplier={1.5}>
-          Used to guide training loads and progressions
-        </Text>
-      </View>
+      {!isSettings && (
+        <View style={styles.titleBlock}>
+          <Text style={styles.title} maxFontSizeMultiplier={1.2}>
+            Current strength
+          </Text>
+          <Text style={styles.subtitle} maxFontSizeMultiplier={1.5}>
+            Used to guide training loads and progressions
+          </Text>
+        </View>
+      )}
 
       <View style={styles.categoriesContainer}>
         {CATEGORIES.map(renderCategory)}
@@ -406,14 +458,14 @@ export default function OnboardingScreen2({
           {ACCURACY_OPTIONS.map((option) => {
             const isActive = accuracy === option;
             return (
-              <TouchableOpacity
+              <Pressable
                 key={option}
-                style={[
+                style={({ pressed }) => [
                   styles.accuracyPill,
                   isActive && styles.accuracyPillActive,
+                  pressed && { opacity: 0.7 },
                 ]}
                 onPress={() => setAccuracy(option)}
-                activeOpacity={0.8}
               >
                 <Text
                   style={[
@@ -423,29 +475,31 @@ export default function OnboardingScreen2({
                 >
                   {option}
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
             );
           })}
         </View>
       </View>
 
-      <View style={styles.bottomButtons}>
-        <OlyButton
-          label="BACK"
-          variant="secondary"
-          onPress={handleBack}
-          fullWidth
-          style={styles.backButton}
-        />
-        <OlyButton
-          label="NEXT"
-          variant="primary"
-          onPress={onSubmit}
-          disabled={!allLiftsFilled}
-          fullWidth
-          style={styles.nextButton}
-        />
-      </View>
+      {!isSettings && (
+        <View style={styles.bottomButtons}>
+          <OlyButton
+            label="BACK"
+            variant="secondary"
+            onPress={handleBack}
+            fullWidth
+            style={styles.backButton}
+          />
+          <OlyButton
+            label="NEXT"
+            variant="primary"
+            onPress={onSubmit}
+            disabled={!allLiftsFilled}
+            fullWidth
+            style={styles.nextButton}
+          />
+        </View>
+      )}
 
       {isUploading && (
         <View style={styles.loaderContainer}>
@@ -479,9 +533,7 @@ const styles = StyleSheet.create({
   },
 
   liftCard: {
-    backgroundColor: olyElevation.level1.backgroundColor,
-    borderWidth: olyElevation.level1.borderWidth,
-    borderColor: olyElevation.level1.borderColor,
+    backgroundColor: olyPalette.card,
     borderRadius: olyRadius.lg,
     paddingHorizontal: olySpacing[16],
   },
@@ -533,11 +585,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: olyPalette.card,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
   },
   accuracyPillActive: {
     backgroundColor: olyColors.bg.activeHighlight,
+    borderWidth: 1,
     borderColor: olyPalette.primary,
   },
   accuracyPillText: {

@@ -25,6 +25,8 @@ interface OlyFormFieldProps extends Omit<TextInputProps, "style"> {
   error?: string;
   disabled?: boolean;
   containerStyle?: ViewStyle;
+  /** Static text displayed on the right side of the input (e.g. "kg", "lbs") */
+  suffix?: string;
 }
 
 // ─── Component ───────────────────────────────────────────────────
@@ -33,6 +35,7 @@ export const OlyFormField: React.FC<OlyFormFieldProps> = ({
   error,
   disabled,
   containerStyle,
+  suffix,
   ...textInputProps
 }) => {
   return (
@@ -47,6 +50,7 @@ export const OlyFormField: React.FC<OlyFormFieldProps> = ({
         {...textInputProps}
         error={error}
         disabled={disabled}
+        suffix={suffix}
         containerStyle={styles.inputContainer}
       />
     </View>

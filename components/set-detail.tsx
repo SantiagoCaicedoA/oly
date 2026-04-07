@@ -3,8 +3,8 @@ import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
 import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyElevation } from "@/src/oly-theme/oly-elevation";
-import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { Animated, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 /* ── Constants ──────────────────────────────────────── */
@@ -17,6 +17,8 @@ interface SetDetailProps {
   onPress?: () => void;
   isComplete?: boolean;
   isMiss?: boolean;
+  hasVideo?: boolean;
+  isJustSaved?: boolean;
 }
 
 export default function SetDetail({
@@ -27,7 +29,27 @@ export default function SetDetail({
   onPress,
   isComplete = false,
   isMiss = false,
+  hasVideo = false,
+  isJustSaved = false,
 }: SetDetailProps) {
+  const flashAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (isJustSaved) {
+      flashAnim.setValue(1);
+      Animated.timing(flashAnim, {
+        toValue: 0,
+        duration: 1000,
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [isJustSaved]);
+
+  const flashBorderColor = flashAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["transparent", olyPalette.primary],
+  });
+
   const rowContent = (
     <TouchableOpacity
       style={styles.row}
@@ -45,8 +67,8 @@ export default function SetDetail({
 
       <View style={{ flex: 1 }} />
 
-      {/* Posted/miss dot */}
-      {isComplete && !isMiss && (
+      {/* Video / miss dot */}
+      {hasVideo && !isMiss && (
         <View style={styles.postedDot} />
       )}
       {isMiss && (
@@ -87,9 +109,15 @@ export default function SetDetail({
   }
 
   return (
-    <View style={[styles.card, isMiss && styles.cardMiss]}>
+    <Animated.View
+      style={[
+        styles.card,
+        isMiss && styles.cardMiss,
+        { borderWidth: 1, borderColor: flashBorderColor },
+      ]}
+    >
       {rowContent}
-    </View>
+    </Animated.View>
   );
 }
 

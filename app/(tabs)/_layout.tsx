@@ -1,12 +1,10 @@
-import { olyTypography, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
+import { olyTypography } from "@/src/oly-theme/oly-typography";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
 import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyElevation } from "@/src/oly-theme/oly-elevation";
 import { Ionicons } from "@expo/vector-icons";
 import { OlyHomeIcon } from "@/components/icons/OlyHomeIcon";
-import { OlyWorkoutIcon } from "@/components/icons/OlyWorkoutIcon";
-import { OlyRankIcon } from "@/components/icons/OlyRankIcon";
 import { OlyAnalyticsIcon } from "@/components/icons/OlyAnalyticsIcon";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { router, Tabs } from "expo-router";
@@ -34,6 +32,7 @@ export default function TabLayout() {
         <Tabs
           screenOptions={{
             headerShown: false,
+            sceneStyle: { backgroundColor: olyPalette.background },
             tabBarActiveTintColor: olyPalette.white,
             tabBarInactiveTintColor: olyColors.text.disabled,
             tabBarStyle: isTabBarVisible

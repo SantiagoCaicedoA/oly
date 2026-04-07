@@ -18,13 +18,14 @@ import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { useToast } from "@/context/toast-context";
 import { saveOnboardingData, selectOnboardingData } from "@/store/reducer/onboardingSlice";
-import React, { useEffect, useMemo } from "react";
+import { useNavigation } from "@react-navigation/native";
+import React, { useEffect, useMemo, useRef } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
+  Pressable,
   View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
@@ -34,6 +35,7 @@ import { useDispatch, useSelector } from "react-redux";
 interface OnboardingScreen3Props {
   onBack?: () => void;
   onComplete?: () => void;
+  mode?: "onboarding" | "settings";
 }
 
 interface OnboardingScreen3Values {
@@ -116,10 +118,14 @@ const WHEN_TO_SHOW_OPTIONS: Record<
 export default function OnboardingScreen3({
   onBack,
   onComplete,
+  mode = "onboarding",
 }: OnboardingScreen3Props) {
+  const isSettings = mode === "settings";
   const dispatch = useDispatch();
   const { showError } = useToast();
   const onboardingData = useSelector(selectOnboardingData);
+  const navigation = useNavigation();
+  const getValuesRef = useRef<() => OnboardingScreen3Values>(() => ({} as OnboardingScreen3Values));
 
   const {
     control,
@@ -147,6 +153,18 @@ export default function OnboardingScreen3({
     if (!selectedAffectedAreaValue) return [];
     return WHEN_TO_SHOW_OPTIONS[selectedAffectedAreaValue] || [];
   }, [selectedAffectedAreaValue]);
+
+  /* Keep ref in sync for auto-save */
+  getValuesRef.current = getValues;
+
+  /* Auto-save on back (settings mode) */
+  useEffect(() => {
+    if (!isSettings) return;
+    const unsubscribe = navigation.addListener("beforeRemove", () => {
+      dispatch(saveOnboardingData(getValuesRef.current()));
+    });
+    return unsubscribe;
+  }, [navigation, isSettings, dispatch]);
 
   /* ── Side effects (same as Abdul's original logic) ── */
 
@@ -222,14 +240,16 @@ export default function OnboardingScreen3({
       showsVerticalScrollIndicator={false}
     >
       {/* Title */}
-      <View style={styles.titleBlock}>
-        <Text style={styles.title} maxFontSizeMultiplier={1.2}>
-          Training considerations
-        </Text>
-        <Text style={styles.subtitle} maxFontSizeMultiplier={1.5}>
-          Used to modify training when needed
-        </Text>
-      </View>
+      {!isSettings && (
+        <View style={styles.titleBlock}>
+          <Text style={styles.title} maxFontSizeMultiplier={1.2}>
+            Training considerations
+          </Text>
+          <Text style={styles.subtitle} maxFontSizeMultiplier={1.5}>
+            Used to modify training when needed
+          </Text>
+        </View>
+      )}
 
       <View style={styles.formGroup}>
         {/* Training Limitations YES/NO */}
@@ -245,14 +265,14 @@ export default function OnboardingScreen3({
                     (option === "Yes" && value === true) ||
                     (option === "No" && value === false);
                   return (
-                    <TouchableOpacity
+                    <Pressable
                       key={option}
-                      style={[
+                      style={({ pressed }) => [
                         styles.pillButton,
                         isActive && styles.pillButtonActive,
+                        pressed && { opacity: 0.7 },
                       ]}
                       onPress={() => onChange(option === "Yes")}
-                      activeOpacity={0.8}
                     >
                       <Text
                         style={[
@@ -262,7 +282,7 @@ export default function OnboardingScreen3({
                       >
                         {option}
                       </Text>
-                    </TouchableOpacity>
+                    </Pressable>
                   );
                 })}
               </View>
@@ -283,11 +303,12 @@ export default function OnboardingScreen3({
                     {BODY_AREAS.map((area) => {
                       const isActive = (value || []).includes(area);
                       return (
-                        <TouchableOpacity
+                        <Pressable
                           key={area}
-                          style={[
+                          style={({ pressed }) => [
                             styles.pillButton,
                             isActive && styles.pillButtonActive,
+                            pressed && { opacity: 0.7 },
                           ]}
                           onPress={() => {
                             const current = value || [];
@@ -297,7 +318,6 @@ export default function OnboardingScreen3({
                               onChange([...current, area]);
                             }
                           }}
-                          activeOpacity={0.8}
                         >
                           <Text
                             style={[
@@ -307,7 +327,7 @@ export default function OnboardingScreen3({
                           >
                             {area}
                           </Text>
-                        </TouchableOpacity>
+                        </Pressable>
                       );
                     })}
                   </View>
@@ -326,14 +346,14 @@ export default function OnboardingScreen3({
                     {IMPACT_OPTIONS.map((option) => {
                       const isActive = value === option;
                       return (
-                        <TouchableOpacity
+                        <Pressable
                           key={option}
-                          style={[
+                          style={({ pressed }) => [
                             styles.impactPill,
                             isActive && styles.pillButtonActive,
+                            pressed && { opacity: 0.7 },
                           ]}
                           onPress={() => onChange(option)}
-                          activeOpacity={0.8}
                         >
                           <Text
                             style={[
@@ -343,7 +363,7 @@ export default function OnboardingScreen3({
                           >
                             {option}
                           </Text>
-                        </TouchableOpacity>
+                        </Pressable>
                       );
                     })}
                   </View>
@@ -363,11 +383,12 @@ export default function OnboardingScreen3({
                       {whenToShowOptions.map((option) => {
                         const isActive = (value || []).includes(option.value);
                         return (
-                          <TouchableOpacity
+                          <Pressable
                             key={option.value}
-                            style={[
+                            style={({ pressed }) => [
                               styles.pillButton,
                               isActive && styles.pillButtonActive,
+                              pressed && { opacity: 0.7 },
                             ]}
                             onPress={() => {
                               const current = value || [];
@@ -379,7 +400,6 @@ export default function OnboardingScreen3({
                                 onChange([...current, option.value]);
                               }
                             }}
-                            activeOpacity={0.8}
                           >
                             <Text
                               style={[
@@ -389,7 +409,7 @@ export default function OnboardingScreen3({
                             >
                               {option.label}
                             </Text>
-                          </TouchableOpacity>
+                          </Pressable>
                         );
                       })}
                     </View>
@@ -402,22 +422,24 @@ export default function OnboardingScreen3({
       </View>
 
       {/* Bottom buttons */}
-      <View style={styles.bottomButtons}>
-        <OlyButton
-          label="BACK"
-          variant="secondary"
-          onPress={handleBack}
-          fullWidth
-          style={styles.halfButton}
-        />
-        <OlyButton
-          label="NEXT"
-          variant="primary"
-          onPress={handleSubmit(onSubmit)}
-          fullWidth
-          style={styles.halfButton}
-        />
-      </View>
+      {!isSettings && (
+        <View style={styles.bottomButtons}>
+          <OlyButton
+            label="BACK"
+            variant="secondary"
+            onPress={handleBack}
+            fullWidth
+            style={styles.halfButton}
+          />
+          <OlyButton
+            label="NEXT"
+            variant="primary"
+            onPress={handleSubmit(onSubmit)}
+            fullWidth
+            style={styles.halfButton}
+          />
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -457,14 +479,13 @@ const styles = StyleSheet.create({
     width: "48%",
     height: olyLayout.minTouchTarget,
     borderRadius: olyRadius.full,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
     backgroundColor: olyPalette.card,
     alignItems: "center",
     justifyContent: "center",
   },
   pillButtonActive: {
     backgroundColor: olyColors.bg.activeHighlight,
+    borderWidth: 1,
     borderColor: olyPalette.primary,
   },
   pillText: {
@@ -484,8 +505,6 @@ const styles = StyleSheet.create({
     flex: 1,
     height: olyLayout.minTouchTarget,
     borderRadius: olyRadius.full,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
     backgroundColor: olyPalette.card,
     alignItems: "center",
     justifyContent: "center",

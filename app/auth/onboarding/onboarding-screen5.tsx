@@ -20,7 +20,8 @@ import {
   saveOnboardingData,
   selectOnboardingData,
 } from "@/store/reducer/onboardingSlice";
-import React from "react";
+import { useNavigation } from "@react-navigation/native";
+import React, { useEffect, useRef } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   Pressable,
@@ -36,6 +37,7 @@ import { useDispatch, useSelector } from "react-redux";
 interface OnboardingScreen5Props {
   onBack?: () => void;
   onComplete?: () => void;
+  mode?: "onboarding" | "settings";
 }
 
 interface OnboardingScreen5Values {
@@ -66,9 +68,13 @@ const OPTIONAL_EQUIPMENT = [
 export default function OnboardingScreen5({
   onBack,
   onComplete,
+  mode = "onboarding",
 }: OnboardingScreen5Props) {
+  const isSettings = mode === "settings";
   const dispatch = useDispatch();
   const onboardingData = useSelector(selectOnboardingData);
+  const navigation = useNavigation();
+  const getValuesRef = useRef<() => OnboardingScreen5Values>(() => ({} as OnboardingScreen5Values));
 
   const { control, handleSubmit, getValues } =
     useForm<OnboardingScreen5Values>({
@@ -76,6 +82,18 @@ export default function OnboardingScreen5({
         optional_equipment: onboardingData?.optional_equipment ?? [],
       },
     });
+
+  /* Keep ref in sync for auto-save */
+  getValuesRef.current = getValues;
+
+  /* Auto-save on back (settings mode) */
+  useEffect(() => {
+    if (!isSettings) return;
+    const unsubscribe = navigation.addListener("beforeRemove", () => {
+      dispatch(saveOnboardingData({ ...onboardingData, ...getValuesRef.current() }));
+    });
+    return unsubscribe;
+  }, [navigation, isSettings, dispatch, onboardingData]);
 
   const handleBack = () => {
     dispatch(saveOnboardingData({ ...onboardingData, ...getValues() }));
@@ -94,12 +112,14 @@ export default function OnboardingScreen5({
         showsVerticalScrollIndicator={false}
       >
         {/* Title block */}
-        <View style={styles.titleBlock}>
-          <Text style={styles.title}>Equipment</Text>
-          <Text style={styles.subtitle}>
-            Used to tailor exercise selection and loading
-          </Text>
-        </View>
+        {!isSettings && (
+          <View style={styles.titleBlock}>
+            <Text style={styles.title}>Equipment</Text>
+            <Text style={styles.subtitle}>
+              Used to tailor exercise selection and loading
+            </Text>
+          </View>
+        )}
 
         {/* Essential Equipment */}
         <View style={styles.section}>
@@ -155,22 +175,24 @@ export default function OnboardingScreen5({
           )}
         />
         {/* Bottom buttons */}
-        <View style={styles.bottomButtons}>
-          <OlyButton
-            label="BACK"
-            variant="secondary"
-            onPress={handleBack}
-            fullWidth
-            style={styles.buttonHalf}
-          />
-          <OlyButton
-            label="NEXT"
-            variant="primary"
-            onPress={handleSubmit(onSubmit)}
-            fullWidth
-            style={styles.buttonHalf}
-          />
-        </View>
+        {!isSettings && (
+          <View style={styles.bottomButtons}>
+            <OlyButton
+              label="BACK"
+              variant="secondary"
+              onPress={handleBack}
+              fullWidth
+              style={styles.buttonHalf}
+            />
+            <OlyButton
+              label="NEXT"
+              variant="primary"
+              onPress={handleSubmit(onSubmit)}
+              fullWidth
+              style={styles.buttonHalf}
+            />
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -187,7 +209,7 @@ const styles = StyleSheet.create({
   },
 
   // Title
-  titleBlock: { marginBottom: olySpacing[24] },
+  titleBlock: { marginBottom: olySpacing[20] },
   title: { ...olyTypography.title1, color: olyColors.text.primary },
   subtitle: {
     ...olyTypography.body,
@@ -214,10 +236,9 @@ const styles = StyleSheet.create({
     paddingVertical: olySpacing[16],
     borderRadius: olyRadius.lg,
     backgroundColor: olyPalette.card,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
   },
   cardActive: {
+    borderWidth: 1,
     borderColor: olyPalette.primary,
     backgroundColor: olyColors.bg.activeHighlight,
   },

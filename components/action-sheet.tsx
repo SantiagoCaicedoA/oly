@@ -14,10 +14,16 @@ import {
   BottomSheetModal,
   BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
-import { router } from "expo-router";
-import React, { forwardRef, useEffect, useMemo, useState } from "react";
+import { ResizeMode, Video } from "expo-av";
+import * as ImagePicker from "expo-image-picker";
+import * as VideoThumbnails from "expo-video-thumbnails";
+import React, { forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  Image,
+  Modal,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -33,7 +39,9 @@ interface ActionSheetProps {
   set?: ExerciseSet | null;
   exercise?: Exercise | null;
   coachPrescription?: string;
-  key_cues?: string[];
+  videosMap?: Record<number, string>;
+  onSaved?: (setNumber: number) => void;
+  onVideoChange?: (setNumber: number, uri: string | null) => void;
 }
 
 const DAY_KEYS = [
@@ -48,12 +56,11 @@ const DAY_KEYS = [
 
 const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
   (props, ref) => {
-    const { set, exercise, coachPrescription } = props;
+    const { set, exercise, coachPrescription, videosMap, onSaved, onVideoChange } = props;
     const [weight, setWeight] = useState(set?.weight ?? 0);
     const [reps, setReps] = useState(set?.reps ?? 0);
     const snapPoints = useMemo(() => ["95%"], []);
 
-    const [limitingFactor, setLimitingFactor] = useState("");
     const [wasMiss, setWasMiss] = useState(false);
     const [failLocation, setFailLocation] = useState("");
     const [missedWhere, setMissedWhere] = useState("");
@@ -64,6 +71,10 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
     >(null);
     const [painLevel, setPainLevel] = useState<string>("None");
     const [setNotes, setSetNotes] = useState("");
+    const [videoUri, setVideoUri] = useState<string | null>(null);
+    const [thumbnailUri, setThumbnailUri] = useState<string | null>(null);
+    const [isPlayerVisible, setIsPlayerVisible] = useState(false);
+    const videoRef = useRef<Video>(null);
     const painLevelTextMap: Record<string, string> = {
       None: "Normal soreness",
       Minor: "Sore but manageable",
@@ -84,6 +95,15 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
       if (set) {
         setWeight(set.weight);
         setReps(set.reps);
+        const existingVideo = videosMap?.[set.set_number] ?? null;
+        setVideoUri(existingVideo);
+        if (existingVideo) {
+          VideoThumbnails.getThumbnailAsync(existingVideo, { time: 500 })
+            .then((thumb) => setThumbnailUri(thumb.uri))
+            .catch(() => setThumbnailUri(null));
+        } else {
+          setThumbnailUri(null);
+        }
         setBarSpeed(set.bar_speed ?? "Good");
         setPositionQuality(set.position_quality ?? "Good");
         setWasMiss(set.was_it_a_miss ?? false);
@@ -146,24 +166,39 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
       };
 
       try {
-        const res = await updateTraining(payload).unwrap();
-        showSuccess("Set updated successfully", "");
+        await updateTraining(payload).unwrap();
         (ref as React.RefObject<BottomSheetModal>)?.current?.dismiss();
-      } catch (error) {
-        console.error("Update training error:", error);
+        onSaved?.(set?.set_number ?? 1);
+      } catch (_e) {
+        showError("Couldn't save — check your connection");
       }
     };
 
-    const handleUploadPost = () => {
-      router.push({
-        pathname: "/athlete/create-new-post",
-        params: {
-          weight: set?.weight ?? 0,
-          exerciseName: exercise?.exercise_name ?? "",
-          intent: set?.intent,
-          context: set?.context,
-        },
+    const handleUploadVideo = async () => {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        showError("Please allow access to your media library");
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        allowsEditing: true,
+        videoMaxDuration: 30,
+        quality: 1,
       });
+
+      if (!result.canceled) {
+        const uri = result.assets[0].uri;
+        setVideoUri(uri);
+        if (set) onVideoChange?.(set.set_number, uri);
+        try {
+          const thumb = await VideoThumbnails.getThumbnailAsync(uri, { time: 500 });
+          setThumbnailUri(thumb.uri);
+        } catch (_e) {
+          setThumbnailUri(null);
+        }
+      }
     };
 
     /* Build subtitle: exercise name · reps */
@@ -276,18 +311,104 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
           </View>
 
           {/* Upload Video */}
-          <TouchableOpacity
-            style={styles.uploadButton}
-            onPress={handleUploadPost}
-            activeOpacity={0.7}
+          {!videoUri ? (
+            <TouchableOpacity
+              style={styles.uploadButton}
+              onPress={handleUploadVideo}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="videocam-outline"
+                size={18}
+                color={olyColors.text.secondary}
+              />
+              <Text style={styles.uploadText}>UPLOAD VIDEO</Text>
+            </TouchableOpacity>
+          ) : (
+            <Pressable
+              style={styles.videoPreviewCard}
+              onPress={() => setIsPlayerVisible(true)}
+            >
+              {/* Thumbnail */}
+              <View style={styles.videoThumbnailWrap}>
+                {thumbnailUri ? (
+                  <Image
+                    source={{ uri: thumbnailUri }}
+                    style={styles.videoThumbnail}
+                  />
+                ) : (
+                  <View style={styles.videoThumbnailFallback} />
+                )}
+                {/* Gradient overlay */}
+                <View style={styles.thumbnailOverlay} />
+
+                {/* Play button */}
+                <View style={styles.playButton}>
+                  <Ionicons name="play" size={18} color={olyPalette.white} />
+                </View>
+
+                {/* Remove — top-right */}
+                <Pressable
+                  style={styles.removeButton}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    Alert.alert(
+                      "Remove video?",
+                      "You'll need to re-upload if you change your mind.",
+                      [
+                        { text: "Keep", style: "cancel" },
+                        {
+                          text: "Remove",
+                          style: "destructive",
+                          onPress: () => {
+                            setVideoUri(null);
+                            setThumbnailUri(null);
+                            if (set) onVideoChange?.(set.set_number, null);
+                          },
+                        },
+                      ],
+                    );
+                  }}
+                  hitSlop={olySpacing[8]}
+                >
+                  <Ionicons name="close" size={14} color={olyPalette.white} />
+                </Pressable>
+              </View>
+            </Pressable>
+          )}
+
+          {/* Fullscreen Video Player */}
+          <Modal
+            visible={isPlayerVisible}
+            animationType="fade"
+            transparent
+            statusBarTranslucent
+            onRequestClose={() => setIsPlayerVisible(false)}
           >
-            <Ionicons
-              name="videocam-outline"
-              size={18}
-              color={olyColors.text.primary}
-            />
-            <Text style={styles.uploadText}>UPLOAD VIDEO</Text>
-          </TouchableOpacity>
+            <Pressable
+              style={styles.playerBackdrop}
+              onPress={() => setIsPlayerVisible(false)}
+            >
+              <View style={styles.playerContainer}>
+                <Video
+                  ref={videoRef}
+                  source={{ uri: videoUri ?? "" }}
+                  style={styles.player}
+                  resizeMode={ResizeMode.CONTAIN}
+                  shouldPlay
+                  isLooping
+                  useNativeControls={false}
+                />
+              </View>
+              <Pressable
+                style={styles.playerClose}
+                onPress={() => setIsPlayerVisible(false)}
+                hitSlop={olySpacing[12]}
+              >
+                <Ionicons name="close" size={24} color={olyPalette.white} />
+              </Pressable>
+            </Pressable>
+          </Modal>
         </BottomSheetScrollView>
 
         {/* Sticky Save CTA */}
@@ -361,8 +482,6 @@ const styles = StyleSheet.create({
     color: olyColors.text.primary,
     backgroundColor: olyPalette.card,
     borderRadius: olyRadius.lg,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
     padding: olyLayout.cardPadding,
     minHeight: 72,
   },
@@ -373,16 +492,87 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: olySpacing[8],
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
-    borderStyle: "dashed",
+    backgroundColor: olyPalette.card,
     borderRadius: olyRadius.full,
-    paddingVertical: olySpacing[12],
+    height: olyLayout.minTouchTarget,
   },
   uploadText: {
     ...olyTypography.label,
     color: olyColors.text.secondary,
     letterSpacing: olyLetterSpacing.uppercase,
+  },
+
+  /* Video preview */
+  videoPreviewCard: {
+    borderRadius: olyRadius.lg,
+    overflow: "hidden",
+  },
+  videoThumbnailWrap: {
+    width: "100%",
+    aspectRatio: 16 / 9,
+    borderRadius: olyRadius.lg,
+    overflow: "hidden",
+    backgroundColor: olyPalette.card,
+  },
+  videoThumbnail: {
+    width: "100%",
+    height: "100%",
+  },
+  videoThumbnailFallback: {
+    flex: 1,
+    backgroundColor: olyPalette.card,
+  },
+  thumbnailOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.25)",
+  },
+  playButton: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    marginTop: -20,
+    marginLeft: -20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingLeft: 2,
+  },
+  removeButton: {
+    position: "absolute",
+    top: olySpacing[8],
+    right: olySpacing[8],
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  /* Fullscreen player */
+  playerBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.92)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  playerContainer: {
+    width: "100%",
+    aspectRatio: 9 / 16,
+    maxHeight: "80%",
+  },
+  player: {
+    flex: 1,
+  },
+  playerClose: {
+    position: "absolute",
+    top: 60,
+    right: 24,
   },
 
   /* Sticky footer */

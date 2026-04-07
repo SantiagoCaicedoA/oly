@@ -1,5 +1,4 @@
 import CompetitionLifts from "@/components/competition-lifts";
-import MutualFriends from "@/components/mutual-friends";
 import RecentInsight from "@/components/recent-insight";
 import RecentLifts from "@/components/recent-lifts";
 import UserProfileInfo from "@/components/user-profile-info";
@@ -33,18 +32,19 @@ export default function MyProfile() {
           <Ionicons
             name="chevron-back"
             size={24}
-            color={olyColors.text.primary}
+            color={olyColors.text.secondary}
           />
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.headerTouch}
+          onPress={() => router.push("/athlete/settings")}
           hitSlop={olySpacing[8]}
         >
           <Ionicons
-            name="ellipsis-vertical"
-            size={20}
-            color={olyColors.text.primary}
+            name="settings-outline"
+            size={22}
+            color={olyColors.text.secondary}
           />
         </TouchableOpacity>
       </View>
@@ -54,7 +54,6 @@ export default function MyProfile() {
         showsVerticalScrollIndicator={false}
       >
         <UserProfileInfo isOwnProfile />
-        <MutualFriends />
         <CompetitionLifts />
         <RecentLifts />
         <RecentInsight />
@@ -85,6 +84,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: olyLayout.screenPadding,
+    paddingTop: olySpacing[8],
     paddingBottom: olySpacing[40],
     gap: olySpacing[24],
   },

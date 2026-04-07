@@ -20,13 +20,14 @@ import {
   saveOnboardingData,
   selectOnboardingData,
 } from "@/store/reducer/onboardingSlice";
-import React, { useEffect } from "react";
+import { useNavigation } from "@react-navigation/native";
+import React, { useEffect, useRef } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
+  Pressable,
   View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
@@ -36,6 +37,7 @@ import { useDispatch, useSelector } from "react-redux";
 interface OnboardingScreen4Props {
   onBack?: () => void;
   onComplete?: () => void;
+  mode?: "onboarding" | "settings";
 }
 
 interface OnboardingScreen4Values {
@@ -70,9 +72,13 @@ const WEEK_DAYS = [
 export default function OnboardingScreen4({
   onBack,
   onComplete,
+  mode = "onboarding",
 }: OnboardingScreen4Props) {
+  const isSettings = mode === "settings";
   const dispatch = useDispatch();
   const onboardingData = useSelector(selectOnboardingData);
+  const navigation = useNavigation();
+  const getValuesRef = useRef<() => OnboardingScreen4Values>(() => ({} as OnboardingScreen4Values));
 
   const {
     control,
@@ -92,6 +98,18 @@ export default function OnboardingScreen4({
   const restDays = watch("rest_days");
   const maxRestDays = 7 - (daysPerWeek || 1);
   const allFilled = true; // rest days are optional
+
+  /* Keep ref in sync for auto-save */
+  getValuesRef.current = getValues;
+
+  /* Auto-save on back (settings mode) */
+  useEffect(() => {
+    if (!isSettings) return;
+    const unsubscribe = navigation.addListener("beforeRemove", () => {
+      dispatch(saveOnboardingData(getValuesRef.current()));
+    });
+    return unsubscribe;
+  }, [navigation, isSettings, dispatch]);
 
   // Trim rest days when training days increase and selection exceeds new max
   useEffect(() => {
@@ -124,14 +142,16 @@ export default function OnboardingScreen4({
       showsVerticalScrollIndicator={false}
     >
       {/* Title */}
-      <View style={styles.titleBlock}>
-        <Text style={styles.title} maxFontSizeMultiplier={1.2}>
-          Availability
-        </Text>
-        <Text style={styles.subtitle} maxFontSizeMultiplier={1.5}>
-          Used to structure your weekly training
-        </Text>
-      </View>
+      {!isSettings && (
+        <View style={styles.titleBlock}>
+          <Text style={styles.title} maxFontSizeMultiplier={1.2}>
+            Availability
+          </Text>
+          <Text style={styles.subtitle} maxFontSizeMultiplier={1.5}>
+            Used to structure your weekly training
+          </Text>
+        </View>
+      )}
 
       <View style={styles.formGroup}>
         {/* Training Days Per Week — numbered circles */}
@@ -145,14 +165,14 @@ export default function OnboardingScreen4({
                 {DAYS_OPTIONS.map((day) => {
                   const isActive = value === day;
                   return (
-                    <TouchableOpacity
+                    <Pressable
                       key={day}
-                      style={[
+                      onPress={() => onChange(day)}
+                      style={({ pressed }) => [
                         styles.dayCircle,
                         isActive && styles.dayCircleActive,
+                        pressed && { opacity: 0.7 },
                       ]}
-                      onPress={() => onChange(day)}
-                      activeOpacity={0.8}
                     >
                       <Text
                         style={[
@@ -162,7 +182,7 @@ export default function OnboardingScreen4({
                       >
                         {day}
                       </Text>
-                    </TouchableOpacity>
+                    </Pressable>
                   );
                 })}
               </View>
@@ -181,14 +201,14 @@ export default function OnboardingScreen4({
                 {DURATION_OPTIONS.map((option) => {
                   const isActive = value === option.value;
                   return (
-                    <TouchableOpacity
+                    <Pressable
                       key={option.value}
-                      style={[
+                      onPress={() => onChange(option.value)}
+                      style={({ pressed }) => [
                         styles.durationPill,
                         isActive && styles.durationPillActive,
+                        pressed && { opacity: 0.7 },
                       ]}
-                      onPress={() => onChange(option.value)}
-                      activeOpacity={0.8}
                     >
                       <Text
                         style={[
@@ -198,7 +218,7 @@ export default function OnboardingScreen4({
                       >
                         {option.label}
                       </Text>
-                    </TouchableOpacity>
+                    </Pressable>
                   );
                 })}
               </View>
@@ -221,13 +241,8 @@ export default function OnboardingScreen4({
                     const isActive = current.includes(day);
                     const isDisabled = !isActive && limitReached;
                     return (
-                      <TouchableOpacity
+                      <Pressable
                         key={day}
-                        style={[
-                          styles.restDayPill,
-                          isActive && styles.restDayPillActive,
-                          isDisabled && styles.restDayPillDisabled,
-                        ]}
                         onPress={() => {
                           if (isDisabled) return;
                           if (isActive) {
@@ -236,7 +251,12 @@ export default function OnboardingScreen4({
                             onChange([...current, day]);
                           }
                         }}
-                        activeOpacity={isDisabled ? 1 : 0.8}
+                        style={({ pressed }) => [
+                          styles.restDayPill,
+                          isActive && styles.restDayPillActive,
+                          isDisabled && styles.restDayPillDisabled,
+                          pressed && !isDisabled && { opacity: 0.7 },
+                        ]}
                       >
                         <Text
                           style={[
@@ -247,7 +267,7 @@ export default function OnboardingScreen4({
                         >
                           {day.slice(0, 3)}
                         </Text>
-                      </TouchableOpacity>
+                      </Pressable>
                     );
                   })}
                 </View>
@@ -258,23 +278,25 @@ export default function OnboardingScreen4({
       </View>
 
       {/* Bottom buttons */}
-      <View style={styles.bottomButtons}>
-        <OlyButton
-          label="BACK"
-          variant="secondary"
-          onPress={handleBack}
-          fullWidth
-          style={styles.halfButton}
-        />
-        <OlyButton
-          label="NEXT"
-          variant="primary"
-          onPress={handleSubmit(onSubmit)}
-          disabled={!allFilled}
-          fullWidth
-          style={styles.halfButton}
-        />
-      </View>
+      {!isSettings && (
+        <View style={styles.bottomButtons}>
+          <OlyButton
+            label="BACK"
+            variant="secondary"
+            onPress={handleBack}
+            fullWidth
+            style={styles.halfButton}
+          />
+          <OlyButton
+            label="NEXT"
+            variant="primary"
+            onPress={handleSubmit(onSubmit)}
+            disabled={!allFilled}
+            fullWidth
+            style={styles.halfButton}
+          />
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -313,14 +335,13 @@ const styles = StyleSheet.create({
     width: olyLayout.inputHeight,
     height: olyLayout.inputHeight,
     borderRadius: olyRadius.full,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
     backgroundColor: olyPalette.card,
     alignItems: "center",
     justifyContent: "center",
   },
   dayCircleActive: {
     backgroundColor: olyColors.bg.activeHighlight,
+    borderWidth: 1,
     borderColor: olyPalette.primary,
   },
   dayCircleText: {
@@ -342,14 +363,13 @@ const styles = StyleSheet.create({
     width: "48%",
     height: olyLayout.minTouchTarget,
     borderRadius: olyRadius.full,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
     backgroundColor: olyPalette.card,
     alignItems: "center",
     justifyContent: "center",
   },
   durationPillActive: {
     backgroundColor: olyColors.bg.activeHighlight,
+    borderWidth: 1,
     borderColor: olyPalette.primary,
   },
   durationText: {
@@ -371,14 +391,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: olySpacing[16],
     height: olyLayout.minTouchTarget,
     borderRadius: olyRadius.full,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
     backgroundColor: olyPalette.card,
     alignItems: "center",
     justifyContent: "center",
   },
   restDayPillActive: {
     backgroundColor: olyColors.bg.activeHighlight,
+    borderWidth: 1,
     borderColor: olyPalette.primary,
   },
   restDayPillDisabled: {
