@@ -71,6 +71,14 @@ export interface Equipment {
   optional: string[];
 }
 
+export interface CompetitionInfo {
+  preparing: boolean;
+  name?: string;
+  date?: string;
+  weight_class?: string;
+  target_total?: number;
+}
+
 export interface OnboardingApiPayload {
   display_name: string;
   country: string;
@@ -89,6 +97,8 @@ export interface OnboardingApiPayload {
   equipment: Equipment;
   training_preference: string;
   performance_gaps: string[];
+  training_phase: string;
+  competition?: CompetitionInfo;
 }
 export interface StrengthItem {
   value: number;

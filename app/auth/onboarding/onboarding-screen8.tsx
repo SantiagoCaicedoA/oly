@@ -94,8 +94,12 @@ export default function OnboardingScreen8() {
   const token = useSelector((state: RootState) => state.auth.token);
   /* ── Loading screen: fun facts + progress bar ── */
   const facts = useMemo(
-    () => getFilteredFacts(allData?.sex, allData?.experience ? parseInt(allData.experience, 10) : undefined),
-    [allData?.sex, allData?.experience]
+    () => {
+      const expMap: Record<string, number> = { new: 0, developing: 1, experienced: 4, competitive: 6 };
+      const expYears = allData?.weightliftingExposure ? expMap[allData.weightliftingExposure] ?? undefined : undefined;
+      return getFilteredFacts(allData?.sex, expYears);
+    },
+    [allData?.sex, allData?.weightliftingExposure]
   );
 
   const [currentFactIndex, setCurrentFactIndex] = useState(0);
@@ -219,68 +223,118 @@ export default function OnboardingScreen8() {
   /* ── Submit ── */
   const onSubmit = async () => {
     try {
+      // ── Compute age from DOB (Screen 1 saves dobDay/Month/Year, not age) ──
+      let calculatedAge = 0;
+      if (allData.dobYear && allData.dobMonth && allData.dobDay) {
+        const birthDate = new Date(
+          parseInt(allData.dobYear),
+          parseInt(allData.dobMonth) - 1,
+          parseInt(allData.dobDay)
+        );
+        const now = new Date();
+        calculatedAge = now.getFullYear() - birthDate.getFullYear();
+        const monthDiff = now.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birthDate.getDate())) {
+          calculatedAge--;
+        }
+      }
+
+      // ── Map weightliftingExposure to years (Screen 1 saves exposure label, not years) ──
+      const experienceMap: Record<string, number> = {
+        new: 0,
+        developing: 1,
+        experienced: 4,
+        competitive: 6,
+      };
+      const experienceYears = experienceMap[allData.weightliftingExposure] ?? 0;
+
+      // ── Derive preferred unit from weightUnit (no measurement_system key exists) ──
+      const preferredUnit = allData.weightUnit === "LB" ? "imperial" : "metric";
+
+      // ── Map lift values from Screen 2's categorized arrays ──
+      const lv = allData.liftValues ?? { classic: [0, 0], variation: [0, 0, 0], squat: [0, 0, 0], press: [0, 0, 0] };
+      const ol = allData.olympic_lifts ?? [false, false];
+      const vars = allData.variations ?? [false, false, false];
+      const squats = allData.squats ?? [false, false, false];
+      const presses = allData.press ?? [false, false, false];
+
+      // ── Build competition object from Screen 6 ──
+      const competition = allData.preparing_for_competition
+        ? {
+            preparing: true,
+            name: allData.competition_name ?? "",
+            date: allData.compYear && allData.compMonth && allData.compDay
+              ? `${allData.compYear}-${allData.compMonth.padStart(2, "0")}-${allData.compDay.padStart(2, "0")}`
+              : undefined,
+            weight_class: allData.weight_class ?? undefined,
+            target_total: allData.target_total ? parseFloat(allData.target_total) : undefined,
+          }
+        : { preparing: false };
+
       const apiPayload: OnboardingApiPayload = {
         display_name: allData.name,
         country: allData.country,
-        age: parseInt(allData.age),
+        age: calculatedAge,
         user_name: allData.user_name,
         sex: allData.sex,
-        experience_years: parseInt(allData.experience),
+        experience_years: experienceYears,
         height_cm: parseFloat(allData.height),
         bodyweight_value: parseFloat(allData.weight),
         bodyweight_unit: allData.weightUnit,
-        preferred_unit: allData.measurement_system,
+        preferred_unit: preferredUnit,
         strength_stats: {
           snatch: {
-            value: parseFloat(allData.snatch),
-            checked: allData.snatch_checked,
+            value: lv.classic[0] ?? 0,
+            checked: ol[0] ?? false,
           },
           power_snatch: {
-            value: parseFloat(allData.power_snatch),
-            checked: allData.power_snatch_checked,
+            value: lv.variation[0] ?? 0,
+            checked: vars[0] ?? false,
           },
           clean_jerk: {
-            value: parseFloat(allData.clean_jerk),
-            checked: allData.clean_jerk_checked,
+            value: lv.classic[1] ?? 0,
+            checked: ol[1] ?? false,
           },
           clean: {
-            value: parseFloat(allData.clean),
-            checked: allData.clean_checked,
+            value: lv.variation[1] ?? 0,
+            checked: vars[1] ?? false,
           },
           power_clean: {
-            value: parseFloat(allData.power_clean),
-            checked: allData.power_clean_checked,
+            value: lv.variation[2] ?? 0,
+            checked: vars[2] ?? false,
           },
           jerk: {
-            value: parseFloat(allData.jerk),
-            checked: allData.jerk_checked,
+            value: lv.press[2] ?? 0,
+            checked: presses[2] ?? false,
           },
           back_squat: {
-            value: parseFloat(allData.back_squat),
-            checked: allData.back_squat_checked,
+            value: lv.squat[0] ?? 0,
+            checked: squats[0] ?? false,
           },
           front_squat: {
-            value: parseFloat(allData.front_squat),
-            checked: allData.front_squat_checked,
+            value: lv.squat[1] ?? 0,
+            checked: squats[1] ?? false,
           },
         },
-        strength_accuracy: allData.strength_accuracy,
+        strength_accuracy: allData.accuracy ?? "",
         considerations: {
-          has_limitations: allData.limitation,
-          affected_areas: allData.affected_area,
-          impact_level: allData.impact,
-          triggers: allData.when_to_show,
+          has_limitations: allData.limitation ?? false,
+          affected_areas: allData.affected_area ?? [],
+          impact_level: allData.impact ?? "",
+          triggers: allData.when_to_show ?? [],
         },
         availability: {
           training_days_per_week: allData.days_per_week,
           session_duration: allData.duration,
-          preferred_rest_days: allData.rest_days,
+          preferred_rest_days: allData.rest_days ?? [],
         },
         equipment: {
-          optional: allData.optional_equipment,
+          optional: allData.optional_equipment ?? [],
         },
-        training_preference: allData.training_preferences,
-        performance_gaps: allData.performance_gaps,
+        training_preference: allData.training_preferences ?? "",
+        performance_gaps: allData.performance_gaps ?? [],
+        training_phase: allData.training_phase ?? "",
+        competition,
       };
 
       const result = await submitProfile(apiPayload).unwrap();
