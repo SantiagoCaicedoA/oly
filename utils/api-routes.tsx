@@ -7,6 +7,7 @@ export const AUTH_ROUTES = {
   ONBOARDING: "/api/profile",
   ONBOARDING_IMAGE_UPLOAD: "/api/profile/upload-image",
   ONBOARDING_VIDEO_UPLOAD: "/api/profile/upload-video",
+  CHECK_USERNAME: "/api/users/check-username",
 } as const;
 
 export const ATHLETE_ROUTES = {

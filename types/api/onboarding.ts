@@ -98,6 +98,7 @@ export interface OnboardingApiPayload {
   training_preference: string;
   performance_gaps: string[];
   training_phase: string;
+  recent_training_volume?: string;
   competition?: CompetitionInfo;
 }
 export interface StrengthItem {

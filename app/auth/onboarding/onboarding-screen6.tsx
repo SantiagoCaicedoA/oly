@@ -533,46 +533,42 @@ export default function OnboardingScreen6({
                 </Pressable>
               </View>
 
-              {/* Weight Class (settings only) */}
-              {isSettings && (
-                <Controller
-                  control={control}
-                  name="weight_class"
-                  render={({ field: { onChange, value } }) => (
-                    <OlyFormField
-                      label="WEIGHT CLASS"
-                      placeholder="e.g. 73"
-                      value={value}
-                      onChangeText={(text) => onChange(text.replace(/[^0-9]/g, ""))}
-                      keyboardType="number-pad"
-                      maxLength={4}
-                      suffix={onboardingData?.weightUnit === "LB" ? "lbs" : "kg"}
-                    />
-                  )}
-                />
-              )}
+              {/* Weight Class */}
+              <Controller
+                control={control}
+                name="weight_class"
+                render={({ field: { onChange, value } }) => (
+                  <OlyFormField
+                    label="WEIGHT CLASS"
+                    placeholder="e.g. 73"
+                    value={value}
+                    onChangeText={(text) => onChange(text.replace(/[^0-9]/g, ""))}
+                    keyboardType="number-pad"
+                    maxLength={4}
+                    suffix={onboardingData?.weightUnit === "LB" ? "lbs" : "kg"}
+                  />
+                )}
+              />
 
-              {/* Target Total (settings only) */}
-              {isSettings && (
-                <Controller
-                  control={control}
-                  name="target_total"
-                  render={({ field: { onChange, value } }) => (
-                    <OlyFormField
-                      label="TARGET TOTAL"
-                      placeholder="e.g. 280"
-                      value={value}
-                      onChangeText={(text) => onChange(text.replace(/[^0-9]/g, ""))}
-                      keyboardType="number-pad"
-                      maxLength={4}
-                      suffix={onboardingData?.weightUnit === "LB" ? "lbs" : "kg"}
-                    />
-                  )}
-                />
-              )}
+              {/* Target Total — optional */}
+              <Controller
+                control={control}
+                name="target_total"
+                render={({ field: { onChange, value } }) => (
+                  <OlyFormField
+                    label="TARGET TOTAL"
+                    placeholder="e.g. 280"
+                    value={value}
+                    onChangeText={(text) => onChange(text.replace(/[^0-9]/g, ""))}
+                    keyboardType="number-pad"
+                    maxLength={4}
+                    suffix={onboardingData?.weightUnit === "LB" ? "lbs" : "kg"}
+                  />
+                )}
+              />
 
-              {/* Weeks out card (settings only, when date is set) */}
-              {isSettings && weeksOut && (
+              {/* Weeks out card (when a date is set) */}
+              {weeksOut && (
                 <View style={styles.weeksOutCard}>
                   <Text style={styles.weeksOutLabel}>WEEKS OUT</Text>
                   <Text style={styles.weeksOutValue}>
@@ -593,9 +589,6 @@ export default function OnboardingScreen6({
           {!isSettings && (
             <View>
               <Text style={styles.sectionLabel}>WHERE ARE YOU RIGHT NOW</Text>
-              <Text style={styles.sectionSubtitle}>
-                So the AI knows where to pick up
-              </Text>
               <Controller
                 control={control}
                 name="training_phase"
@@ -881,12 +874,6 @@ const styles = StyleSheet.create({
     color: olyColors.text.secondary,
     letterSpacing: olyLetterSpacing.uppercase,
     textTransform: "uppercase",
-    marginBottom: olySpacing[8],
-  },
-  sectionSubtitle: {
-    ...olyTypography.caption,
-    color: olyColors.text.disabled,
-    marginTop: olySpacing[4],
     marginBottom: olySpacing[8],
   },
 

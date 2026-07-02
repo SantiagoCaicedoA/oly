@@ -44,6 +44,7 @@ interface OnboardingScreen4Values {
   days_per_week: number;
   duration: number;
   rest_days: string[];
+  recent_training_volume: string;
 }
 
 /* ── Data ──────────────────────────────────────────────── */
@@ -55,6 +56,13 @@ const DURATION_OPTIONS = [
   { label: "60 min", value: 60 },
   { label: "75 min", value: 75 },
   { label: "90+ min", value: 90 },
+] as const;
+
+const RECENT_OPTIONS = [
+  { label: "Coming back", value: "returning" },
+  { label: "Lightly", value: "light" },
+  { label: "Steadily", value: "steady" },
+  { label: "Heavy", value: "heavy" },
 ] as const;
 
 const WEEK_DAYS = [
@@ -91,6 +99,7 @@ export default function OnboardingScreen4({
       days_per_week: onboardingData?.days_per_week ?? 1,
       duration: onboardingData?.duration ?? 45,
       rest_days: onboardingData?.rest_days ?? [],
+      recent_training_volume: onboardingData?.recent_training_volume ?? "",
     },
   });
 
@@ -199,6 +208,42 @@ export default function OnboardingScreen4({
             render={({ field: { onChange, value } }) => (
               <View style={styles.durationGrid}>
                 {DURATION_OPTIONS.map((option) => {
+                  const isActive = value === option.value;
+                  return (
+                    <Pressable
+                      key={option.value}
+                      onPress={() => onChange(option.value)}
+                      style={({ pressed }) => [
+                        styles.durationPill,
+                        isActive && styles.durationPillActive,
+                        pressed && { opacity: 0.7 },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.durationText,
+                          isActive && styles.durationTextActive,
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
+          />
+        </View>
+
+        {/* Recent Training — 2x2 pill grid, single-select */}
+        <View>
+          <Text style={styles.sectionLabel}>RECENT TRAINING (LAST 4 WEEKS)</Text>
+          <Controller
+            control={control}
+            name="recent_training_volume"
+            render={({ field: { onChange, value } }) => (
+              <View style={styles.durationGrid}>
+                {RECENT_OPTIONS.map((option) => {
                   const isActive = value === option.value;
                   return (
                     <Pressable

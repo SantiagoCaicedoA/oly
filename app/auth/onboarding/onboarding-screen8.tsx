@@ -334,6 +334,7 @@ export default function OnboardingScreen8() {
         training_preference: allData.training_preferences ?? "",
         performance_gaps: allData.performance_gaps ?? [],
         training_phase: allData.training_phase ?? "",
+        recent_training_volume: allData.recent_training_volume ?? "",
         competition,
       };
 

@@ -129,6 +129,18 @@ export const api = createApi({
       invalidatesTags: ["Athlete"],
     }),
 
+    checkUsername: builder.query<
+      { success: boolean; available: boolean; message?: string },
+      string
+    >({
+      query: (username) => ({
+        url: `${API_ROUTES.AUTH.CHECK_USERNAME}?username=${encodeURIComponent(
+          username
+        )}`,
+        method: "GET",
+      }),
+    }),
+
     submitProfile: builder.mutation<
       OnboardingApiResponse,
       OnboardingApiPayload
@@ -280,6 +292,7 @@ export const api = createApi({
 export const {
   useSignupMutation,
   useLoginMutation,
+  useLazyCheckUsernameQuery,
   useSubmitProfileMutation,
   useUploadProfileImageMutation,
   useUploadAthleteVideoMutation,

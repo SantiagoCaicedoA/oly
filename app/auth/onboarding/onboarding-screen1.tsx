@@ -16,7 +16,7 @@ import { olyColors, olyPalette, olyGradient } from "@/src/oly-theme/oly-colors";
 import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { useToast } from "@/context/toast-context";
-import { useUploadProfileImageMutation } from "@/store/api";
+import { useUploadProfileImageMutation, useLazyCheckUsernameQuery } from "@/store/api";
 import { saveOnboardingData, selectOnboardingData } from "@/store/reducer/onboardingSlice";
 import { onboardingScreen1Schema } from "@/utils/validation-schemas";
 import { Ionicons } from "@expo/vector-icons";
@@ -240,6 +240,31 @@ export default function OnboardingScreen1({
   });
 
   const watchedValues = watch();
+
+  /* ── Live username availability (Instagram-style, debounced) ── */
+  const [triggerCheckUsername] = useLazyCheckUsernameQuery();
+  const [usernameStatus, setUsernameStatus] = useState<
+    "idle" | "checking" | "available" | "taken"
+  >("idle");
+  const usernameValue = watchedValues.user_name;
+  useEffect(() => {
+    const handle = (usernameValue || "").trim().toLowerCase();
+    // Only call the API once the handle passes basic format (yup shows format errors)
+    if (handle.length < 3 || !/^[a-z0-9._]+$/.test(handle)) {
+      setUsernameStatus("idle");
+      return;
+    }
+    setUsernameStatus("checking");
+    const t = setTimeout(async () => {
+      try {
+        const res = await triggerCheckUsername(handle).unwrap();
+        setUsernameStatus(res.available ? "available" : "taken");
+      } catch {
+        setUsernameStatus("idle");
+      }
+    }, 450);
+    return () => clearTimeout(t);
+  }, [usernameValue, triggerCheckUsername]);
 
   /* Auto-save on back (settings mode) */
   const navigationRef = useNavigation();
@@ -474,14 +499,34 @@ export default function OnboardingScreen1({
             control={control}
             name="user_name"
             render={({ field: { value, onChange } }) => (
-              <OlyFormField
-                label="Username"
-                placeholder="Enter your username"
-                value={value}
-                onChangeText={onChange}
-                error={errors.user_name?.message}
-                containerStyle={styles.fieldContainer}
-              />
+              <View style={styles.fieldContainer}>
+                <OlyFormField
+                  label="Username"
+                  placeholder="Enter your username"
+                  value={value}
+                  onChangeText={(t) => onChange(t.toLowerCase())}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  error={
+                    errors.user_name?.message ||
+                    (usernameStatus === "taken"
+                      ? "That username is already taken"
+                      : undefined)
+                  }
+                />
+                {!errors.user_name?.message &&
+                  usernameStatus === "checking" && (
+                    <Text style={styles.usernameHintChecking}>
+                      Checking availability…
+                    </Text>
+                  )}
+                {!errors.user_name?.message &&
+                  usernameStatus === "available" && (
+                    <Text style={styles.usernameHintAvailable}>
+                      ✓ Username available
+                    </Text>
+                  )}
+              </View>
             )}
           />
 
@@ -994,7 +1039,11 @@ export default function OnboardingScreen1({
                 // Only navigate if valid
                 handleSubmit(handleSubmitForm)();
               }}
-              disabled={!isValid}
+              disabled={
+                !isValid ||
+                usernameStatus === "checking" ||
+                usernameStatus === "taken"
+              }
               style={styles.submitButton}
               fullWidth
             />
@@ -1073,6 +1122,16 @@ const styles = StyleSheet.create({
   },
   fieldContainer: {
     marginTop: olySpacing[24],
+  },
+  usernameHintChecking: {
+    ...olyTypography.caption,
+    color: olyColors.text.secondary,
+    marginTop: olySpacing[4],
+  },
+  usernameHintAvailable: {
+    ...olyTypography.caption,
+    color: olyPalette.green,
+    marginTop: olySpacing[4],
   },
   label: {
     ...olyTypography.label,
