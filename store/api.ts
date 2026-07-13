@@ -152,6 +152,14 @@ export const api = createApi({
       }),
       invalidatesTags: ["Athlete"],
     }),
+
+    getProfile: builder.query<{ success: boolean; data: any }, void>({
+      query: () => ({
+        url: API_ROUTES.ATHLETE.GET_PROFILE,
+        method: "GET",
+      }),
+      providesTags: ["Athlete"],
+    }),
     uploadProfileImage: builder.mutation<UploadProfileImageResponse, FormData>({
       query: (formData) => ({
         url: API_ROUTES.AUTH.ONBOARDING_IMAGE_UPLOAD,
@@ -294,6 +302,7 @@ export const {
   useLoginMutation,
   useLazyCheckUsernameQuery,
   useSubmitProfileMutation,
+  useGetProfileQuery,
   useUploadProfileImageMutation,
   useUploadAthleteVideoMutation,
   useCreateNewPostMutation,

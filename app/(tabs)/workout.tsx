@@ -51,12 +51,26 @@ const DAY_KEYS = [
   "saturday",
 ];
 
+// What each training phase means — shown when the phase badge is expanded.
+const PHASE_DESCRIPTIONS: Record<string, string> = {
+  Base: "Building muscle and work capacity — the raw engine. Higher volume, moderate intensity. More size now becomes strength later.",
+  Strength: "Turning that muscle into maximal strength. Heavier squats and pulls, lower reps — the lifts climb toward the meet.",
+  Peak: "Expressing strength as speed. Intensity climbs, volume drops, and the competition lifts sharpen.",
+  Deload: "Planned recovery so you come back stronger. Pull the ego back this week.",
+  Taper: "Shedding fatigue so you show up fresh and fast. Keep it crisp — no heroes.",
+  "Max-Out": "Time to express it — find out what all the work built. Trust your openers, then hunt.",
+  "Base Test": "A checkpoint, not a max — measuring the strength you banked so the next block loads off real numbers.",
+};
+
 export default function Workout() {
   const dispatch = useDispatch();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [phaseExpanded, setPhaseExpanded] = useState(false);
   const token = useSelector((state: RootState) => state.auth.token);
   const days = useSelector((state: RootState) => state.training.days);
+  const phase = useSelector((state: RootState) => state.training.phase);
+  const blockWeek = useSelector((state: RootState) => state.training.blockWeek);
+  const weeksTotal = useSelector((state: RootState) => state.training.weeksTotal);
   const userId = useSelector((state: RootState) => state.auth.user?._id);
 
   const [fetchTraining, { data, isLoading, isError, error }] =
@@ -180,9 +194,8 @@ export default function Workout() {
           />
         </View>
 
-        {/* ── Section 2: Phase Badge ── */}
-        {/* TODO: Wire to real phase data from backend */}
-        {/* ── Phase Badge (expandable) ── */}
+        {/* ── Section 2: Phase Badge (real phase/week from backend) ── */}
+        {phase ? (
         <View style={styles.phaseSection}>
           <TouchableOpacity
             style={styles.phaseBadgeRow}
@@ -195,9 +208,11 @@ export default function Workout() {
             }}
           >
             <View style={styles.phaseBadge}>
-              <Text style={styles.phaseBadgeText}>ACCUMULATION</Text>
+              <Text style={styles.phaseBadgeText}>{String(phase).toUpperCase()}</Text>
             </View>
-            <Text style={styles.phaseWeek}>WEEK 3 OF 4</Text>
+            {blockWeek && weeksTotal ? (
+              <Text style={styles.phaseWeek}>WEEK {blockWeek} OF {weeksTotal}</Text>
+            ) : null}
             <Ionicons
               name={phaseExpanded ? "chevron-up" : "chevron-down"}
               size={14}
@@ -207,10 +222,11 @@ export default function Workout() {
 
           {phaseExpanded && (
             <Text style={styles.phaseDetailText}>
-              Building volume — higher reps, moderate weight. This phase develops your work capacity and reinforces movement patterns before intensity increases.
+              {PHASE_DESCRIPTIONS[phase] || "Your current training block."}
             </Text>
           )}
         </View>
+        ) : null}
 
         {/* ── Section 3: Coach Card ── */}
         <CoachNote coach_note={coachNoteToShow} key_cues={keyCuesToShow} />

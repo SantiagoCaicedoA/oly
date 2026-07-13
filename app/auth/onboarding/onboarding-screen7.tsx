@@ -22,7 +22,7 @@ import {
 } from "@/store/reducer/onboardingSlice";
 import { useNavigation } from "@react-navigation/native";
 import React, { useEffect, useRef } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import {
   Pressable,
   ScrollView,
@@ -46,6 +46,8 @@ interface OnboardingScreen7Values {
   squat_leg_strength: string[];
   overhead_stability: string[];
 }
+
+const MAX_GAPS = 3;
 
 /* ── Data ──────────────────────────────────────────────── */
 
@@ -122,6 +124,16 @@ export default function OnboardingScreen7({
   /* Keep ref in sync for auto-save */
   getValuesRef.current = getValues;
 
+  /* Cap the total selected gaps at 3 across all four categories.
+     The screen is optional — leaving everything empty is a valid answer
+     (the engine falls back to ratios + logged misses). */
+  const watchedAll = useWatch({ control });
+  const totalSelected = CATEGORY_KEYS.reduce(
+    (n, k) => n + (((watchedAll?.[k] as string[]) || []).length),
+    0
+  );
+  const capReached = totalSelected >= MAX_GAPS;
+
   /* Auto-save on back (settings mode) */
   useEffect(() => {
     if (!isSettings) return;
@@ -190,7 +202,7 @@ export default function OnboardingScreen7({
               Performance gaps
             </Text>
             <Text style={styles.subtitle} maxFontSizeMultiplier={1.5}>
-              Used to emphasize areas that need the most attention
+              Pick up to 3 that need the most attention (optional)
             </Text>
           </View>
         )}
@@ -210,20 +222,25 @@ export default function OnboardingScreen7({
                     <View style={styles.gapList}>
                       {category.items.map((gap) => {
                         const isActive = value.includes(gap);
+                        const isDisabled = !isActive && capReached;
                         return (
                           <Pressable
                             key={gap}
-                            onPress={() =>
-                              onChange(
-                                isActive
-                                  ? value.filter((g: string) => g !== gap)
-                                  : [...value, gap]
-                              )
-                            }
+                            onPress={() => {
+                              if (isDisabled) return;
+                              if (isActive) {
+                                onChange(
+                                  value.filter((g: string) => g !== gap)
+                                );
+                              } else {
+                                onChange([...value, gap]);
+                              }
+                            }}
                             style={({ pressed }) => [
                               styles.gapPill,
                               isActive && styles.gapPillActive,
-                              pressed && { opacity: 0.7 },
+                              isDisabled && styles.gapPillDisabled,
+                              pressed && !isDisabled && { opacity: 0.7 },
                             ]}
                           >
                             <Text
@@ -314,6 +331,9 @@ const styles = StyleSheet.create({
     backgroundColor: olyColors.bg.activeHighlight,
     borderWidth: 1,
     borderColor: olyPalette.primary,
+  },
+  gapPillDisabled: {
+    opacity: 0.35,
   },
   gapPillText: {
     ...olyTypography.bodySmall,

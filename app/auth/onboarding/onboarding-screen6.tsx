@@ -52,7 +52,6 @@ interface OnboardingScreen6Values {
   compDay: string;
   compMonth: string;
   compYear: string;
-  training_phase: string;
   weight_class: string;
   target_total: string;
 }
@@ -147,14 +146,12 @@ export default function OnboardingScreen6({
         compDay: onboardingData?.compDay ?? "",
         compMonth: onboardingData?.compMonth ?? "",
         compYear: onboardingData?.compYear ?? "",
-        training_phase: onboardingData?.training_phase ?? "",
         weight_class: onboardingData?.weight_class ?? "",
         target_total: onboardingData?.target_total ?? "",
       },
     });
 
   const isCompeting = watch("preparing_for_competition");
-  const trainingPhase = watch("training_phase");
   const compName = watch("competition_name");
   const compDay = watch("compDay");
   const compMonth = watch("compMonth");
@@ -162,7 +159,6 @@ export default function OnboardingScreen6({
 
   /* ── Validation — disable NEXT until required fields filled ── */
   const allFilled = (() => {
-    if (!trainingPhase) return false;
     if (isCompeting) {
       if (!compName?.trim()) return false;
       if (!compDay) return false; // date not selected
@@ -585,46 +581,7 @@ export default function OnboardingScreen6({
             )
           )}
 
-          {/* Training Phase — only shown during onboarding */}
-          {!isSettings && (
-            <View>
-              <Text style={styles.sectionLabel}>WHERE ARE YOU RIGHT NOW</Text>
-              <Controller
-                control={control}
-                name="training_phase"
-                render={({ field: { onChange, value } }) => (
-                  <View style={styles.phaseList}>
-                    {TRAINING_PHASES.map((phase) => {
-                      const isActive = value === phase.value;
-                      return (
-                        <Pressable
-                          key={phase.value}
-                          onPress={() => onChange(phase.value)}
-                          style={({ pressed }) => [
-                            styles.phaseCard,
-                            isActive && styles.phaseCardActive,
-                            pressed && { opacity: 0.7 },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.phaseTitle,
-                              !isActive && styles.phaseTitleInactive,
-                            ]}
-                          >
-                            {phase.title}
-                          </Text>
-                          <Text style={styles.phaseDescription}>
-                            {phase.description}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                )}
-              />
-            </View>
-          )}
+          {/* Training-phase question merged into Screen 4 */}
         </View>
 
         {/* Bottom buttons */}

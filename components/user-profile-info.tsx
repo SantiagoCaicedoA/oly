@@ -7,53 +7,64 @@ import { Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface UserProfileInfoProps {
   isOwnProfile?: boolean;
+  name?: string;
+  username?: string;
+  bio?: string;
+  followers?: number;
+  following?: number;
 }
 
-export default function UserProfileInfo({ isOwnProfile = false }: UserProfileInfoProps) {
+export default function UserProfileInfo({
+  isOwnProfile = false,
+  name = "",
+  username = "",
+  bio = "",
+  followers = 0,
+  following = 0,
+}: UserProfileInfoProps) {
+  const initials =
+    (name || "")
+      .trim()
+      .split(/\s+/)
+      .map((w) => w[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "?";
   return (
     <View style={styles.wrapper}>
       {/* ── Identity block ── */}
       <View style={styles.identityBlock}>
         <View style={styles.topRow}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>OF</Text>
+            <Text style={styles.avatarText}>{initials}</Text>
           </View>
 
           <View style={styles.nameCol}>
             <View style={styles.nameRow}>
-              <Text style={styles.name}>Oscar Figueroa</Text>
+              <Text style={styles.name}>{name || "Athlete"}</Text>
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>ATHLETE</Text>
               </View>
             </View>
-            <Text style={styles.username}>@oscar.figueroa</Text>
+            {username ? <Text style={styles.username}>@{username}</Text> : null}
           </View>
         </View>
 
-        <Text style={styles.bio}>
-          Olympic gold medalist in weightlifting. Passionate about fitness and
-          inspiring others.
-        </Text>
+        {bio ? <Text style={styles.bio}>{bio}</Text> : null}
       </View>
 
       {/* ── Stats + Rank ── */}
       <View style={styles.dataRow}>
         <TouchableOpacity style={styles.statItem} activeOpacity={0.7}>
-          <Text style={styles.statNumber}>142</Text>
+          <Text style={styles.statNumber}>{followers}</Text>
           <Text style={styles.statLabel}> followers</Text>
         </TouchableOpacity>
         <Text style={styles.statDot}>·</Text>
         <TouchableOpacity style={styles.statItem} activeOpacity={0.7}>
-          <Text style={styles.statNumber}>112</Text>
+          <Text style={styles.statNumber}>{following}</Text>
           <Text style={styles.statLabel}> following</Text>
         </TouchableOpacity>
-        {isOwnProfile && (
-          <TouchableOpacity style={styles.rankPill} activeOpacity={0.7}>
-            <Text style={styles.rankPillText}>
-              <Text style={styles.rankPillNumber}>#12</Text> in Calgary
-            </Text>
-          </TouchableOpacity>
-        )}
+        {/* Rank pill hidden until the leaderboard backend exists */}
       </View>
 
       {/* ── Action Buttons ── */}

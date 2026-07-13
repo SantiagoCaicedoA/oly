@@ -71,6 +71,10 @@ interface TrainingState {
   days: Days | null;
   isFirstWeek: boolean;
   profileSnapshot: ProfileSnapshot | null;
+  phase: string | null;
+  blockWeek: number | null;
+  weeksTotal: number | null;
+  seasonName: string | null;
   selectedExerciseName: string | null;
   selectedDayKey: string | null;
   sleepQuality: number;
@@ -83,6 +87,10 @@ const initialState: TrainingState = {
   days: null,
   isFirstWeek: false,
   profileSnapshot: null,
+  phase: null,
+  blockWeek: null,
+  weeksTotal: null,
+  seasonName: null,
   sleepQuality: 0,
   stressLevel: 0,
   mentalReadiness: 0,
@@ -105,6 +113,11 @@ const trainingSlice = createSlice({
       state.days = apiData.days;
       state.isFirstWeek = apiData.is_first_week ?? false;
       state.profileSnapshot = apiData.profile_snapshot ?? null;
+      // Real phase/block context for the header (falls back to null when absent).
+      state.phase = (apiData as any).phase ?? null;
+      state.blockWeek = (apiData as any).block_week ?? null;
+      state.weeksTotal = (apiData as any).weeks_total ?? null;
+      state.seasonName = (apiData as any).season_name ?? null;
 
       // Update selected day exercises if a day is already selected
       if (state.selectedDayKey) {

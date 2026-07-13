@@ -44,7 +44,8 @@ interface OnboardingScreen4Values {
   days_per_week: number;
   duration: number;
   rest_days: string[];
-  recent_training_volume: string;
+  current_training: string;
+  recovery: string;
 }
 
 /* ── Data ──────────────────────────────────────────────── */
@@ -58,11 +59,19 @@ const DURATION_OPTIONS = [
   { label: "90+ min", value: 90 },
 ] as const;
 
-const RECENT_OPTIONS = [
-  { label: "Coming back", value: "returning" },
-  { label: "Lightly", value: "light" },
-  { label: "Steadily", value: "steady" },
-  { label: "Heavy", value: "heavy" },
+const CURRENT_OPTIONS = [
+  { label: "Coming back", value: "coming_back" },
+  { label: "Starting fresh", value: "starting_fresh" },
+  { label: "Training lightly", value: "light" },
+  { label: "Steady block", value: "steady" },
+  { label: "Training hard", value: "hard" },
+  { label: "Post-comp", value: "post_comp" },
+] as const;
+
+const RECOVERY_OPTIONS = [
+  { label: "Recover fast", value: "fast" },
+  { label: "Average", value: "average" },
+  { label: "Recover slowly", value: "slow" },
 ] as const;
 
 const WEEK_DAYS = [
@@ -99,7 +108,8 @@ export default function OnboardingScreen4({
       days_per_week: onboardingData?.days_per_week ?? 1,
       duration: onboardingData?.duration ?? 45,
       rest_days: onboardingData?.rest_days ?? [],
-      recent_training_volume: onboardingData?.recent_training_volume ?? "",
+      current_training: onboardingData?.current_training ?? "",
+      recovery: onboardingData?.recovery ?? "",
     },
   });
 
@@ -235,15 +245,51 @@ export default function OnboardingScreen4({
           />
         </View>
 
-        {/* Recent Training — 2x2 pill grid, single-select */}
+        {/* Where are you right now — pill grid, single-select (merged) */}
         <View>
-          <Text style={styles.sectionLabel}>RECENT TRAINING (LAST 4 WEEKS)</Text>
+          <Text style={styles.sectionLabel}>WHERE ARE YOU RIGHT NOW</Text>
           <Controller
             control={control}
-            name="recent_training_volume"
+            name="current_training"
             render={({ field: { onChange, value } }) => (
               <View style={styles.durationGrid}>
-                {RECENT_OPTIONS.map((option) => {
+                {CURRENT_OPTIONS.map((option) => {
+                  const isActive = value === option.value;
+                  return (
+                    <Pressable
+                      key={option.value}
+                      onPress={() => onChange(option.value)}
+                      style={({ pressed }) => [
+                        styles.durationPill,
+                        isActive && styles.durationPillActive,
+                        pressed && { opacity: 0.7 },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.durationText,
+                          isActive && styles.durationTextActive,
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
+          />
+        </View>
+
+        {/* Baseline recovery — pill grid, single-select */}
+        <View>
+          <Text style={styles.sectionLabel}>HOW WELL DO YOU RECOVER</Text>
+          <Controller
+            control={control}
+            name="recovery"
+            render={({ field: { onChange, value } }) => (
+              <View style={styles.durationGrid}>
+                {RECOVERY_OPTIONS.map((option) => {
                   const isActive = value === option.value;
                   return (
                     <Pressable

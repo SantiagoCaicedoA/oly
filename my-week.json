@@ -1,0 +1,798 @@
+{
+  "week_start": "2026-06-28T00:00:00.000Z",
+  "days": {
+    "monday": {
+      "type": "training",
+      "coach_note": "Santi, you're in your strength block, 16 weeks out from Nationals. This session is about building your leg and pulling strength to set up for bigger lifts as we progress. Focus today on standing up strong and patient out of the clean. If you're feeling good, go after that top set; if not, prioritize quality reps.",
+      "key_cues": [
+        "Big back",
+        "Drive the legs",
+        "Fast turnover"
+      ],
+      "daily_check_in": {
+        "sleep_quality": 7,
+        "stress_level": 4,
+        "mental_readiness": 8,
+        "motivation": "Neutral",
+        "muscle_soreness": 0,
+        "sore_areas": [],
+        "intensity": 0
+      },
+      "exercises": [
+        {
+          "exercise_name": "Clean & Jerk",
+          "time": "30 min",
+          "no_of_set": 5,
+          "sets": [
+            {
+              "set_number": 1,
+              "weight": 130,
+              "reps": 1,
+              "rpm_percent": 84,
+              "isComplete": false,
+              "coach_prescription": "Focus on a strong pull and a quick turnover.",
+              "key_cues": [
+                "Explode off the floor",
+                "Fast elbows",
+                "Stable catch"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Technical Consistency",
+              "context": "Set 1 of 5"
+            },
+            {
+              "set_number": 2,
+              "weight": 137.5,
+              "reps": 1,
+              "rpm_percent": 88,
+              "isComplete": false,
+              "coach_prescription": "Maintain your position throughout the lift.",
+              "key_cues": [
+                "Keep the bar close",
+                "Stay balanced",
+                "Strong dip"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Confidence & Exposure",
+              "context": "Set 2 of 5"
+            },
+            {
+              "set_number": 3,
+              "weight": 140,
+              "reps": 1,
+              "rpm_percent": 90,
+              "isComplete": false,
+              "coach_prescription": "Drive through your legs during the jerk.",
+              "key_cues": [
+                "Strong drive",
+                "Quick foot placement",
+                "Finish the lift strong"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Strength Under Load",
+              "context": "Set 3 of 5"
+            },
+            {
+              "set_number": 4,
+              "weight": 142.5,
+              "reps": 1,
+              "rpm_percent": 92,
+              "isComplete": false,
+              "coach_prescription": "This is your top set; give it everything.",
+              "key_cues": [
+                "Explode",
+                "Fast elbows",
+                "Catch strong"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Technical Consistency",
+              "context": "Top Set - Max Effort"
+            },
+            {
+              "set_number": 5,
+              "weight": 130,
+              "reps": 1,
+              "rpm_percent": 84,
+              "isComplete": false,
+              "coach_prescription": "Back-off set to focus on technique.",
+              "key_cues": [
+                "Stay calm",
+                "Focus on technique",
+                "Finish strong"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Technical Consistency",
+              "context": "Back-off Set - Recovery"
+            }
+          ],
+          "coach_note": "This lift is to develop your overall clean & jerk strength and technique."
+        },
+        {
+          "exercise_name": "Pause Front Squat",
+          "time": "15 min",
+          "no_of_set": 4,
+          "sets": [
+            {
+              "set_number": 1,
+              "weight": 95,
+              "reps": 3,
+              "rpm_percent": 65,
+              "isComplete": false,
+              "coach_prescription": "Pause at the bottom for 2 seconds.",
+              "key_cues": [
+                "Stay tight",
+                "Drive through heels",
+                "Control the descent"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Strength Under Load",
+              "context": "Set 1 of 4"
+            },
+            {
+              "set_number": 2,
+              "weight": 97.5,
+              "reps": 3,
+              "rpm_percent": 68,
+              "isComplete": false,
+              "coach_prescription": "Focus on maintaining form during the pause.",
+              "key_cues": [
+                "Engage core",
+                "Stay upright",
+                "Controlled movement"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Strength Under Load",
+              "context": "Set 2 of 4"
+            },
+            {
+              "set_number": 3,
+              "weight": 102.5,
+              "reps": 3,
+              "rpm_percent": 70,
+              "isComplete": false,
+              "coach_prescription": "Keep pushing through your heels.",
+              "key_cues": [
+                "Strong drive",
+                "Finish the lift",
+                "Stay in control"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Strength Under Load",
+              "context": "Set 3 of 4"
+            },
+            {
+              "set_number": 4,
+              "weight": 105,
+              "reps": 3,
+              "rpm_percent": 73,
+              "isComplete": false,
+              "coach_prescription": "Final set; give it your all.",
+              "key_cues": [
+                "Stay focused",
+                "Finish strong",
+                "Control the pause"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Strength Under Load",
+              "context": "Set 4 of 4"
+            }
+          ],
+          "coach_note": "This squat variation will help improve your clean recovery strength and receiving depth."
+        },
+        {
+          "exercise_name": "Tall Snatch",
+          "time": "15 min",
+          "no_of_set": 3,
+          "sets": [
+            {
+              "set_number": 1,
+              "weight": 80,
+              "reps": 2,
+              "rpm_percent": 64,
+              "isComplete": false,
+              "coach_prescription": "Focus on a strong finish and quick turnover.",
+              "key_cues": [
+                "Fast elbows",
+                "Strong finish",
+                "Stay over the bar"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Technical Consistency",
+              "context": "Set 1 of 3"
+            },
+            {
+              "set_number": 2,
+              "weight": 85,
+              "reps": 2,
+              "rpm_percent": 67,
+              "isComplete": false,
+              "coach_prescription": "Maintain your position throughout the lift.",
+              "key_cues": [
+                "Keep the bar close",
+                "Strong finish",
+                "Quick turnover"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Technical Consistency",
+              "context": "Set 2 of 3"
+            },
+            {
+              "set_number": 3,
+              "weight": 90,
+              "reps": 2,
+              "rpm_percent": 70,
+              "isComplete": false,
+              "coach_prescription": "Final set; focus on technique.",
+              "key_cues": [
+                "Stay tight",
+                "Finish strong",
+                "Control the lift"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Technical Consistency",
+              "context": "Set 3 of 3"
+            }
+          ],
+          "coach_note": "This exercise will help improve your receiving position and bar path."
+        }
+      ],
+      "coach_prescription": "Focus on your leg strength and receiving depth today. Make sure to stay fresh and focused during your lifts.",
+      "key_cues_of_specific_lift": [
+        "Stay over the bar",
+        "Quick turnover",
+        "Catch strong"
+      ],
+      "weight_lifted": 100,
+      "reps": 1,
+      "completion": {
+        "isComplete": false,
+        "completed_at": null,
+        "sets_logged": 0
+      }
+    },
+    "tuesday": {
+      "type": "training",
+      "coach_note": "Santi, you're still in your strength block, 16 weeks from Nationals. Today’s session is focused on refining your snatch technique as we build towards heavier lifts. Aim to stay over the bar as long as possible, then meet it fast. Feeling strong? Chase that top single, or keep the reps crisp if you're not at 100%.",
+      "key_cues": [
+        "Stay over the bar",
+        "Finish the pull",
+        "Fast elbows"
+      ],
+      "daily_check_in": {
+        "sleep_quality": 7,
+        "stress_level": 4,
+        "mental_readiness": 8,
+        "motivation": "Neutral",
+        "muscle_soreness": 0,
+        "sore_areas": [],
+        "intensity": 0
+      },
+      "exercises": [
+        {
+          "exercise_name": "Snatch",
+          "time": "30 min",
+          "no_of_set": 5,
+          "sets": [
+            {
+              "set_number": 1,
+              "weight": 100,
+              "reps": 1,
+              "rpm_percent": 80,
+              "isComplete": false,
+              "coach_prescription": "Focus on a strong pull and a quick turnover.",
+              "key_cues": [
+                "Explode off the floor",
+                "Fast elbows",
+                "Stable catch"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Technical Consistency",
+              "context": "Set 1 of 5"
+            },
+            {
+              "set_number": 2,
+              "weight": 105,
+              "reps": 1,
+              "rpm_percent": 84,
+              "isComplete": false,
+              "coach_prescription": "Maintain your position throughout the lift.",
+              "key_cues": [
+                "Keep the bar close",
+                "Stay balanced",
+                "Strong dip"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Confidence & Exposure",
+              "context": "Set 2 of 5"
+            },
+            {
+              "set_number": 3,
+              "weight": 110,
+              "reps": 1,
+              "rpm_percent": 88,
+              "isComplete": false,
+              "coach_prescription": "Drive through your legs during the lift.",
+              "key_cues": [
+                "Strong drive",
+                "Quick foot placement",
+                "Finish the lift strong"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Strength Under Load",
+              "context": "Set 3 of 5"
+            },
+            {
+              "set_number": 4,
+              "weight": 112.5,
+              "reps": 1,
+              "rpm_percent": 90,
+              "isComplete": false,
+              "coach_prescription": "This is your top set; give it everything.",
+              "key_cues": [
+                "Explode",
+                "Fast elbows",
+                "Catch strong"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Technical Consistency",
+              "context": "Top Set - Max Effort"
+            },
+            {
+              "set_number": 5,
+              "weight": 100,
+              "reps": 1,
+              "rpm_percent": 80,
+              "isComplete": false,
+              "coach_prescription": "Back-off set to focus on technique.",
+              "key_cues": [
+                "Stay calm",
+                "Focus on technique",
+                "Finish strong"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Technical Consistency",
+              "context": "Back-off Set - Recovery"
+            }
+          ],
+          "coach_note": "This lift is to develop your overall snatch strength and technique."
+        },
+        {
+          "exercise_name": "No-Feet Snatch",
+          "time": "15 min",
+          "no_of_set": 3,
+          "sets": [
+            {
+              "set_number": 1,
+              "weight": 70,
+              "reps": 2,
+              "rpm_percent": 60,
+              "isComplete": false,
+              "coach_prescription": "Focus on a strong finish and quick turnover.",
+              "key_cues": [
+                "Fast elbows",
+                "Strong finish",
+                "Stay over the bar"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Technical Consistency",
+              "context": "Set 1 of 3"
+            },
+            {
+              "set_number": 2,
+              "weight": 75,
+              "reps": 2,
+              "rpm_percent": 64,
+              "isComplete": false,
+              "coach_prescription": "Maintain your position throughout the lift.",
+              "key_cues": [
+                "Keep the bar close",
+                "Strong finish",
+                "Quick turnover"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Technical Consistency",
+              "context": "Set 2 of 3"
+            },
+            {
+              "set_number": 3,
+              "weight": 80,
+              "reps": 2,
+              "rpm_percent": 68,
+              "isComplete": false,
+              "coach_prescription": "Final set; focus on technique.",
+              "key_cues": [
+                "Stay tight",
+                "Finish strong",
+                "Control the lift"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Technical Consistency",
+              "context": "Set 3 of 3"
+            }
+          ],
+          "coach_note": "This exercise will help improve your receiving position and stability."
+        },
+        {
+          "exercise_name": "Drop Snatch",
+          "time": "15 min",
+          "no_of_set": 3,
+          "sets": [
+            {
+              "set_number": 1,
+              "weight": 70,
+              "reps": 2,
+              "rpm_percent": 60,
+              "isComplete": false,
+              "coach_prescription": "Focus on a strong finish and quick turnover.",
+              "key_cues": [
+                "Fast elbows",
+                "Strong finish",
+                "Stay over the bar"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Technical Consistency",
+              "context": "Set 1 of 3"
+            },
+            {
+              "set_number": 2,
+              "weight": 75,
+              "reps": 2,
+              "rpm_percent": 64,
+              "isComplete": false,
+              "coach_prescription": "Maintain your position throughout the lift.",
+              "key_cues": [
+                "Keep the bar close",
+                "Strong finish",
+                "Quick turnover"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Technical Consistency",
+              "context": "Set 2 of 3"
+            },
+            {
+              "set_number": 3,
+              "weight": 80,
+              "reps": 2,
+              "rpm_percent": 68,
+              "isComplete": false,
+              "coach_prescription": "Final set; focus on technique.",
+              "key_cues": [
+                "Stay tight",
+                "Finish strong",
+                "Control the lift"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Technical Consistency",
+              "context": "Set 3 of 3"
+            }
+          ],
+          "coach_note": "This exercise will help improve your receiving depth and stability."
+        }
+      ],
+      "coach_prescription": "Focus on your leg strength and receiving depth today. Make sure to stay fresh and focused during your lifts.",
+      "key_cues_of_specific_lift": [
+        "Stay over the bar",
+        "Quick turnover",
+        "Catch strong"
+      ],
+      "weight_lifted": 100,
+      "reps": 1,
+      "completion": {
+        "isComplete": false,
+        "completed_at": null,
+        "sets_logged": 0
+      }
+    },
+    "wednesday": {
+      "type": "rest",
+      "key_cues": [],
+      "key_cues_of_specific_lift": [],
+      "completion": {
+        "isComplete": false,
+        "completed_at": null,
+        "sets_logged": 0
+      },
+      "daily_check_in": {
+        "sleep_quality": null,
+        "stress_level": null,
+        "mental_readiness": null,
+        "motivation": "Neutral",
+        "muscle_soreness": 0,
+        "sore_areas": [],
+        "intensity": 0
+      },
+      "exercises": []
+    },
+    "thursday": {
+      "type": "training",
+      "coach_note": "Santi, you’re in your strength block, 16 weeks out from Nationals. This session emphasizes building the engine with back squats while maintaining pulling strength. Make each squat rep count to enhance your overall strength. If you feel fresh today, go for that top set; if you're off, keep it controlled and focus on form.",
+      "key_cues": [
+        "Brace hard",
+        "Drive the floor away",
+        "Chest up"
+      ],
+      "daily_check_in": {
+        "sleep_quality": 7,
+        "stress_level": 4,
+        "mental_readiness": 8,
+        "motivation": "Neutral",
+        "muscle_soreness": 0,
+        "sore_areas": [],
+        "intensity": 0
+      },
+      "exercises": [
+        {
+          "exercise_name": "Back Squat",
+          "time": "20 min",
+          "no_of_set": 4,
+          "sets": [
+            {
+              "set_number": 1,
+              "weight": 160,
+              "reps": 3,
+              "rpm_percent": 86,
+              "isComplete": false,
+              "coach_prescription": "Focus on maintaining form throughout the lift.",
+              "key_cues": [
+                "Stay tight",
+                "Drive through heels",
+                "Control the descent"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Strength Under Load",
+              "context": "Set 1 of 4"
+            },
+            {
+              "set_number": 2,
+              "weight": 162.5,
+              "reps": 3,
+              "rpm_percent": 88,
+              "isComplete": false,
+              "coach_prescription": "Maintain your position throughout the lift.",
+              "key_cues": [
+                "Keep the bar close",
+                "Strong drive",
+                "Finish the lift"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Strength Under Load",
+              "context": "Set 2 of 4"
+            },
+            {
+              "set_number": 3,
+              "weight": 167.5,
+              "reps": 3,
+              "rpm_percent": 90,
+              "isComplete": false,
+              "coach_prescription": "Push through your heels.",
+              "key_cues": [
+                "Strong drive",
+                "Stay tight",
+                "Control the lift"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Strength Under Load",
+              "context": "Set 3 of 4"
+            },
+            {
+              "set_number": 4,
+              "weight": 170,
+              "reps": 3,
+              "rpm_percent": 92,
+              "isComplete": false,
+              "coach_prescription": "Final set; give it your all.",
+              "key_cues": [
+                "Stay focused",
+                "Finish strong",
+                "Control the descent"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Technical Consistency",
+              "context": "Set 4 of 4"
+            }
+          ],
+          "coach_note": "This squat variation will help improve your overall leg strength."
+        },
+        {
+          "exercise_name": "Hang Clean Pull",
+          "time": "15 min",
+          "no_of_set": 3,
+          "sets": [
+            {
+              "set_number": 1,
+              "weight": 145,
+              "reps": 3,
+              "rpm_percent": 90,
+              "isComplete": false,
+              "coach_prescription": "Focus on a strong pull.",
+              "key_cues": [
+                "Explode off the floor",
+                "Keep the bar close",
+                "Finish the lift strong"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Strength Under Load",
+              "context": "Set 1 of 3"
+            },
+            {
+              "set_number": 2,
+              "weight": 147.5,
+              "reps": 3,
+              "rpm_percent": 92,
+              "isComplete": false,
+              "coach_prescription": "Maintain your position throughout the lift.",
+              "key_cues": [
+                "Stay tight",
+                "Drive through your heels",
+                "Control the lift"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Strength Under Load",
+              "context": "Set 2 of 3"
+            },
+            {
+              "set_number": 3,
+              "weight": 150,
+              "reps": 3,
+              "rpm_percent": 94,
+              "isComplete": false,
+              "coach_prescription": "Final set; give it your all.",
+              "key_cues": [
+                "Stay focused",
+                "Finish strong",
+                "Control the descent"
+              ],
+              "was_it_a_miss": false,
+              "any_pain_or_discomfort": false,
+              "pain_where": [],
+              "intent": "Technical Consistency",
+              "context": "Set 3 of 3"
+            }
+          ],
+          "coach_note": "This exercise will help improve your pulling strength and positions."
+        }
+      ],
+      "coach_prescription": "Focus on your leg strength and receiving depth today. Make sure to stay fresh and focused during your lifts.",
+      "key_cues_of_specific_lift": [
+        "Stay over the bar",
+        "Quick turnover",
+        "Catch strong"
+      ],
+      "weight_lifted": 100,
+      "reps": 1,
+      "completion": {
+        "isComplete": false,
+        "completed_at": null,
+        "sets_logged": 0
+      }
+    },
+    "friday": {
+      "type": "rest",
+      "key_cues": [],
+      "key_cues_of_specific_lift": [],
+      "completion": {
+        "isComplete": false,
+        "completed_at": null,
+        "sets_logged": 0
+      },
+      "daily_check_in": {
+        "sleep_quality": null,
+        "stress_level": null,
+        "mental_readiness": null,
+        "motivation": "Neutral",
+        "muscle_soreness": 0,
+        "sore_areas": [],
+        "intensity": 0
+      },
+      "exercises": []
+    },
+    "saturday": {
+      "type": "rest",
+      "key_cues": [],
+      "key_cues_of_specific_lift": [],
+      "completion": {
+        "isComplete": false,
+        "completed_at": null,
+        "sets_logged": 0
+      },
+      "daily_check_in": {
+        "sleep_quality": null,
+        "stress_level": null,
+        "mental_readiness": null,
+        "motivation": "Neutral",
+        "muscle_soreness": 0,
+        "sore_areas": [],
+        "intensity": 0
+      },
+      "exercises": []
+    },
+    "sunday": {
+      "type": "rest",
+      "key_cues": [],
+      "key_cues_of_specific_lift": [],
+      "completion": {
+        "isComplete": false,
+        "completed_at": null,
+        "sets_logged": 0
+      },
+      "daily_check_in": {
+        "sleep_quality": null,
+        "stress_level": null,
+        "mental_readiness": null,
+        "motivation": "Neutral",
+        "muscle_soreness": 0,
+        "sore_areas": [],
+        "intensity": 0
+      },
+      "exercises": []
+    }
+  },
+  "is_first_week": true,
+  "profile_snapshot": {
+    "training_days_per_week": 3,
+    "preferred_rest_days": [
+      "Wednesday",
+      "Saturday",
+      "Sunday"
+    ],
+    "session_duration": 75
+  }
+}

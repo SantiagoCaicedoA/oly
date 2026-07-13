@@ -42,6 +42,7 @@ interface OnboardingScreen3Values {
   limitation: boolean;
   affected_area: string[];
   selected_affected_area: string;
+  injury_status: string;
   impact: string;
   when_to_show: string[];
 }
@@ -52,9 +53,17 @@ const BODY_AREAS = [
   "Lower back",
   "Knees",
   "Shoulders",
+  "Elbows",
   "Wrists",
   "Hips",
   "Ankles",
+] as const;
+
+// Friendly labels shown to the athlete; canonical value stored for the engine.
+const STATUS_OPTIONS = [
+  { label: "Painful now", value: "Acute" },
+  { label: "Manageable", value: "Managed" },
+  { label: "Healed", value: "Healed" },
 ] as const;
 
 const IMPACT_OPTIONS = ["Mild", "Moderate", "High"] as const;
@@ -64,10 +73,10 @@ const WHEN_TO_SHOW_OPTIONS: Record<
   Array<{ label: string; value: string }>
 > = {
   "Lower back": [
-    { label: "Overhead position", value: "Overhead position" },
-    { label: "Snatch catch", value: "Snatch catch" },
-    { label: "Jerk lockout", value: "Jerk lockout" },
-    { label: "High OH volume", value: "High OH volume" },
+    { label: "Off the floor", value: "Off the floor" },
+    { label: "Heavy pulls", value: "Heavy pulls" },
+    { label: "Bottom of squat", value: "Bottom of squat" },
+    { label: "High-volume squats", value: "High-volume squats" },
     { label: "When fatigued", value: "When fatigued" },
     { label: "Next-day soreness", value: "Next-day soreness" },
   ],
@@ -83,6 +92,14 @@ const WHEN_TO_SHOW_OPTIONS: Record<
     { label: "Front rack position", value: "Front rack position" },
     { label: "Snatch position", value: "Snatch position" },
     { label: "Long sessions", value: "Long sessions" },
+    { label: "High OH volume", value: "High OH volume" },
+    { label: "When fatigued", value: "When fatigued" },
+    { label: "Next-day soreness", value: "Next-day soreness" },
+  ],
+  Elbows: [
+    { label: "Front rack position", value: "Front rack position" },
+    { label: "Jerk lockout", value: "Jerk lockout" },
+    { label: "Heavy pulls", value: "Heavy pulls" },
     { label: "High OH volume", value: "High OH volume" },
     { label: "When fatigued", value: "When fatigued" },
     { label: "Next-day soreness", value: "Next-day soreness" },
@@ -137,6 +154,7 @@ export default function OnboardingScreen3({
       limitation: onboardingData?.limitation ?? true,
       affected_area: onboardingData?.affected_area ?? ["Lower back"],
       selected_affected_area: onboardingData?.selected_affected_area ?? "Lower back",
+      injury_status: onboardingData?.injury_status ?? "Managed",
       impact: onboardingData?.impact ?? "Moderate",
       when_to_show: onboardingData?.when_to_show ?? [],
     },
@@ -172,11 +190,13 @@ export default function OnboardingScreen3({
     if (!limitationValue) {
       setValue("affected_area", []);
       setValue("selected_affected_area", "");
+      setValue("injury_status", "");
       setValue("impact", "");
       setValue("when_to_show", []);
     } else {
       setValue("affected_area", ["Lower back"]);
       setValue("selected_affected_area", "Lower back");
+      setValue("injury_status", "Managed");
       setValue("impact", "Moderate");
     }
   }, [limitationValue, setValue]);
@@ -222,6 +242,7 @@ export default function OnboardingScreen3({
             ...data,
             affected_area: [],
             selected_affected_area: "",
+            injury_status: "",
             impact: "",
             when_to_show: [],
           }
@@ -326,6 +347,42 @@ export default function OnboardingScreen3({
                             ]}
                           >
                             {area}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
+              />
+            </View>
+
+            {/* Injury state — floating pill style, single-select */}
+            <View>
+              <Text style={styles.sectionLabel}>RECOVERY STAGE</Text>
+              <Controller
+                control={control}
+                name="injury_status"
+                render={({ field: { onChange, value } }) => (
+                  <View style={styles.impactRow}>
+                    {STATUS_OPTIONS.map((option) => {
+                      const isActive = value === option.value;
+                      return (
+                        <Pressable
+                          key={option.value}
+                          style={({ pressed }) => [
+                            styles.impactPill,
+                            isActive && styles.pillButtonActive,
+                            pressed && { opacity: 0.7 },
+                          ]}
+                          onPress={() => onChange(option.value)}
+                        >
+                          <Text
+                            style={[
+                              styles.pillText,
+                              isActive && styles.pillTextActive,
+                            ]}
+                          >
+                            {option.label}
                           </Text>
                         </Pressable>
                       );

@@ -1,0 +1,115 @@
+{
+  "_id": "6a47183b808fa85dda0be9f5",
+  "name": "Santi Repro",
+  "email": "santi.repro.1783044154362@olytest.com",
+  "createdAt": "2026-07-03T02:02:35.536Z",
+  "updatedAt": "2026-07-03T02:02:36.555Z",
+  "__v": 0,
+  "profile": {
+    "image_url": "",
+    "video_urls": [],
+    "strength_stats": {
+      "classic": {
+        "snatch": {
+          "value": 125,
+          "checked": true
+        },
+        "clean_jerk": {
+          "value": 155,
+          "checked": true
+        }
+      },
+      "variation": {
+        "power_snatch": {
+          "value": 100,
+          "checked": true
+        },
+        "clean": {
+          "value": 160,
+          "checked": true
+        },
+        "power_clean": {
+          "value": 130,
+          "checked": true
+        }
+      },
+      "squat": {
+        "back_squat": {
+          "value": 185,
+          "checked": true
+        },
+        "front_squat": {
+          "value": 145,
+          "checked": true
+        },
+        "overhead_squat": {
+          "value": 0,
+          "checked": false
+        }
+      },
+      "press": {
+        "strict_press": {
+          "value": 0,
+          "checked": false
+        },
+        "push_press": {
+          "value": 0,
+          "checked": false
+        },
+        "power_jerk": {
+          "value": 0,
+          "checked": false
+        },
+        "jerk": {
+          "value": 157,
+          "checked": true
+        }
+      }
+    },
+    "considerations": {
+      "has_limitations": false,
+      "affected_areas": [],
+      "triggers": []
+    },
+    "availability": {
+      "training_days_per_week": 3,
+      "session_duration": 75,
+      "preferred_rest_days": [
+        "Wednesday",
+        "Saturday",
+        "Sunday"
+      ]
+    },
+    "equipment": {
+      "optional": [
+        "Squat Rack",
+        "Lifting Blocks"
+      ]
+    },
+    "competition": {
+      "preparing": true,
+      "name": "Nationals",
+      "date": "2026-10-24",
+      "weight_class": "73",
+      "target_total": 285
+    },
+    "display_name": "Santi Repro",
+    "country": "Colombia",
+    "age": 28,
+    "sex": "Male",
+    "experience_years": 4,
+    "height_cm": 172,
+    "bodyweight_value": 75,
+    "bodyweight_unit": "kg",
+    "preferred_unit": "Metric",
+    "strength_accuracy": "Tested",
+    "training_preference": "Balanced",
+    "performance_gaps": [
+      "Squat & leg strength",
+      "Receiving depth"
+    ],
+    "training_phase": "in_training_block",
+    "recent_training_volume": "steady"
+  },
+  "username": "santi_repro_1783044154362"
+}

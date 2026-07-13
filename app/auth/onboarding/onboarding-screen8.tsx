@@ -10,7 +10,7 @@
 
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
 import { OlyScreenWrapper } from "@/src/oly-components/organisms/OlyScreenWrapper";
-import { useSubmitProfileMutation } from "@/store/api";
+import { useSubmitProfileMutation, useLazyGetAiTrainingQuery } from "@/store/api";
 import { setUser } from "@/store/reducer/authSlice";
 import { selectOnboardingData } from "@/store/reducer/onboardingSlice";
 import { RootState } from "@/store/store";
@@ -52,6 +52,24 @@ const TRAINING_PHASE_LABELS: Record<string, string> = {
   coming_back: "Coming back from injury",
 };
 
+const CURRENT_TRAINING_LABELS: Record<string, string> = {
+  coming_back: "Coming back",
+  starting_fresh: "Starting fresh",
+  light: "Training lightly",
+  steady: "Steady block",
+  hard: "Training hard",
+  post_comp: "Post-comp",
+};
+
+const CURRENT_TRAINING_MAP: Record<string, { recent: string; phase: string }> = {
+  coming_back: { recent: "returning", phase: "coming_back" },
+  starting_fresh: { recent: "returning", phase: "starting_fresh" },
+  light: { recent: "light", phase: "in_training_block" },
+  steady: { recent: "steady", phase: "in_training_block" },
+  hard: { recent: "heavy", phase: "in_training_block" },
+  post_comp: { recent: "steady", phase: "post_competition" },
+};
+
 const GAP_CATEGORY_LABELS: Record<string, string> = {
   pulling_positioning: "Pulling & positioning",
   receiving_bar: "Receiving",
@@ -90,8 +108,28 @@ function weeksUntil(day?: string, month?: string, year?: string): number | null 
 export default function OnboardingScreen8() {
   const allData = useSelector(selectOnboardingData);
   const [submitProfile, { isLoading }] = useSubmitProfileMutation();
+  const [fetchTraining] = useLazyGetAiTrainingQuery();
   const dispatch = useDispatch();
   const token = useSelector((state: RootState) => state.auth.token);
+
+  // The backend generates the first week in the BACKGROUND now and returns
+  // immediately. Poll the training-week endpoint until that week is saved (or we
+  // hit the max wait), so we land on Home with the plan ready. Resolves either
+  // way — the Workout tab refetches on its own if it wasn't ready in time.
+  const waitForTrainingWeek = async () => {
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    const maxAttempts = 40; // 40 x 3s = up to ~2 min
+    for (let i = 0; i < maxAttempts; i++) {
+      try {
+        const res: any = await fetchTraining(undefined, false).unwrap();
+        if (res && res.data) return true;
+      } catch {
+        // transient error — keep polling
+      }
+      await sleep(3000);
+    }
+    return false;
+  };
   /* ── Loading screen: fun facts + progress bar ── */
   const facts = useMemo(
     () => {
@@ -195,10 +233,10 @@ export default function OnboardingScreen8() {
   }, [allData?.optional_equipment]);
 
   const phaseLabel = useMemo(() => {
-    const phase = allData?.training_phase;
-    if (!phase) return "";
-    return TRAINING_PHASE_LABELS[phase] || phase;
-  }, [allData?.training_phase]);
+    const ct = allData?.current_training;
+    if (!ct) return "";
+    return CURRENT_TRAINING_LABELS[ct] || ct;
+  }, [allData?.current_training]);
 
   // Group selected gaps by category
   const gapsByCategory = useMemo(() => {
@@ -271,6 +309,8 @@ export default function OnboardingScreen8() {
           }
         : { preparing: false };
 
+      const ct = CURRENT_TRAINING_MAP[allData.current_training] ?? { recent: "", phase: "" };
+
       const apiPayload: OnboardingApiPayload = {
         display_name: allData.name,
         country: allData.country,
@@ -320,6 +360,7 @@ export default function OnboardingScreen8() {
         considerations: {
           has_limitations: allData.limitation ?? false,
           affected_areas: allData.affected_area ?? [],
+          status: allData.injury_status ?? "",
           impact_level: allData.impact ?? "",
           triggers: allData.when_to_show ?? [],
         },
@@ -333,13 +374,20 @@ export default function OnboardingScreen8() {
         },
         training_preference: allData.training_preferences ?? "",
         performance_gaps: allData.performance_gaps ?? [],
-        training_phase: allData.training_phase ?? "",
-        recent_training_volume: allData.recent_training_volume ?? "",
+        recovery_profile: allData.recovery ?? "",
+        training_phase: ct.phase,
+        recent_training_volume: ct.recent,
         competition,
       };
 
       const result = await submitProfile(apiPayload).unwrap();
       dispatch(setUser(result.data));
+
+      // Backend returns immediately and builds the week in the background. Keep
+      // the loading screen up and wait for the plan before we go Home.
+      if ((result as any)?.generating) {
+        await waitForTrainingWeek();
+      }
 
       // Fill progress bar to 100%, then navigate
       Animated.timing(progressWidth, {

@@ -2,12 +2,14 @@ import CompetitionLifts from "@/components/competition-lifts";
 import RecentInsight from "@/components/recent-insight";
 import RecentLifts from "@/components/recent-lifts";
 import UserProfileInfo from "@/components/user-profile-info";
+import { useGetProfileQuery } from "@/store/api";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
 import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
 import {
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -16,6 +18,15 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function MyProfile() {
+  const { data, isLoading } = useGetProfileQuery();
+  const user = data?.data;
+  const profile = user?.profile;
+  const displayName = user?.name || profile?.display_name || "Athlete";
+  const username = user?.username || "";
+  const unit = profile?.bodyweight_unit || "kg";
+  const snatchKg = profile?.strength_stats?.classic?.snatch?.value ?? 0;
+  const cjKg = profile?.strength_stats?.classic?.clean_jerk?.value ?? 0;
+
   const handleBackPress = () => {
     router.back();
   };
@@ -49,15 +60,24 @@ export default function MyProfile() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <UserProfileInfo isOwnProfile />
-        <CompetitionLifts />
-        <RecentLifts />
-        <RecentInsight />
-      </ScrollView>
+      {isLoading ? (
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator color={olyColors.text.secondary} />
+        </View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <UserProfileInfo isOwnProfile name={displayName} username={username} />
+          <CompetitionLifts
+            snatch={{ liftName: "Snatch", weight: snatchKg, unit }}
+            cleanAndJerk={{ liftName: "Clean & Jerk", weight: cjKg, unit }}
+          />
+          <RecentLifts />
+          <RecentInsight />
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -65,6 +85,11 @@ export default function MyProfile() {
 /* ── Styles ──────────────────────────────────────────── */
 
 const styles = StyleSheet.create({
+  loadingWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   container: {
     flex: 1,
     backgroundColor: olyPalette.background,

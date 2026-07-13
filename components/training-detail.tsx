@@ -141,7 +141,9 @@ export default function TrainingDetail({
                     set.isComplete && styles.setWeightDone,
                   ]}
                 >
-                  {set.weight} kg
+                  {set.weight != null
+                    ? `${set.weight} kg × ${set.reps ?? "—"}`
+                    : `${set.reps ?? "—"} reps`}
                 </Text>
                 <Text
                   style={[
