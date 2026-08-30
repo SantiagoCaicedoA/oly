@@ -1,11 +1,12 @@
 import { Images } from "@/assets";
+import { TabLoaderProvider, useTabLoader } from "@/components/tab-loader";
 import { useTheme } from "@/context/theme-context";
 import { Typography } from "@/utils/custom-styles";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { BlurView } from "expo-blur";
 import { router, Tabs } from "expo-router";
-import React, { createContext, useState } from "react";
+import React, { createContext, useEffect, useState } from "react";
 import { Image, Platform, Text, TouchableOpacity, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { scale } from "react-native-size-matters";
@@ -15,11 +16,30 @@ export const TabBarContext = createContext({
 });
 
 export default function TabLayout() {
-  const { colors } = useTheme();
-  const [isTabBarVisible, setIsTabBarVisible] = useState(true);
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <BottomSheetModalProvider>
+      <TabLoaderProvider>
+        <TabsWithLoader />
+      </TabLoaderProvider>
+    </GestureHandlerRootView>
+  );
+}
+
+function TabsWithLoader() {
+  const { colors } = useTheme();
+  const [isTabBarVisible, setIsTabBarVisible] = useState(true);
+  const { show } = useTabLoader();
+
+  // branded loader on the first open of the tabs
+  useEffect(() => {
+    show();
+  }, [show]);
+
+  // shown before opening Home / Workout / Rank / Analytics
+  const loaderListeners = { tabPress: () => show() };
+
+  return (
+    <BottomSheetModalProvider>
         <Tabs
           screenOptions={{
             headerShown: false,
@@ -67,6 +87,7 @@ export default function TabLayout() {
         >
           <Tabs.Screen
             name="home"
+            listeners={loaderListeners}
             options={{
               title: "HOME",
               tabBarIcon: ({ color }) => (
@@ -84,6 +105,7 @@ export default function TabLayout() {
 
           <Tabs.Screen
             name="workout"
+            listeners={loaderListeners}
             options={{
               title: "WORKOUT",
               tabBarIcon: ({ color }) => (
@@ -148,6 +170,7 @@ export default function TabLayout() {
 
           <Tabs.Screen
             name="rank"
+            listeners={loaderListeners}
             options={{
               title: "RANK",
               tabBarIcon: ({ color }) => (
@@ -165,6 +188,7 @@ export default function TabLayout() {
 
           <Tabs.Screen
             name="analytics"
+            listeners={loaderListeners}
             options={{
               title: "ANALYTICS",
               tabBarIcon: ({ color }) => (
@@ -180,7 +204,6 @@ export default function TabLayout() {
             }}
           />
         </Tabs>
-      </BottomSheetModalProvider>
-    </GestureHandlerRootView>
+    </BottomSheetModalProvider>
   );
 }
