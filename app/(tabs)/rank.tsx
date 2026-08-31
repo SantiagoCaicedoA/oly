@@ -12,9 +12,8 @@ import {
   YOU,
 } from "@/constants/leaderboard-data";
 import { OlyAvatar } from "@/src/oly-components/atoms/OlyAvatar";
-import { OlySelectionChip } from "@/src/oly-components/atoms/OlySelectionChip";
-import { OlySegmentedControl } from "@/src/oly-components/molecules/OlySegmentedControl";
 import { OlyScreenWrapper } from "@/src/oly-components/organisms/OlyScreenWrapper";
+import * as Haptics from "expo-haptics";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
 import { olyElevation, olyOverlay } from "@/src/oly-theme/oly-elevation";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
@@ -46,6 +45,101 @@ const liftName = (l: LiftKey) =>
 
 /** Tab bar (64) + its bottom margin (28) + one card gap */
 const TAB_BAR_CLEARANCE = 64 + 28 + olySpacing[12];
+
+/**
+ * Concentric corner: container uses olyRadius.lg (12) with olySpacing[4]
+ * inner padding, so nested pills use 12 - 4 = 8 to stay optically aligned.
+ */
+const NESTED_RADIUS = olyRadius.lg - olySpacing[4];
+
+/**
+ * Quiet segmented control for the leaderboard (reference design):
+ * neutral card surface, no outer border, blue reserved for the active pill.
+ * Local to this screen — the shared OlySegmentedControl (bordered, ALL-CAPS)
+ * stays untouched for onboarding.
+ */
+function LiftSegments({
+  segments,
+  activeIndex,
+  onChange,
+  style,
+}: {
+  segments: string[];
+  activeIndex: number;
+  onChange: (index: number) => void;
+  style?: object;
+}) {
+  return (
+    <View style={[styles.segments, style]}>
+      {segments.map((label, index) => {
+        const active = index === activeIndex;
+        return (
+          <Pressable
+            key={label}
+            onPress={() => {
+              if (index !== activeIndex) {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onChange(index);
+              }
+            }}
+            style={[styles.segment, active && styles.segmentActive]}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={label}
+          >
+            <Text
+              style={[
+                styles.segmentLabel,
+                active ? styles.segmentLabelActive : styles.segmentLabelIdle,
+              ]}
+              maxFontSizeMultiplier={1.3}
+            >
+              {label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/**
+ * Quiet filter chip (reference design): neutral surface, secondary text,
+ * blue only when toggled on. Local to this screen — the shared
+ * OlySelectionChip (blue-tinted unselected + brand border) is for
+ * onboarding multi-select grids.
+ */
+function FilterChip({
+  label,
+  active = false,
+  dim = false,
+  onPress,
+}: {
+  label: string;
+  active?: boolean;
+  dim?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        onPress();
+      }}
+      style={[styles.chip, active && styles.chipActive, dim && styles.chipDim]}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: active }}
+    >
+      <Text
+        style={[styles.chipLabel, active && styles.chipLabelActive]}
+        maxFontSizeMultiplier={1.3}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
 
 export default function Rank() {
   const insets = useSafeAreaInsets();
@@ -141,11 +235,11 @@ export default function Rank() {
       <View style={styles.header}>
         <Text style={styles.kicker}>RANK</Text>
         <Text style={styles.title}>Leaderboard</Text>
-        <OlySegmentedControl
+        <LiftSegments
           segments={LIFT_LABELS}
           activeIndex={LIFT_KEYS.indexOf(lift)}
           onChange={(i) => setLift(LIFT_KEYS[i])}
-          style={styles.segments}
+          style={styles.segmentsSpacing}
         />
       </View>
 
@@ -156,19 +250,17 @@ export default function Rank() {
         style={styles.chipsRow}
         contentContainerStyle={styles.chipsContent}
       >
-        <OlySelectionChip
+        <FilterChip
           label={`${wclass} kg`}
-          selected={false}
+          dim={lift === "sinclair"}
           onPress={() => lift !== "sinclair" && setFilterSheet("class")}
-          style={lift === "sinclair" ? styles.chipDim : undefined}
         />
-        <OlySelectionChip
+        <FilterChip
           label={sex === "M" ? "Men" : "Women"}
-          selected={false}
+          dim={lift === "sinclair"}
           onPress={() => lift !== "sinclair" && setFilterSheet("sex")}
-          style={lift === "sinclair" ? styles.chipDim : undefined}
         />
-        <OlySelectionChip
+        <FilterChip
           label={
             age === "all"
               ? "All ages"
@@ -178,17 +270,15 @@ export default function Rank() {
               ? "Masters"
               : "Senior"
           }
-          selected={false}
           onPress={() => setFilterSheet("age")}
         />
-        <OlySelectionChip
+        <FilterChip
           label={country === "COL" ? "Colombia" : "World"}
-          selected={false}
           onPress={() => setFilterSheet("country")}
         />
-        <OlySelectionChip
+        <FilterChip
           label="Friends"
-          selected={friendsOnly}
+          active={friendsOnly}
           onPress={() => setFriendsOnly((f) => !f)}
         />
       </ScrollView>
@@ -585,15 +675,52 @@ const styles = StyleSheet.create({
     ...olyTypography.title1,
     color: olyColors.text.primary,
   },
-  segments: {
+  segmentsSpacing: {
     marginTop: olySpacing[16],
   },
+  segments: {
+    flexDirection: "row",
+    backgroundColor: olyColors.bg.card,
+    borderRadius: olyRadius.lg,
+    padding: olySpacing[4],
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: olySpacing[8],
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: NESTED_RADIUS,
+  },
+  segmentActive: {
+    backgroundColor: olyPalette.primary,
+  },
+  segmentLabel: {
+    ...olyTypography.caption,
+    fontFamily: olyTypography.label.fontFamily,
+  },
+  segmentLabelActive: { color: olyColors.text.onBrand },
+  segmentLabelIdle: { color: olyColors.text.secondary },
   chipsRow: { flexGrow: 0, marginTop: olySpacing[12] },
   chipsContent: {
     paddingHorizontal: olyLayout.screenPadding,
     gap: olySpacing[8],
   },
+  chip: {
+    backgroundColor: olyColors.bg.card,
+    borderRadius: NESTED_RADIUS,
+    paddingVertical: olySpacing[8],
+    paddingHorizontal: olySpacing[12],
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chipActive: { backgroundColor: olyPalette.primary },
   chipDim: { opacity: 0.3 },
+  chipLabel: {
+    ...olyTypography.caption,
+    fontFamily: olyTypography.label.fontFamily,
+    color: olyColors.text.secondary,
+  },
+  chipLabelActive: { color: olyColors.text.onBrand },
   scroll: {
     flex: 1,
     marginTop: olySpacing[12],
