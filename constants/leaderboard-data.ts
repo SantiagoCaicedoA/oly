@@ -73,7 +73,8 @@ export function sinclair(a: { sn: number; cj: number; bw: number; sex: Sex }): n
 }
 
 const DATES = ["Jun 14", "Jun 27", "Jul 6", "Jul 12", "Jul 21", "Jul 30", "Aug 3", "Aug 8"];
-export const prDate = (id: number, salt: number) => DATES[(id * 3 + salt) % DATES.length];
+export const prDate = (id: number, salt: number) =>
+  DATES[(((id * 3 + salt) % DATES.length) + DATES.length) % DATES.length];
 
 export const initials = (n: string) =>
   n
@@ -81,3 +82,124 @@ export const initials = (n: string) =>
     .map((w) => w[0])
     .slice(0, 2)
     .join("");
+
+/** IOC-style country list for the region picker (mock subset; served by the API later). */
+export const COUNTRIES: { code: string; name: string }[] = [
+  { code: "ALB", name: "Albania" },
+  { code: "ALG", name: "Algeria" },
+  { code: "ARG", name: "Argentina" },
+  { code: "ARM", name: "Armenia" },
+  { code: "AUS", name: "Australia" },
+  { code: "AUT", name: "Austria" },
+  { code: "AZE", name: "Azerbaijan" },
+  { code: "BLR", name: "Belarus" },
+  { code: "BEL", name: "Belgium" },
+  { code: "BOL", name: "Bolivia" },
+  { code: "BRA", name: "Brazil" },
+  { code: "BUL", name: "Bulgaria" },
+  { code: "CMR", name: "Cameroon" },
+  { code: "CAN", name: "Canada" },
+  { code: "CHI", name: "Chile" },
+  { code: "CHN", name: "China" },
+  { code: "TPE", name: "Chinese Taipei" },
+  { code: "COL", name: "Colombia" },
+  { code: "CRC", name: "Costa Rica" },
+  { code: "CRO", name: "Croatia" },
+  { code: "CUB", name: "Cuba" },
+  { code: "CYP", name: "Cyprus" },
+  { code: "CZE", name: "Czechia" },
+  { code: "DEN", name: "Denmark" },
+  { code: "DOM", name: "Dominican Republic" },
+  { code: "ECU", name: "Ecuador" },
+  { code: "EGY", name: "Egypt" },
+  { code: "ESA", name: "El Salvador" },
+  { code: "EST", name: "Estonia" },
+  { code: "ETH", name: "Ethiopia" },
+  { code: "FIJ", name: "Fiji" },
+  { code: "FIN", name: "Finland" },
+  { code: "FRA", name: "France" },
+  { code: "GEO", name: "Georgia" },
+  { code: "GER", name: "Germany" },
+  { code: "GHA", name: "Ghana" },
+  { code: "GBR", name: "Great Britain" },
+  { code: "GRE", name: "Greece" },
+  { code: "GUA", name: "Guatemala" },
+  { code: "HON", name: "Honduras" },
+  { code: "HKG", name: "Hong Kong" },
+  { code: "HUN", name: "Hungary" },
+  { code: "ISL", name: "Iceland" },
+  { code: "IND", name: "India" },
+  { code: "INA", name: "Indonesia" },
+  { code: "IRI", name: "Iran" },
+  { code: "IRQ", name: "Iraq" },
+  { code: "IRL", name: "Ireland" },
+  { code: "ITA", name: "Italy" },
+  { code: "JPN", name: "Japan" },
+  { code: "KAZ", name: "Kazakhstan" },
+  { code: "KEN", name: "Kenya" },
+  { code: "KGZ", name: "Kyrgyzstan" },
+  { code: "LAT", name: "Latvia" },
+  { code: "LBN", name: "Lebanon" },
+  { code: "LTU", name: "Lithuania" },
+  { code: "MAS", name: "Malaysia" },
+  { code: "MEX", name: "Mexico" },
+  { code: "MDA", name: "Moldova" },
+  { code: "MAR", name: "Morocco" },
+  { code: "NED", name: "Netherlands" },
+  { code: "NZL", name: "New Zealand" },
+  { code: "NCA", name: "Nicaragua" },
+  { code: "NGR", name: "Nigeria" },
+  { code: "PRK", name: "North Korea" },
+  { code: "NOR", name: "Norway" },
+  { code: "PAK", name: "Pakistan" },
+  { code: "PAN", name: "Panama" },
+  { code: "PAR", name: "Paraguay" },
+  { code: "PER", name: "Peru" },
+  { code: "PHI", name: "Philippines" },
+  { code: "POL", name: "Poland" },
+  { code: "POR", name: "Portugal" },
+  { code: "PUR", name: "Puerto Rico" },
+  { code: "QAT", name: "Qatar" },
+  { code: "ROU", name: "Romania" },
+  { code: "RUS", name: "Russia" },
+  { code: "SAM", name: "Samoa" },
+  { code: "KSA", name: "Saudi Arabia" },
+  { code: "SEN", name: "Senegal" },
+  { code: "SRB", name: "Serbia" },
+  { code: "SGP", name: "Singapore" },
+  { code: "SVK", name: "Slovakia" },
+  { code: "SLO", name: "Slovenia" },
+  { code: "RSA", name: "South Africa" },
+  { code: "KOR", name: "South Korea" },
+  { code: "ESP", name: "Spain" },
+  { code: "SRI", name: "Sri Lanka" },
+  { code: "SWE", name: "Sweden" },
+  { code: "SUI", name: "Switzerland" },
+  { code: "TJK", name: "Tajikistan" },
+  { code: "THA", name: "Thailand" },
+  { code: "TUN", name: "Tunisia" },
+  { code: "TUR", name: "Turkey" },
+  { code: "TKM", name: "Turkmenistan" },
+  { code: "UKR", name: "Ukraine" },
+  { code: "USA", name: "United States" },
+  { code: "URU", name: "Uruguay" },
+  { code: "UZB", name: "Uzbekistan" },
+  { code: "VEN", name: "Venezuela" },
+  { code: "VIE", name: "Vietnam" },
+];
+
+/** Season 1 window (mock; real seasons come from the API). */
+export const SEASON = { label: "Season 1", ends: "Dec 31" };
+
+/** Your season-best lifts so far (below your all-time PRs). */
+export const YOU_SEASON = { sn: 92, cj: 113 };
+
+/**
+ * Deterministic mock of season-best lifts (~90-97% of PR).
+ * null = hasn't posted a verified lift this season, so unranked on the season board.
+ */
+export function seasonLifts(a: { id: number; sn: number; cj: number }) {
+  if (a.id % 4 === 0) return null;
+  const f = 0.9 + ((a.id * 7) % 8) / 100;
+  return { sn: Math.round(a.sn * f), cj: Math.round(a.cj * f) };
+}
