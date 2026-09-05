@@ -30,7 +30,21 @@ export const ATHLETE_ROUTES = {
   UNLIKE_COMMENT_BY_ID: (postId: string, commentId: string) =>
     `/api/posts/${postId}/comments/${commentId}/like`,
 } as const;
+export const LEADERBOARD_ROUTES = {
+  BOARD: "/api/leaderboard",
+  ME: "/api/leaderboard/me",
+  FRIENDS: "/api/leaderboard/friends",
+  CURRENT_SEASON: "/api/seasons/current",
+  ATHLETE_CARD: (userId: string) => `/api/athletes/${userId}/card`,
+  SUBMIT_LIFT: "/api/lifts",
+  MY_LIFTS: "/api/lifts/me",
+  FLAG_LIFT: (liftId: string) => `/api/lifts/${liftId}/flag`,
+  UPLOAD_LIFT_VIDEO: "/api/videos/upload",
+  FOLLOW: (userId: string) => `/api/follow/${userId}`,
+} as const;
+
 export const API_ROUTES = {
   AUTH: AUTH_ROUTES,
   ATHLETE: ATHLETE_ROUTES,
+  LEADERBOARD: LEADERBOARD_ROUTES,
 } as const;
