@@ -1,20 +1,23 @@
 import { useTabLoader } from "@/components/tab-loader";
+import { COUNTRIES, MEN_CLASSES, WOMEN_CLASSES } from "@/constants/leaderboard-data";
 import {
-  AgeCategory,
-  ATHLETES,
-  Athlete,
-  COUNTRIES,
-  LiftKey,
-  MEN_CLASSES,
-  prDate,
-  SEASON,
-  seasonLifts,
-  Sex,
-  sinclair,
-  WOMEN_CLASSES,
-  YOU,
-  YOU_SEASON,
-} from "@/constants/leaderboard-data";
+  useFollowAthleteMutation,
+  useGetAthleteCardQuery,
+  useGetCurrentSeasonQuery,
+  useGetFriendsBoardQuery,
+  useGetLeaderboardQuery,
+  useGetMyRankQuery,
+  useLazyGetLeaderboardQuery,
+  useUnfollowAthleteMutation,
+} from "@/store/api";
+import type {
+  ApiAge,
+  ApiLift,
+  ApiSex,
+  BoardParams,
+  BoardRow,
+  SeasonMeta,
+} from "@/types/api/leaderboard";
 import { OlyAvatar } from "@/src/oly-components/atoms/OlyAvatar";
 import { OlyScreenWrapper } from "@/src/oly-components/organisms/OlyScreenWrapper";
 import * as Haptics from "expo-haptics";
@@ -30,7 +33,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -41,16 +46,69 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSelector } from "react-redux";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 
-type Ranked = Athlete & { m: number; isYou?: boolean };
-
+/** UI lift keys map 1:1 onto the API's lift values. */
+type LiftKey = "total" | "sn" | "cj" | "sinclair";
 const LIFT_KEYS: LiftKey[] = ["total", "sn", "cj", "sinclair"];
 const LIFT_LABELS = ["Total", "Snatch", "C&J", "Sinclair"];
+const API_LIFT: Record<LiftKey, ApiLift> = {
+  total: "total",
+  sn: "snatch",
+  cj: "cleanjerk",
+  sinclair: "sinclair",
+};
 
 const liftName = (l: LiftKey) =>
   ({ total: "Total", sn: "Snatch", cj: "Clean & Jerk", sinclair: "Sinclair" }[l]);
+
+/** Row shape the board renders — a light view over the API's BoardRow. */
+type Ranked = {
+  key: string;
+  userId: string;
+  rank: number;
+  name: string;
+  club: string | null;
+  country: string;
+  sex: ApiSex;
+  wclass: string;
+  ageCategories: string[];
+  m: number;
+  sn: number | null;
+  cj: number | null;
+  bw: number | null;
+  sinclair: number | null;
+  pending: boolean;
+  achievedAt: string | null;
+  isYou: boolean;
+};
+
+const toRanked = (r: BoardRow, myId: string | undefined): Ranked => ({
+  key: `${r.user.id}-${r.user.weightClass}`,
+  userId: r.user.id,
+  rank: r.rank,
+  name: r.user.name,
+  club: r.user.club,
+  country: r.user.countryCode,
+  sex: r.user.sex,
+  wclass: r.user.weightClass,
+  ageCategories: r.user.ageCategories ?? ["open"],
+  m: r.value,
+  sn: r.snatchKg,
+  cj: r.cleanKg,
+  bw: r.bodyweightKg,
+  sinclair: r.sinclair,
+  pending: !!r.pendingReview,
+  achievedAt: r.achievedAt,
+  isYou: !!myId && r.user.id === myId,
+});
+
+const fmtDate = (iso: string | null | undefined) =>
+  iso
+    ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    : "";
 
 /** Tab bar (64) + its bottom margin (28) + one card gap */
 const TAB_BAR_CLEARANCE = 64 + 28 + olySpacing[4];
@@ -167,31 +225,82 @@ function FilterChip({
 export default function Rank() {
   const insets = useSafeAreaInsets();
   const { begin, end } = useTabLoader();
+  const myId: string | undefined = useSelector(
+    (s: any) => s?.auth?.user?._id ?? undefined
+  );
+  const myName: string = useSelector(
+    (s: any) => s?.auth?.user?.name ?? "You"
+  );
 
-  // filters
+  // filters — Open is the default board (no age restriction, §4.2)
   const [scope, setScope] = useState<"season" | "alltime">("season");
   const [lift, setLift] = useState<LiftKey>("total");
-  const [wclass, setWclass] = useState("81");
-  const [sex, setSex] = useState<Sex>("M");
-  const [age, setAge] = useState<AgeCategory | "all">("senior");
+  const [wclass, setWclass] = useState("88");
+  const [sex, setSex] = useState<ApiSex>("M");
+  const [age, setAge] = useState<ApiAge>("open");
   const [country, setCountry] = useState<string>("COL");
   const [friendsOnly, setFriendsOnly] = useState(false);
 
-  // dummy "fetch" so the tab loader behaves like it will with the real API
-  const [loaded, setLoaded] = useState(false);
+  const params: BoardParams = useMemo(
+    () => ({
+      lift: API_LIFT[lift],
+      scope,
+      sex,
+      age,
+      class: lift === "sinclair" ? undefined : wclass,
+      country: country === "ALL" ? undefined : country,
+      limit: 50,
+    }),
+    [lift, scope, sex, age, wclass, country]
+  );
+
+  // live data — the board is viewer-independent (cacheable); /me rides
+  // alongside; the friends board replaces both when toggled.
+  const seasonQ = useGetCurrentSeasonQuery();
+  const boardQ = useGetLeaderboardQuery(params, { skip: friendsOnly });
+  const friendsQ = useGetFriendsBoardQuery(params, { skip: !friendsOnly });
+  const meQ = useGetMyRankQuery(params, { skip: friendsOnly });
+  const [fetchMore, moreQ] = useLazyGetLeaderboardQuery();
+
+  // cursor pagination: extra pages accumulate locally, reset on any filter change
+  const [extra, setExtra] = useState<BoardRow[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const paramsKey = JSON.stringify(params) + (friendsOnly ? "|f" : "");
+  useEffect(() => {
+    setExtra([]);
+    setNextCursor(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paramsKey]);
+  useEffect(() => {
+    if (!friendsOnly && boardQ.data) setNextCursor(boardQ.data.nextCursor);
+  }, [boardQ.data, friendsOnly]);
+
+  const loadMore = async () => {
+    if (!nextCursor || moreQ.isFetching) return;
+    const page = await fetchMore({ ...params, cursor: nextCursor }).unwrap();
+    setExtra((e) => [...e, ...page.entries]);
+    setNextCursor(page.nextCursor);
+  };
+
+  // tab loader mirrors the first real fetch
+  const firstLoading = friendsOnly ? friendsQ.isLoading : boardQ.isLoading;
   useEffect(() => {
     begin();
-    const t = setTimeout(() => {
-      setLoaded(true);
-      end();
-    }, 600);
-    return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  useEffect(() => {
+    if (!firstLoading) end();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firstLoading]);
 
-  const [following, setFollowing] = useState<Record<number, boolean>>(() =>
-    Object.fromEntries(ATHLETES.map((a) => [a.id, a.friend]))
-  );
+  const isError = friendsOnly ? friendsQ.isError : boardQ.isError;
+  const refetch = friendsOnly ? friendsQ.refetch : boardQ.refetch;
+
+  const season: SeasonMeta | null =
+    (friendsOnly ? friendsQ.data?.season : boardQ.data?.season) ??
+    seasonQ.data?.season ??
+    null;
+  const me = !friendsOnly ? meQ.data?.me ?? null : null;
 
   // sheets
   const [filterSheet, setFilterSheet] = useState<
@@ -201,53 +310,19 @@ export default function Rank() {
 
   const unit = lift === "sinclair" ? "pts" : "kg";
 
-  // On the season board everyone competes on this season's best lifts
-  const youEff = scope === "season" ? { ...YOU, ...YOU_SEASON } : YOU;
-
   const ranked: Ranked[] = useMemo(() => {
-    const metric = (a: {
-      sn: number;
-      cj: number;
-      bw: number;
-      sex: Sex;
-    }): number => {
-      if (lift === "sn") return a.sn;
-      if (lift === "cj") return a.cj;
-      if (lift === "sinclair") return Math.round(sinclair(a));
-      return a.sn + a.cj;
-    };
-    const pool =
-      scope === "season"
-        ? ATHLETES.flatMap((a) => {
-            const sl = seasonLifts(a);
-            return sl ? [{ ...a, sn: sl.sn, cj: sl.cj }] : [];
-          })
-        : ATHLETES;
-    const list: Ranked[] = pool.filter((a) => {
-      if (lift !== "sinclair") {
-        if (a.wclass !== wclass || a.sex !== sex) return false;
-      }
-      if (age !== "all" && a.age !== age) return false;
-      if (country !== "ALL" && a.country !== country) return false;
-      if (friendsOnly && !following[a.id]) return false;
-      return true;
-    }).map((a) => ({ ...a, m: metric(a) }));
-
-    // you are ranked among them (verified state for the test build)
-    const youQualifies =
-      !friendsOnly &&
-      (lift === "sinclair" || (YOU.wclass === wclass && YOU.sex === sex)) &&
-      (age === "all" || YOU.age === age) &&
-      (country === "ALL" || YOU.country === country);
-    if (youQualifies) {
-      list.push({ ...youEff, friend: false, m: metric(youEff), isYou: true });
-    }
-    return list.sort((a, b) => b.m - a.m);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope, lift, wclass, sex, age, country, friendsOnly, following]);
+    const rows = friendsOnly
+      ? friendsQ.data?.entries ?? []
+      : [...(boardQ.data?.entries ?? []), ...extra];
+    return rows.map((r) => toRanked(r, myId));
+  }, [friendsOnly, friendsQ.data, boardQ.data, extra, myId]);
 
   const youIndex = ranked.findIndex((r) => r.isYou);
   const youBarBottom = Math.max(TAB_BAR_CLEARANCE - insets.bottom, olySpacing[8]);
+
+  // The sticky bar shows whenever I have a rank on this board and my own
+  // row isn't currently visible (or isn't on the fetched pages at all).
+  const showYouBar = !friendsOnly && !!me;
 
   // Sticky You bar hides while your own row is visible in the list
   const YOU_BAR_HEIGHT = 64;
@@ -270,22 +345,30 @@ export default function Rank() {
     const visible = bottom > L.scrollY && top < visibleBottomEdge;
     setYouRowVisible((v) => (v === visible ? v : visible));
   };
-  const podium = ranked.length >= 3 ? ranked.slice(0, 3) : [];
-  const rest = ranked.length >= 3 ? ranked.slice(3) : ranked;
-  const startRank = ranked.length >= 3 ? 4 : 1;
+  useEffect(() => {
+    // my row left the fetched set (filters changed) — bar comes back
+    if (youIndex < 0) setYouRowVisible(false);
+  }, [youIndex]);
+
+  // Podium only when this list truly starts at #1
+  const hasPodium = ranked.length >= 3 && ranked[0].rank === 1;
+  const podium = hasPodium ? ranked.slice(0, 3) : [];
+  const rest = hasPodium ? ranked.slice(3) : ranked;
 
   const classOptions = (sex === "M" ? MEN_CLASSES : WOMEN_CLASSES).map((c) => ({
     value: c,
     label: `${c} kg`,
   }));
 
-  const caption = (a: Athlete) => {
-    let s = `${a.club} · ${a.country}`;
+  const caption = (a: Ranked) => {
+    let s = `${a.club ?? "Independent"} · ${a.country}`;
     if (lift === "sinclair") s += ` · ${a.sex}${a.wclass}`;
-    if (a.age === "junior") s += " · Junior";
-    if (a.age === "masters") s += " · Masters";
+    if (a.ageCategories.includes("junior")) s += " · Junior";
+    if (a.ageCategories.includes("masters")) s += " · Masters";
     return s;
   };
+
+  const openPostFlow = () => router.push("/athlete/create-new-post");
 
   return (
     <OlyScreenWrapper padded={false}>
@@ -309,7 +392,9 @@ export default function Rank() {
         contentContainerStyle={styles.chipsContent}
       >
         <FilterChip
-          label={scope === "season" ? SEASON.label : "All-time"}
+          label={
+            scope === "season" ? season?.label ?? "Season" : "All-time"
+          }
           chevron
           onPress={() => setFilterSheet("scope")}
         />
@@ -328,15 +413,7 @@ export default function Rank() {
           />
         )}
         <FilterChip
-          label={
-            age === "all"
-              ? "All ages"
-              : age === "junior"
-              ? "Junior"
-              : age === "masters"
-              ? "Masters"
-              : "Senior"
-          }
+          label={age === "junior" ? "Junior" : age === "masters" ? "Masters" : "Open"}
           chevron
           onPress={() => setFilterSheet("age")}
         />
@@ -363,7 +440,7 @@ export default function Rank() {
           paddingBottom:
             youBarBottom +
             olySpacing[12] +
-            (youIndex >= 0 && !youRowVisible
+            (showYouBar && !(youRowVisible && youIndex >= 0)
               ? YOU_BAR_HEIGHT + olySpacing[12]
               : 0),
         }}
@@ -378,19 +455,33 @@ export default function Rank() {
         }}
         scrollEventThrottle={32}
       >
-        {loaded && ranked.length === 0 && (
+        {isError && (
           <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>No one is ranked here yet</Text>
+            <Text style={styles.emptyTitle}>Couldn’t load the board</Text>
             <Text style={styles.emptyText}>
-              This board is wide open. Post a verified lift and take the #1 spot
-              — someone has to be first.
+              Check your connection and try again.
             </Text>
-            <TouchableOpacity
-              style={styles.emptyBtn}
-              onPress={() => router.push("/athlete/create-new-post")}
-            >
-              <Text style={styles.emptyBtnText}>POST A LIFT</Text>
+            <TouchableOpacity style={styles.emptyBtn} onPress={() => refetch()}>
+              <Text style={styles.emptyBtnText}>RETRY</Text>
             </TouchableOpacity>
+          </View>
+        )}
+
+        {!isError && !firstLoading && ranked.length === 0 && (
+          <View style={styles.empty}>
+            <Text style={styles.emptyTitle}>
+              {friendsOnly ? "No friends ranked here yet" : "No one is ranked here yet"}
+            </Text>
+            <Text style={styles.emptyText}>
+              {friendsOnly
+                ? "Athletes you follow will show up here once they post a verified lift on this board."
+                : "This board is wide open. Post a verified lift and take the #1 spot — someone has to be first."}
+            </Text>
+            {!friendsOnly && (
+              <TouchableOpacity style={styles.emptyBtn} onPress={openPostFlow}>
+                <Text style={styles.emptyBtnText}>POST A LIFT</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
@@ -411,7 +502,7 @@ export default function Rank() {
               const first = i === 0;
               return (
                 <TouchableOpacity
-                  key={a.id}
+                  key={a.key}
                   style={[styles.pSlot, first && styles.pSlotFirst]}
                   onPress={() => setAthlete(a)}
                   activeOpacity={0.7}
@@ -426,7 +517,7 @@ export default function Rank() {
                       <Text
                         style={[styles.pRankText, first && styles.pRankTextFirst]}
                       >
-                        {i + 1}
+                        {a.rank}
                       </Text>
                     </View>
                   </View>
@@ -441,7 +532,7 @@ export default function Rank() {
                     <Text style={styles.unitText}> {unit}</Text>
                   </Text>
                   <Text style={styles.pCaption} numberOfLines={1}>
-                    {caption(a)}
+                    {a.pending ? "Pending review" : caption(a)}
                   </Text>
                 </TouchableOpacity>
               );
@@ -459,7 +550,7 @@ export default function Rank() {
           >
             {rest.map((a, idx) => (
               <TouchableOpacity
-                key={a.id}
+                key={a.key}
                 style={[
                   styles.row,
                   idx > 0 && styles.rowBorder,
@@ -478,15 +569,22 @@ export default function Rank() {
                     : undefined
                 }
               >
-                <Text style={styles.rankNum}>{idx + startRank}</Text>
+                <Text style={styles.rankNum}>{a.rank}</Text>
                 <OlyAvatar name={a.isYou ? "You" : a.name} size="small" />
                 <View style={styles.rowInfo}>
-                  <Text
-                    style={[styles.rowName, a.isYou && styles.rowNameMe]}
-                    numberOfLines={1}
-                  >
-                    {a.isYou ? "You" : a.name}
-                  </Text>
+                  <View style={styles.rowNameLine}>
+                    <Text
+                      style={[styles.rowName, a.isYou && styles.rowNameMe]}
+                      numberOfLines={1}
+                    >
+                      {a.isYou ? "You" : a.name}
+                    </Text>
+                    {a.pending && (
+                      <View style={styles.pendingPill}>
+                        <Text style={styles.pendingPillText}>PENDING</Text>
+                      </View>
+                    )}
+                  </View>
                   <Text style={styles.rowSub} numberOfLines={1}>
                     {caption(a)}
                   </Text>
@@ -500,17 +598,31 @@ export default function Rank() {
           </View>
         )}
 
+        {!friendsOnly && nextCursor && ranked.length > 0 && (
+          <TouchableOpacity
+            style={styles.loadMore}
+            onPress={loadMore}
+            disabled={moreQ.isFetching}
+          >
+            {moreQ.isFetching ? (
+              <ActivityIndicator size="small" color={olyColors.text.secondary} />
+            ) : (
+              <Text style={styles.loadMoreText}>SHOW MORE</Text>
+            )}
+          </TouchableOpacity>
+        )}
+
         {ranked.length > 0 && (
           <Text style={styles.footnote}>
-            {scope === "season"
-              ? `${SEASON.label} ends ${SEASON.ends} · every lift video-verified`
+            {scope === "season" && season
+              ? `${season.label} ends ${fmtDate(season.endsAt)} · every lift video-verified`
               : "All-time records · every lift video-verified"}
           </Text>
         )}
       </ScrollView>
 
-      {/* Sticky You bar */}
-      {youIndex >= 0 && !youRowVisible && (
+      {/* Sticky You bar — rank always live-counted by the server */}
+      {showYouBar && !(youRowVisible && youIndex >= 0) && (
         <Animated.View
           entering={FadeIn.duration(180)}
           exiting={FadeOut.duration(180)}
@@ -518,20 +630,28 @@ export default function Rank() {
         >
           <Pressable
             style={styles.youBarInner}
-            onPress={() => setAthlete(ranked[youIndex])}
+            onPress={() => {
+              if (me?.provisional) {
+                openPostFlow();
+              } else if (youIndex >= 0) {
+                setAthlete(ranked[youIndex]);
+              }
+            }}
           >
             <View style={styles.youRankBlock}>
-              <Text style={styles.youRank}>{youIndex + 1}</Text>
+              <Text style={styles.youRank}>{me!.rank}</Text>
               <Text style={styles.youRankLabel}>YOU</Text>
             </View>
             <View style={styles.youMid}>
-              <Text style={styles.youName}>{YOU.name}</Text>
+              <Text style={styles.youName}>{myName}</Text>
               <Text style={styles.youGap}>
-                Snatch {youEff.sn} · C&J {youEff.cj}
+                {me!.provisional
+                  ? "Unverified — post a video to claim your spot"
+                  : `Snatch ${me!.snatchKg ?? "—"} · C&J ${me!.cleanKg ?? "—"}`}
               </Text>
             </View>
             <Text style={styles.youKg}>
-              {ranked[youIndex].m}
+              {me!.value}
               <Text style={styles.unitText}> {unit}</Text>
             </Text>
           </Pressable>
@@ -546,7 +666,9 @@ export default function Rank() {
             options={[
               {
                 value: "season",
-                label: `${SEASON.label} · ends ${SEASON.ends}`,
+                label: season
+                  ? `${season.label} · ends ${fmtDate(season.endsAt)}`
+                  : "Season",
               },
               { value: "alltime", label: "All-time records" },
             ]}
@@ -573,8 +695,8 @@ export default function Rank() {
             ]}
             current={sex}
             onPick={(v) => {
-              setSex(v as Sex);
-              setWclass(v === "M" ? "81" : "59");
+              setSex(v as ApiSex);
+              setWclass(v === "M" ? "88" : "69");
             }}
             onClose={() => setFilterSheet(null)}
           />
@@ -583,13 +705,12 @@ export default function Rank() {
           <SheetOptions
             title="AGE CATEGORY"
             options={[
-              { value: "all", label: "All ages" },
-              { value: "junior", label: "Junior · 15–20" },
-              { value: "senior", label: "Senior" },
+              { value: "open", label: "Open · everyone competes" },
+              { value: "junior", label: "Junior · 20 and under" },
               { value: "masters", label: "Masters · 35+" },
             ]}
             current={age}
-            onPick={(v) => setAge(v as AgeCategory | "all")}
+            onPick={(v) => setAge(v as ApiAge)}
             onClose={() => setFilterSheet(null)}
           />
         )}
@@ -602,21 +723,17 @@ export default function Rank() {
         )}
       </SheetModal>
 
-      {/* Athlete sheet */}
+      {/* Athlete sheet — card data fetched live per athlete */}
       <SheetModal visible={athlete !== null} onClose={() => setAthlete(null)}>
         {athlete && (
           <AthleteSheet
             a={athlete}
-            rank={ranked.findIndex((r) => r.id === athlete.id) + 1}
             lift={lift}
             unit={unit}
-            following={!!following[athlete.id]}
-            onToggleFollow={() =>
-              setFollowing((f) => ({ ...f, [athlete.id]: !f[athlete.id] }))
-            }
+            params={params}
             onPost={() => {
               setAthlete(null);
-              router.push("/athlete/create-new-post");
+              openPostFlow();
             }}
           />
         )}
@@ -777,22 +894,48 @@ function CountrySheet({
 
 function AthleteSheet({
   a,
-  rank,
   lift,
   unit,
-  following,
-  onToggleFollow,
+  params,
   onPost,
 }: {
   a: Ranked;
-  rank: number;
   lift: LiftKey;
   unit: string;
-  following: boolean;
-  onToggleFollow: () => void;
+  params: BoardParams;
   onPost: () => void;
 }) {
-  const snPct = (a.sn / (a.sn + a.cj)) * 100;
+  // The card hydrates live: proof videos + follow state. The row's numbers
+  // render immediately so the sheet never feels blocked on the fetch.
+  const cardQ = useGetAthleteCardQuery({
+    userId: a.userId,
+    ...params,
+    class: lift === "sinclair" ? undefined : a.wclass,
+  });
+  const card = cardQ.data;
+
+  const [follow] = useFollowAthleteMutation();
+  const [unfollow] = useUnfollowAthleteMutation();
+  const [followingLocal, setFollowingLocal] = useState<boolean | null>(null);
+  const following = followingLocal ?? card?.athlete.following ?? false;
+  const toggleFollow = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const next = !following;
+    setFollowingLocal(next);
+    (next ? follow(a.userId) : unfollow(a.userId)).catch(() =>
+      setFollowingLocal(!next)
+    );
+  };
+
+  const sn = a.sn ?? card?.stats.snatchKg ?? null;
+  const cj = a.cj ?? card?.stats.cleanKg ?? null;
+  const sinclairPts = a.sinclair ?? card?.stats.sinclair ?? null;
+  const bw = a.bw ?? card?.stats.bodyweightKg ?? null;
+  const snPct = sn && cj ? (sn / (sn + cj)) * 100 : 50;
+
+  const videoFor = (k: "sn" | "cj") =>
+    k === "sn" ? card?.videos.snatch : card?.videos.cleanjerk;
+
   return (
     <View>
       {/* header */}
@@ -804,18 +947,23 @@ function AthleteSheet({
               {a.name}
             </Text>
             <View style={styles.rankPill}>
-              <Text style={styles.rankPillText}>#{rank}</Text>
+              <Text style={styles.rankPillText}>#{a.rank}</Text>
             </View>
+            {a.pending && (
+              <View style={styles.pendingPill}>
+                <Text style={styles.pendingPillText}>PENDING</Text>
+              </View>
+            )}
           </View>
           <Text style={styles.athClub} numberOfLines={1}>
-            {a.club} · {a.country} · {a.sex}
+            {a.club ?? "Independent"} · {a.country} · {a.sex}
             {a.wclass}
           </Text>
         </View>
         {!a.isYou && (
           <TouchableOpacity
             style={[styles.followBtn, following && styles.followBtnOn]}
-            onPress={onToggleFollow}
+            onPress={toggleFollow}
           >
             <Text style={[styles.followText, following && styles.followTextOn]}>
               {following ? "FOLLOWING" : "FOLLOW"}
@@ -836,52 +984,72 @@ function AthleteSheet({
           </View>
           <View style={styles.sbItem}>
             <Text style={styles.sbItemV}>
-              {a.bw}
+              {bw ?? "—"}
               <Text style={styles.unitText}> kg</Text>
             </Text>
             <Text style={styles.sbK}>BODYWEIGHT</Text>
           </View>
           <View style={styles.sbItem}>
             <Text style={styles.sbItemV}>
-              {Math.round(sinclair(a))}
+              {sinclairPts ?? "—"}
               <Text style={styles.unitText}> pts</Text>
             </Text>
             <Text style={styles.sbK}>SINCLAIR</Text>
           </View>
         </View>
         {/* snatch | c&j split */}
-        <View style={styles.split}>
-          <View style={[styles.splitSn, { flex: snPct }]} />
-          <View style={[styles.splitCj, { flex: 100 - snPct }]} />
-        </View>
-        <View style={styles.splitLabels}>
-          <Text style={styles.splitLabel}>SNATCH {a.sn}</Text>
-          <Text style={styles.splitLabel}>C&J {a.cj}</Text>
-        </View>
+        {sn != null && cj != null && (
+          <>
+            <View style={styles.split}>
+              <View style={[styles.splitSn, { flex: snPct }]} />
+              <View style={[styles.splitCj, { flex: 100 - snPct }]} />
+            </View>
+            <View style={styles.splitLabels}>
+              <Text style={styles.splitLabel}>SNATCH {sn}</Text>
+              <Text style={styles.splitLabel}>C&J {cj}</Text>
+            </View>
+          </>
+        )}
       </View>
 
-      {/* videos */}
+      {/* proof videos — the trust signal on every row */}
       <View style={styles.vidDuo}>
-        {(["sn", "cj"] as const).map((k) => (
-          <View key={k} style={styles.vidThumb}>
-            <Text style={styles.vidLift}>
-              {k === "sn" ? "SNATCH" : "CLEAN & JERK"}
-            </Text>
-            <View style={styles.playBtn}>
-              <Ionicons
-                name="play"
-                size={16}
-                color={olyColors.text.onBrand}
-                style={styles.playIcon}
-              />
-            </View>
-            <Text style={styles.vidKg}>
-              {k === "sn" ? a.sn : a.cj}
-              <Text style={styles.unitText}> kg</Text>
-            </Text>
-            <Text style={styles.vidDate}>{prDate(a.id, k === "sn" ? 1 : 4)}</Text>
-          </View>
-        ))}
+        {(["sn", "cj"] as const).map((k) => {
+          const v = videoFor(k);
+          return (
+            <Pressable
+              key={k}
+              style={styles.vidThumb}
+              onPress={() => v?.videoUrl && Linking.openURL(v.videoUrl)}
+              disabled={!v?.videoUrl}
+            >
+              <Text style={styles.vidLift}>
+                {k === "sn" ? "SNATCH" : "CLEAN & JERK"}
+              </Text>
+              {cardQ.isLoading ? (
+                <ActivityIndicator size="small" color={olyColors.text.secondary} />
+              ) : v ? (
+                <>
+                  <View style={styles.playBtn}>
+                    <Ionicons
+                      name="play"
+                      size={16}
+                      color={olyColors.text.onBrand}
+                      style={styles.playIcon}
+                    />
+                  </View>
+                  <Text style={styles.vidKg}>
+                    {v.weightKg}
+                    <Text style={styles.unitText}> kg</Text>
+                  </Text>
+                  <Text style={styles.vidDate}>{fmtDate(v.liftDate)}</Text>
+                </>
+              ) : (
+                <Text style={styles.vidNone}>No lift yet</Text>
+              )}
+            </Pressable>
+          );
+        })}
       </View>
 
       {a.isYou && (
@@ -1049,9 +1217,15 @@ const styles = StyleSheet.create({
     color: olyColors.text.disabled,
   },
   rowInfo: { flex: 1, minWidth: 0 },
+  rowNameLine: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: olySpacing[8],
+  },
   rowName: {
     ...olyTypography.body,
     color: olyColors.text.primary,
+    flexShrink: 1,
   },
   rowNameMe: { fontFamily: olyTypography.label.fontFamily },
   rowSub: {
@@ -1068,6 +1242,32 @@ const styles = StyleSheet.create({
     color: olyColors.text.disabled,
     textAlign: "center",
     marginTop: olySpacing[16],
+  },
+  loadMore: {
+    alignItems: "center",
+    paddingVertical: olySpacing[16],
+  },
+  loadMoreText: {
+    ...olyTypography.caption,
+    fontFamily: olyTypography.label.fontFamily,
+    color: olyColors.text.secondary,
+    letterSpacing: olyLetterSpacing.uppercase,
+  },
+  pendingPill: {
+    backgroundColor: olyColors.bg.cardUnselected,
+    borderRadius: olyRadius.sm,
+    paddingHorizontal: olySpacing[4],
+    paddingVertical: 2,
+  },
+  pendingPillText: {
+    ...olyTypography.caption,
+    color: olyColors.text.secondary,
+    letterSpacing: olyLetterSpacing.uppercase,
+    fontSize: 9,
+  },
+  vidNone: {
+    ...olyTypography.caption,
+    color: olyColors.text.disabled,
   },
 
   /* empty */

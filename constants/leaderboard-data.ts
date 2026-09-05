@@ -59,8 +59,10 @@ export const ATHLETES: Athlete[] = [
   { id: 22, name: "Isabella Vargas", club: "Valle Oro",           country: "COL", sex: "F", wclass: "64", age: "senior",  sn: 80,  cj: 100, bw: 63.7, friend: false },
 ];
 
-export const MEN_CLASSES = ["60", "65", "71", "79", "81", "88", "94", "110", "+110"];
-export const WOMEN_CLASSES = ["48", "53", "58", "59", "63", "64", "69", "77", "+77"];
+// IWF 2025-06 class set — must match the backend's classTable.js exactly
+// (an unknown class label is a 400 from the API, never a silent remap).
+export const MEN_CLASSES = ["60", "65", "71", "79", "88", "94", "110", "+110"];
+export const WOMEN_CLASSES = ["48", "53", "58", "63", "69", "77", "86", "+86"];
 
 /** Sinclair-style pound-for-pound score (illustrative coefficients for the mock). */
 export function sinclair(a: { sn: number; cj: number; bw: number; sex: Sex }): number {

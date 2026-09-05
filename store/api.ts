@@ -33,6 +33,18 @@ import {
     UploadProfileImageResponse,
 } from "@/types/api/onboarding";
 
+import {
+    AthleteCardResponse,
+    BoardParams,
+    boardQuery,
+    CurrentSeasonResponse,
+    FriendsBoardResponse,
+    LeaderboardResponse,
+    MyRankResponse,
+    SubmitLiftPayload,
+    SubmitLiftResponse,
+} from "@/types/api/leaderboard";
+
 import { Days, ProfileSnapshot } from "@/store/reducer/trainingSlice";
 
 interface GetAiTrainingResponse {
@@ -110,7 +122,7 @@ const customBaseQuery: BaseQueryFn<
 export const api = createApi({
   reducerPath: "api",
   baseQuery: customBaseQuery,
-  tagTypes: ["Athlete", "Auth"],
+  tagTypes: ["Athlete", "Auth", "Leaderboard"],
   endpoints: (builder) => ({
     signup: builder.mutation<SignupResponse, SignUpValues>({
       query: (body) => ({
@@ -294,6 +306,70 @@ export const api = createApi({
         method: "DELETE",
       }),
     }),
+
+    // ---- Leaderboard (phase 1/2 backend) ------------------------------------
+    getLeaderboard: builder.query<LeaderboardResponse, BoardParams>({
+      query: (params) => ({
+        url: `${API_ROUTES.LEADERBOARD.BOARD}?${boardQuery(params)}`,
+        method: "GET",
+      }),
+      providesTags: ["Leaderboard"],
+    }),
+    getMyRank: builder.query<MyRankResponse, BoardParams>({
+      query: (params) => ({
+        url: `${API_ROUTES.LEADERBOARD.ME}?${boardQuery(params)}`,
+        method: "GET",
+      }),
+      providesTags: ["Leaderboard"],
+    }),
+    getFriendsBoard: builder.query<FriendsBoardResponse, BoardParams>({
+      query: (params) => ({
+        url: `${API_ROUTES.LEADERBOARD.FRIENDS}?${boardQuery(params)}`,
+        method: "GET",
+      }),
+      providesTags: ["Leaderboard"],
+    }),
+    getCurrentSeason: builder.query<CurrentSeasonResponse, void>({
+      query: () => ({
+        url: API_ROUTES.LEADERBOARD.CURRENT_SEASON,
+        method: "GET",
+      }),
+    }),
+    getAthleteCard: builder.query<AthleteCardResponse, { userId: string } & BoardParams>({
+      query: ({ userId, ...params }) => ({
+        url: `${API_ROUTES.LEADERBOARD.ATHLETE_CARD(userId)}?${boardQuery(params)}`,
+        method: "GET",
+      }),
+    }),
+    submitLift: builder.mutation<SubmitLiftResponse, SubmitLiftPayload>({
+      query: (payload) => ({
+        url: API_ROUTES.LEADERBOARD.SUBMIT_LIFT,
+        method: "POST",
+        body: payload,
+      }),
+      invalidatesTags: ["Leaderboard"],
+    }),
+    flagLift: builder.mutation<{ success: boolean }, { liftId: string; reason: string; note?: string }>({
+      query: ({ liftId, reason, note }) => ({
+        url: API_ROUTES.LEADERBOARD.FLAG_LIFT(liftId),
+        method: "POST",
+        body: { reason, note },
+      }),
+    }),
+    followAthlete: builder.mutation<{ success: boolean }, string>({
+      query: (userId) => ({
+        url: API_ROUTES.LEADERBOARD.FOLLOW(userId),
+        method: "POST",
+      }),
+      invalidatesTags: ["Leaderboard"],
+    }),
+    unfollowAthlete: builder.mutation<{ success: boolean }, string>({
+      query: (userId) => ({
+        url: API_ROUTES.LEADERBOARD.FOLLOW(userId),
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Leaderboard"],
+    }),
   }),
 });
 
@@ -320,4 +396,16 @@ export const {
   useDeleteCommentMutation,
   useLikeCommentMutation,
   useUnlikeCommentMutation,
+
+  useGetLeaderboardQuery,
+  useLazyGetLeaderboardQuery,
+  useGetMyRankQuery,
+  useGetFriendsBoardQuery,
+  useGetCurrentSeasonQuery,
+  useGetAthleteCardQuery,
+  useLazyGetAthleteCardQuery,
+  useSubmitLiftMutation,
+  useFlagLiftMutation,
+  useFollowAthleteMutation,
+  useUnfollowAthleteMutation,
 } = api;
