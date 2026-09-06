@@ -1,4 +1,17 @@
-import { Images } from "@/assets";
+/**
+ * Post Lift — the compose screen (redesigned Sep 2026, prototype-approved).
+ *
+ * Principles (locked with the founder):
+ * - There is NO empty state: standalone mode opens the system video picker
+ *   immediately on mount; canceling it leaves the screen. You always arrive
+ *   with a video.
+ * - Video is the hero. Lift/weight/reps are three stat cards on one grid.
+ * - The golden ticket (leaderboard claim) is the ONLY glowing element —
+ *   it appears only for a single Snatch / Clean & Jerk with weight set.
+ * - One selection grammar: solid brand blue = chosen; tinted outline =
+ *   available; neutral dim = off.
+ * - ✕ confirms before discarding entered work. Post explains what's missing.
+ */
 import { useToast } from "@/context/toast-context";
 import {
   useCreateNewPostMutation,
@@ -6,24 +19,26 @@ import {
   useGetProfileQuery,
   useSubmitLiftMutation,
 } from "@/store/api";
-import { Exercise } from "@/store/reducer/trainingSlice";
 import { RootState } from "@/store/store";
-import { olyTypography, olyFonts, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
+import { olyFonts, olyLetterSpacing, olyTypography } from "@/src/oly-theme/oly-typography";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
-import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
+import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
-import {
-  BottomSheetModal,
-  BottomSheetModalProvider,
-  BottomSheetScrollView,
-} from "@gorhom/bottom-sheet";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
+import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import * as VideoThumbnails from "expo-video-thumbnails";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -31,12 +46,19 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import Animated, {
+  Easing,
+  FadeIn,
+  FadeOut,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
 
-/* ── Types ─────────────────────────────────── */
+/* ── Types ─────────────────────────── */
 
 interface SetVideo {
   setNumber: number;
@@ -48,52 +70,75 @@ interface SetVideo {
   positionQuality?: string;
 }
 
-/* ── Constants ─────────────────────────────── */
+/* ── Constants ─────────────────────── */
 
-const LIFT_NAME_OPTIONS = [
-  "Snatch", "Clean & Jerk", "Power Snatch", "Clean",
-  "Power Clean", "Back Squat", "Front Squat", "Overhead Squat",
-  "Strict Press", "Push Press", "Power Jerk", "Jerk",
-];
-
-const DAY_LABELS: Record<string, string> = {
-  monday: "Monday", tuesday: "Tuesday", wednesday: "Wednesday",
-  thursday: "Thursday", friday: "Friday", saturday: "Saturday",
-  sunday: "Sunday",
-};
-
-const EFFORT_OPTIONS = ["Easy", "Moderate", "Hard", "Max"];
-
-/**
- * Leaderboard bridge (design doc §5): only single snatches and clean & jerks
- * can rank. The lift name must match one of these exactly (power variations,
- * squats, presses are feed-only).
- */
+/** Only single snatches and clean & jerks can rank (design doc §5). */
 const RANKABLE_LIFTS: Record<string, "snatch" | "cleanjerk"> = {
   "snatch": "snatch",
   "clean & jerk": "cleanjerk",
 };
 
-/* ── Size constants (not in design system — screen-specific) ── */
-const THUMB_WIDTH = 110;
-const THUMB_HEIGHT = 140;
-const PLAY_SIZE = 32;
-const MINI_THUMB_SIZE = 40;
-const CHECK_SIZE = 20;
-const ICON_SM = 14;
-const ICON_MD = 16;
-const ICON_LG = 20;
+const OTHER_LIFTS = [
+  "Power Snatch", "Clean", "Power Clean", "Back Squat",
+  "Front Squat", "Overhead Squat", "Strict Press", "Push Press",
+  "Power Jerk", "Jerk",
+];
 
-/* ── Component ─────────────────────────────── */
+const SPEED_OPTIONS = ["Slow", "Medium", "Fast"];
+const EFFORT_OPTIONS = ["Easy", "Moderate", "Hard", "Max"];
+
+/** IWF 2025-06 class labels from bodyweight — mirrors backend classTable. */
+const MEN_BOUNDS: [number, string][] = [
+  [60, "60"], [65, "65"], [71, "71"], [79, "79"], [88, "88"], [94, "94"], [110, "110"],
+];
+const WOMEN_BOUNDS: [number, string][] = [
+  [48, "48"], [53, "53"], [58, "58"], [63, "63"], [69, "69"], [77, "77"], [86, "86"],
+];
+function classFor(sex: "M" | "F", bw: number): string {
+  const bounds = sex === "M" ? MEN_BOUNDS : WOMEN_BOUNDS;
+  for (const [limit, label] of bounds) if (bw <= limit) return label;
+  return sex === "M" ? "+110" : "+86";
+}
+
+/** The one accent the ticket is allowed beyond the brand blue. */
+const GLOW = "#79A8FF";
+
+/* ── Golden ticket sheen (the Willy Wonka pass) ── */
+
+function TicketSheen() {
+  const x = useSharedValue(-140);
+  useEffect(() => {
+    x.value = withRepeat(
+      withTiming(460, { duration: 3800, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      false
+    );
+  }, [x]);
+  const style = useAnimatedStyle(() => ({
+    transform: [{ translateX: x.value }, { skewX: "-18deg" }],
+  }));
+  return (
+    <Animated.View pointerEvents="none" style={[st.sheen, style]}>
+      <LinearGradient
+        colors={["transparent", "rgba(226,232,240,0.16)", "transparent"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={StyleSheet.absoluteFill}
+      />
+    </Animated.View>
+  );
+}
+
+/* ── Component ─────────────────────── */
 
 export default function CreateNewPost() {
   const params = useLocalSearchParams();
   const { showSuccess, showError } = useToast();
   const [createPost, { isLoading }] = useCreateNewPostMutation();
+  const [submitLift] = useSubmitLiftMutation();
   const user = useSelector((state: RootState) => state.auth.user);
-  const days = useSelector((state: RootState) => state.training.days);
 
-  /* ── Route params (from training-exercise) ── */
+  /* ── Route params (training mode, from training-exercise) ── */
   const exerciseName = params.exerciseName as string | undefined;
   const setsWithVideoParam = params.setsWithVideo as string | undefined;
   const setsWithVideo: SetVideo[] = useMemo(() => {
@@ -101,153 +146,49 @@ export default function CreateNewPost() {
     try { return JSON.parse(setsWithVideoParam); }
     catch (e) { return []; }
   }, [setsWithVideoParam]);
-
-  /* ── Mode ── */
   const isStandalone = !exerciseName && setsWithVideo.length === 0;
 
-  /* ── State ── */
+  /* ── Core state ── */
   const [videoUri, setVideoUri] = useState<string | null>(null);
   const [thumbnailUri, setThumbnailUri] = useState<string | null>(null);
-  const [loadingMedia, setLoadingMedia] = useState(false);
+  const [durationSec, setDurationSec] = useState<number | null>(null);
   const [selectedSetIndex, setSelectedSetIndex] = useState(0);
   const selectedVideo = setsWithVideo[selectedSetIndex] ?? null;
 
-  const [manualLiftName, setManualLiftName] = useState("");
-  const [manualWeight, setManualWeight] = useState(0);
-  const [manualReps, setManualReps] = useState(1);
-  const [manualRpm, setManualRpm] = useState(0);
-  const [manualBarSpeed, setManualBarSpeed] = useState("");
-  const [manualPosition, setManualPosition] = useState("");
-  const [manualEffort, setManualEffort] = useState<string | null>(null);
-  const [isPR, setIsPR] = useState(false);
+  const [lift, setLift] = useState<string | null>(exerciseName ?? null);
+  const [weight, setWeight] = useState<number | null>(null);
+  const [reps, setReps] = useState(1);
   const [caption, setCaption] = useState("");
   const [visibility, setVisibility] = useState<"private" | "community">("community");
-  const [sessionDataVisible, setSessionDataVisible] = useState(true);
 
-  /* ── Workout selector ── */
-  const workoutSheetRef = useRef<BottomSheetModal>(null);
-  const workoutSnapPoints = useMemo(() => ["50%", "85%"], []);
-  const [expandedDay, setExpandedDay] = useState<string | null>(null);
-  const [filledFromWorkout, setFilledFromWorkout] = useState(false);
+  /* Show-on-post toggles (display metadata) */
+  const [showWeightPill, setShowWeightPill] = useState(true);
+  const [showTopSet, setShowTopSet] = useState(!isStandalone);
+  const [speedOn, setSpeedOn] = useState(true);
+  const [speedVal, setSpeedVal] = useState("Fast");
+  const [effortOn, setEffortOn] = useState(true);
+  const [effortVal, setEffortVal] = useState("Hard");
 
-  /* ── Show-on-post pills (toggleable) ── */
-  const allPills = useMemo(() => {
-    const pills: { key: string; label: string; value: string }[] = [];
-    const w = selectedVideo?.weight ?? manualWeight;
-    const rpm = selectedVideo?.rpmPercent ?? manualRpm;
-    const speed = selectedVideo?.barSpeed ?? manualBarSpeed;
-    const position = selectedVideo?.positionQuality ?? manualPosition;
-    const setCount = setsWithVideo.length;
+  /* Sheets & modals */
+  const [liftSheet, setLiftSheet] = useState(false);
+  const [chooser, setChooser] = useState<null | "speed" | "effort">(null);
+  const [weightModal, setWeightModal] = useState(false);
+  const [weightDraft, setWeightDraft] = useState("");
 
-    if (w > 0) pills.push({ key: "weight", label: "Weight", value: `${w} kg` });
-    if (manualReps > 1 || isStandalone) pills.push({ key: "reps", label: "Reps", value: `${manualReps}` });
-    if (speed) pills.push({ key: "speed", label: "Bar Speed", value: speed });
-    if (rpm > 0) pills.push({ key: "rpm", label: "Intensity", value: `${rpm}% 1RM` });
-    if (position) pills.push({ key: "position", label: "Position", value: position });
-    if (manualEffort) pills.push({ key: "effort", label: "Effort", value: manualEffort });
-    if (isPR) pills.push({ key: "pr", label: "PR", value: "Personal Record" });
-    if (setCount > 0) pills.push({ key: "sets", label: "Sets", value: `${setCount}` });
-    return pills;
-  }, [selectedVideo, manualWeight, manualReps, manualRpm, manualBarSpeed, manualPosition, manualEffort, isPR, setsWithVideo.length, isStandalone]);
-
-  const [enabledPills, setEnabledPills] = useState<Record<string, boolean>>({});
-
+  /* ── Training-mode prefill ── */
   useEffect(() => {
-    const initial: Record<string, boolean> = {};
-    allPills.forEach((p) => { initial[p.key] = true; });
-    setEnabledPills(initial);
-  }, [allPills.length]);
-
-  const togglePill = (key: string) => {
-    setEnabledPills((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  const previewPills = useMemo(() => {
-    return allPills.filter((p) => enabledPills[p.key]);
-  }, [allPills, enabledPills]);
-
-  /* ── Training days for workout selector ── */
-  const trainingDays = useMemo(() => {
-    if (!days) return [];
-    return Object.entries(days)
-      .filter(([, day]) => day.type === "training" && day.exercises?.length > 0)
-      .map(([key, day]) => ({
-        key,
-        label: DAY_LABELS[key] ?? key,
-        exercises: day.exercises,
-      }));
-  }, [days]);
-
-  /* ── Generate thumbnails ── */
-  const [thumbMap, setThumbMap] = useState<Record<number, string>>({});
-
-  /* ── Derived ── */
-  const liftName = exerciseName ?? (manualLiftName || "");
-  const liftWeight = selectedVideo?.weight ?? manualWeight;
-  const activeVideoUri = selectedVideo?.videoUri ?? videoUri;
-  const activeThumbnailUri = (selectedVideo ? thumbMap[selectedVideo.setNumber] : null) ?? thumbnailUri;
-  const showManualInputs = isStandalone && !filledFromWorkout;
-
-  /* ── Leaderboard bridge ── */
-  const [submitLift] = useSubmitLiftMutation();
-  const rankLiftType = RANKABLE_LIFTS[liftName.trim().toLowerCase()] ?? null;
-  // Singles only. In training mode reps per set aren't tracked here, so the
-  // card copy carries the "single" contract; standalone mode enforces reps=1.
-  const isRankable =
-    !!rankLiftType &&
-    liftWeight > 0 &&
-    !!activeVideoUri &&
-    (!isStandalone || manualReps === 1);
-
-  const [rankLift, setRankLift] = useState(false);
-  useEffect(() => {
-    if (!isRankable && rankLift) setRankLift(false);
+    if (selectedVideo?.weight && selectedVideo.weight > 0) setWeight(selectedVideo.weight);
+    if (selectedVideo?.barSpeed) setSpeedVal(selectedVideo.barSpeed);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRankable]);
+  }, [selectedSetIndex]);
 
-  // Season reminder — fetched only when the card can show
-  const seasonQ = useGetCurrentSeasonQuery(undefined, { skip: !isRankable });
-  const seasonLabel = seasonQ.data?.season?.label ?? null;
-
-  // Bodyweight (kg) — prefilled from the profile, editable per lift
-  const profileQ = useGetProfileQuery(undefined, { skip: !isRankable });
-  const [bodyweightStr, setBodyweightStr] = useState("");
-  useEffect(() => {
-    if (!rankLift || bodyweightStr) return;
-    const p = profileQ.data?.data?.profile;
-    const v = p?.bodyweight_value;
-    if (typeof v === "number" && v > 0) {
-      const kg = p?.bodyweight_unit === "lbs" ? v * 0.453592 : v;
-      setBodyweightStr(String(Math.round(kg * 10) / 10));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rankLift, profileQ.data]);
-
-  // One idempotency key per screen visit — a retry after a network error
-  // can never create a duplicate lift (backend dedupes on it).
-  const idemKeyRef = useRef(
-    `app-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
-  );
-
-  useEffect(() => {
-    setsWithVideo.forEach((sv) => {
-      if (!thumbMap[sv.setNumber] && sv.videoUri) {
-        VideoThumbnails.getThumbnailAsync(sv.videoUri, { time: 1000 })
-          .then(({ uri }) => {
-            setThumbMap((prev) => ({ ...prev, [sv.setNumber]: uri }));
-          })
-          .catch((_e) => {});
-      }
-    });
-  }, [setsWithVideo]);
-
-  /* ── Handlers ── */
-  const handleBackPress = () => router.back();
-
-  const pickVideo = async () => {
+  /* ── Standalone: the picker IS the empty state ── */
+  const pickedOnce = useRef(false);
+  const pickVideo = useCallback(async (firstOpen: boolean) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
       showError("Please allow access to your media library");
+      if (firstOpen) router.back();
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -256,59 +197,96 @@ export default function CreateNewPost() {
       videoMaxDuration: 30,
       quality: 1,
     });
-    if (!result.canceled) {
-      setLoadingMedia(true);
-      const uri = result.assets[0].uri;
-      setVideoUri(uri);
-      try {
-        const { uri: thumb } = await VideoThumbnails.getThumbnailAsync(uri, { time: 1000 });
-        setThumbnailUri(thumb);
-      } catch (e) {
-        console.log("Thumbnail error:", e);
-      } finally {
-        setLoadingMedia(false);
-      }
-    }
-  };
-
-  const handleSelectExercise = useCallback((exercise: Exercise) => {
-    setManualLiftName(exercise.exercise_name);
-    if (exercise.sets?.length) {
-      const topSet = exercise.sets.reduce(
-        (max, s) => (s.weight > max.weight ? s : max),
-        exercise.sets[0],
-      );
-      if (topSet) {
-        setManualWeight(topSet.weight);
-        setManualReps(topSet.reps ?? 1);
-        setManualRpm(topSet.rpm_percent ?? 0);
-        setManualBarSpeed(topSet.bar_speed ?? "");
-        setManualPosition(topSet.position_quality ?? "");
-      }
-    }
-    setFilledFromWorkout(true);
-    workoutSheetRef.current?.dismiss();
-  }, []);
-
-  const handleClearWorkout = () => {
-    setFilledFromWorkout(false);
-    setManualLiftName("");
-    setManualWeight(0);
-    setManualReps(1);
-    setManualRpm(0);
-    setManualBarSpeed("");
-    setManualPosition("");
-  };
-
-  const onSubmit = async () => {
-    const activeVideo = selectedVideo?.videoUri ?? videoUri;
-    if (!activeVideo) {
-      showError("Please select a video");
+    if (result.canceled) {
+      if (firstOpen) router.back(); // never show a hollow screen
       return;
     }
+    const asset = result.assets[0];
+    setVideoUri(asset.uri);
+    setDurationSec(asset.duration ? Math.round(asset.duration / 1000) : null);
+    try {
+      const { uri } = await VideoThumbnails.getThumbnailAsync(asset.uri, { time: 1000 });
+      setThumbnailUri(uri);
+    } catch (e) { /* thumbnail is decorative */ }
+  }, [showError]);
 
-    // Leaderboard pre-checks — fail BEFORE anything uploads
-    const wantRank = rankLift && isRankable && !!rankLiftType;
+  useEffect(() => {
+    if (isStandalone && !pickedOnce.current) {
+      pickedOnce.current = true;
+      pickVideo(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* ── Training-mode thumbnails ── */
+  const [thumbMap, setThumbMap] = useState<Record<number, string>>({});
+  useEffect(() => {
+    setsWithVideo.forEach((sv) => {
+      if (!thumbMap[sv.setNumber] && sv.videoUri) {
+        VideoThumbnails.getThumbnailAsync(sv.videoUri, { time: 1000 })
+          .then(({ uri }) => setThumbMap((prev) => ({ ...prev, [sv.setNumber]: uri })))
+          .catch(() => {});
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setsWithVideo]);
+
+  /* ── Derived ── */
+  const activeVideoUri = selectedVideo?.videoUri ?? videoUri;
+  const activeThumbUri = (selectedVideo ? thumbMap[selectedVideo.setNumber] : null) ?? thumbnailUri;
+  const rankLiftType = lift ? RANKABLE_LIFTS[lift.trim().toLowerCase()] ?? null : null;
+  const isRankable = !!rankLiftType && !!weight && weight > 0 && !!activeVideoUri && reps === 1;
+  const canPost = !!activeVideoUri && !!lift && !!weight && weight > 0;
+
+  /* ── Golden ticket ── */
+  const [ticketOn, setTicketOn] = useState(false);
+  useEffect(() => { if (!isRankable && ticketOn) setTicketOn(false); }, [isRankable, ticketOn]);
+
+  const seasonQ = useGetCurrentSeasonQuery(undefined, { skip: !isRankable });
+  const seasonLabel = seasonQ.data?.season?.label ?? null;
+
+  const profileQ = useGetProfileQuery(undefined, { skip: !isRankable });
+  const profile = profileQ.data?.data?.profile;
+  const sexLetter: "M" | "F" = profile?.sex === "Female" ? "F" : "M";
+  const [bodyweightStr, setBodyweightStr] = useState("");
+  useEffect(() => {
+    if (!ticketOn || bodyweightStr) return;
+    const v = profile?.bodyweight_value;
+    if (typeof v === "number" && v > 0) {
+      const kg = profile?.bodyweight_unit === "lbs" ? v * 0.453592 : v;
+      setBodyweightStr(String(Math.round(kg * 10) / 10));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticketOn, profileQ.data]);
+
+  const bwNum = parseFloat(bodyweightStr);
+  const boardClass = Number.isFinite(bwNum) && bwNum > 0 ? classFor(sexLetter, bwNum) : null;
+  const boardLine = `${(seasonLabel ?? "Season").toUpperCase()} · ${sexLetter === "M" ? "MEN" : "WOMEN"} ${boardClass ?? "—"} KG`;
+
+  // One idempotency key per screen visit — retries can't duplicate a lift.
+  const idemKeyRef = useRef(`app-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
+
+  /* ── Discard confirm ── */
+  const dirty = !!(lift || weight || caption.trim() || (isStandalone && videoUri));
+  const tryClose = () => {
+    if (!dirty) { router.back(); return; }
+    Alert.alert("Discard this post?", "Your video and details won’t be saved.", [
+      { text: "Keep editing", style: "cancel" },
+      { text: "Discard", style: "destructive", onPress: () => router.back() },
+    ]);
+  };
+
+  /* ── Submit ── */
+  const onSubmit = async () => {
+    if (!canPost) {
+      const missing = !activeVideoUri ? "Add a video first"
+        : !lift && !weight ? "Choose the lift and add the weight first"
+        : !lift ? "Choose the lift first" : "Add the weight first";
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      showError(missing);
+      return;
+    }
+    const wantRank = ticketOn && isRankable && !!rankLiftType;
     const bwKg = Math.round(parseFloat(bodyweightStr) * 10) / 10;
     if (wantRank && (!Number.isFinite(bwKg) || bwKg < 30 || bwKg > 250)) {
       showError("Enter your bodyweight (kg) to rank this lift");
@@ -317,22 +295,19 @@ export default function CreateNewPost() {
 
     const formData = new FormData();
     formData.append("video", {
-      uri: activeVideo,
+      uri: activeVideoUri,
       type: "video/mp4",
       name: "post-video.mp4",
     } as any);
-
-    const payload = {
-      lift_name: liftName,
+    formData.append("data", JSON.stringify({
+      lift_name: lift,
       opinion: caption,
-      session_detail: { lifted_kg: liftWeight },
+      session_detail: { lifted_kg: weight },
       is_public: visibility === "community",
       is_private: visibility === "private",
       username: user?.username,
       name: user?.name,
-    };
-
-    formData.append("data", JSON.stringify(payload));
+    }));
 
     let videoUrl: string | undefined;
     try {
@@ -350,12 +325,12 @@ export default function CreateNewPost() {
       return;
     }
 
-    // The feed post is up — now claim the rank with the same uploaded video.
+    // Feed post is up — claim the rank with the same uploaded video.
     try {
       if (!videoUrl) throw new Error("no video url on post response");
       const r = await submitLift({
         liftType: rankLiftType!,
-        weightKg: liftWeight,
+        weightKg: weight!,
         bodyweightKg: bwKg,
         liftDate: new Date().toISOString(),
         videoUrl,
@@ -363,16 +338,10 @@ export default function CreateNewPost() {
       }).unwrap();
 
       if (r.held) {
-        showSuccess(
-          "Posted! Your lift is being reviewed",
-          "It will appear on the leaderboard once approved"
-        );
+        showSuccess("Posted! Your lift is being reviewed", "It will appear on the leaderboard once approved");
       } else if (r.ranks) {
-        const cls = r.ranks.weightClass;
-        showSuccess(
-          `You're #${r.ranks.lift} in ${cls} kg!`,
-          seasonLabel ? `${liftName} · ${seasonLabel}` : liftName
-        );
+        showSuccess(`You're #${r.ranks.lift} in ${r.ranks.weightClass} kg!`,
+          seasonLabel ? `${lift} · ${seasonLabel}` : lift ?? "");
       } else {
         showSuccess("Posted and submitted to the leaderboard!", "");
       }
@@ -380,793 +349,660 @@ export default function CreateNewPost() {
     } catch (error: any) {
       console.error("Submit lift error:", error);
       const msg = error?.data?.error || error?.data?.message;
-      showError(
-        "Posted to your feed, but the leaderboard submission failed",
-        typeof msg === "string" ? msg : "You can try again with your next lift"
-      );
+      showError("Posted to your feed, but the leaderboard submission failed",
+        typeof msg === "string" ? msg : "You can try again with your next lift");
       router.push("/(tabs)/home");
     }
   };
 
+  const fmtDuration = (s: number | null) =>
+    s == null ? null : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
   /* ── Render ── */
   return (
-    <GestureHandlerRootView style={st.container}>
-      <BottomSheetModalProvider>
-        <SafeAreaView style={st.safeArea}>
-          {/* ── Header ── */}
-          <View style={st.header}>
-            <TouchableOpacity style={st.backBtn} onPress={handleBackPress}>
-              <Image source={Images.arrowBack} style={st.backIcon} />
-            </TouchableOpacity>
-            <Text style={st.headerTitle}>
-              {isStandalone ? "NEW POST" : "POST LIFT"}
-            </Text>
+    <SafeAreaView style={st.safe}>
+      {/* Header: kicker + big title, ✕ closes (with confirm) */}
+      <View style={st.header}>
+        <View>
+          <Text style={st.kicker}>SHARE</Text>
+          <Text style={st.title}>Post Lift</Text>
+        </View>
+        <TouchableOpacity style={st.close} onPress={tryClose} hitSlop={12}>
+          <Ionicons name="close" size={18} color={olyColors.text.secondary} />
+        </TouchableOpacity>
+      </View>
+
+      <KeyboardAvoidingView
+        style={st.kav}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={st.scroll}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* 1 · VIDEO HERO */}
+          <View style={st.hero}>
+            {activeThumbUri ? (
+              <Image source={{ uri: activeThumbUri }} style={st.heroImg} />
+            ) : (
+              <View style={[st.heroImg, st.heroLoading]}>
+                <ActivityIndicator color={olyColors.text.secondary} />
+              </View>
+            )}
+            <LinearGradient
+              colors={["transparent", "rgba(4,8,13,0.8)"]}
+              style={st.heroFade}
+            />
+            <View style={st.playBtn}>
+              <Ionicons name="play" size={18} color={olyPalette.white} style={{ marginLeft: 2 }} />
+            </View>
+            {isStandalone && (
+              <TouchableOpacity style={st.replaceBtn} onPress={() => pickVideo(false)} hitSlop={10}>
+                <Ionicons name="sync" size={15} color={olyColors.text.primary} />
+              </TouchableOpacity>
+            )}
+            {!!lift && !!weight && (
+              <View style={st.stamp}>
+                <Text style={st.stampLift}>{lift}</Text>
+                <Text style={st.stampKg}>
+                  {weight} <Text style={st.stampUnit}>kg</Text>
+                </Text>
+              </View>
+            )}
+            {durationSec != null && (
+              <Text style={st.timecode}>{fmtDuration(durationSec)}</Text>
+            )}
           </View>
 
-          <ScrollView
-            contentContainerStyle={st.scroll}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* ── Hero Card ── */}
-            <View style={st.heroCard}>
-              <View style={st.heroRow}>
-                {/* Left column */}
-                <View style={st.heroLeft}>
-                  <View style={st.userRow}>
-                    <View style={st.avatar}>
-                      <Text style={st.avatarLetter}>
-                        {(user?.name || "U")[0].toUpperCase()}
+          {/* Training mode: set selector */}
+          {setsWithVideo.length > 1 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.setRow}>
+              {setsWithVideo.map((sv, i) => (
+                <TouchableOpacity
+                  key={sv.setNumber}
+                  style={[st.setChip, i === selectedSetIndex && st.setChipOn]}
+                  onPress={() => setSelectedSetIndex(i)}
+                >
+                  <Text style={[st.setChipText, i === selectedSetIndex && st.setChipTextOn]}>
+                    S{sv.setNumber}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
+
+          {/* 2 · THE LIFT — three stat cards on one grid */}
+          <Text style={st.secLabel}>THE LIFT</Text>
+          <View style={st.liftRow}>
+            <TouchableOpacity
+              style={[st.statCard, { flex: 1.3 }]}
+              onPress={() => setLiftSheet(true)}
+              activeOpacity={0.7}
+            >
+              <Text style={st.statK}>LIFT</Text>
+              <View style={st.statVRow}>
+                <Text style={[st.statVal, !lift && st.statPlaceholder]} numberOfLines={1}>
+                  {lift ?? "Select"}
+                </Text>
+                <Ionicons name="chevron-down" size={13} color={olyColors.text.disabled} style={st.chev} />
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[st.statCard, { flex: 1 }]}
+              onPress={() => { setWeightDraft(weight ? String(weight) : ""); setWeightModal(true); }}
+              activeOpacity={0.7}
+            >
+              <Text style={st.statK}>WEIGHT</Text>
+              <View style={st.statVRow}>
+                <Text style={[st.statVal, !weight && st.statPlaceholder]}>
+                  {weight ?? "Add"}
+                </Text>
+                {!!weight && <Text style={st.statUnit}>kg</Text>}
+              </View>
+            </TouchableOpacity>
+
+            <View style={[st.statCard, { flex: 1.1 }]}>
+              <Text style={st.statK}>REPS</Text>
+              <View style={[st.statVRow, st.repsRow]}>
+                <TouchableOpacity
+                  style={[st.stepBtn, reps <= 1 && st.stepBtnOff]}
+                  onPress={() => { if (reps > 1) { setReps(reps - 1); Haptics.selectionAsync(); } }}
+                  hitSlop={12}
+                >
+                  <Text style={st.stepTxt}>–</Text>
+                </TouchableOpacity>
+                <Text style={st.statVal}>{reps}</Text>
+                <TouchableOpacity
+                  style={[st.stepBtn, reps >= 20 && st.stepBtnOff]}
+                  onPress={() => { if (reps < 20) { setReps(reps + 1); Haptics.selectionAsync(); } }}
+                  hitSlop={12}
+                >
+                  <Text style={st.stepTxt}>+</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          {/* 3 · GOLDEN TICKET */}
+          {isRankable && (
+            <Animated.View entering={FadeIn.duration(320)} exiting={FadeOut.duration(180)}>
+              <LinearGradient
+                colors={[`${olyPalette.primary}E6`, GLOW, `${olyPalette.primary}E6`]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={st.ticketBorder}
+              >
+                <View style={st.ticketInner}>
+                  <TicketSheen />
+                  <View style={st.ticketRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={st.ticketTitle}>Claim your spot on the leaderboard</Text>
+                      <Text style={st.ticketSub}>
+                        <Text style={st.ticketGlow}>{seasonLabel ?? "The season"}</Text>
+                        {" is live — this single counts as your ranked "}
+                        {lift?.toLowerCase()}
                       </Text>
                     </View>
-                    <Text style={st.userName}>{user?.name ?? "You"}</Text>
-                    <Text style={st.userDot}>·</Text>
-                    <Text style={st.userSub}>Today</Text>
-                  </View>
-
-                  <View style={st.liftBlock}>
-                    {liftName ? (
-                      <Text style={st.liftName}>{liftName.toUpperCase()}</Text>
-                    ) : null}
-                    {liftWeight > 0 && (
-                      <View style={st.weightRow}>
-                        <Text style={st.weightNum}>{liftWeight}</Text>
-                        <Text style={st.weightUnit}>kg</Text>
-                      </View>
-                    )}
-                  </View>
-
-                  {previewPills.length > 0 && (
-                    <View style={st.previewPillWrap}>
-                      {previewPills.filter((p) => p.key !== "weight").map((pill) => (
-                        <View key={pill.key} style={st.previewPill}>
-                          <Text style={st.previewPillText}>{pill.label}: {pill.value}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-                </View>
-
-                {/* Right column */}
-                <View style={st.heroRight}>
-                  {activeVideoUri ? (
                     <TouchableOpacity
-                      style={st.thumbWrap}
-                      onPress={isStandalone ? pickVideo : undefined}
-                      activeOpacity={0.8}
+                      style={[st.tgl, ticketOn && st.tglOn]}
+                      onPress={() => { setTicketOn(!ticketOn); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); }}
+                      hitSlop={10}
                     >
-                      {activeThumbnailUri ? (
-                        <Image source={{ uri: activeThumbnailUri }} style={st.thumbImg} />
-                      ) : (
-                        <View style={[st.thumbImg, st.thumbEmpty]} />
-                      )}
-                      <View style={st.playOverlay}>
-                        <Image source={Images.play} style={st.playIcon} />
-                      </View>
+                      <View style={[st.tglKnob, ticketOn && st.tglKnobOn]} />
                     </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity
-                      style={[st.thumbWrap, st.thumbDashed]}
-                      onPress={pickVideo}
-                      activeOpacity={0.7}
-                    >
-                      {loadingMedia ? (
-                        <ActivityIndicator size="small" color={olyPalette.primary} />
-                      ) : (
-                        <View style={st.uploadContent}>
-                          <Image source={Images.uploadicon} style={st.uploadIcon} />
-                          <Text style={st.uploadText}>Add video</Text>
+                  </View>
+                  {ticketOn && (
+                    <Animated.View entering={FadeIn.duration(250)} style={st.stamped}>
+                      <View style={st.boardLine}>
+                        <Text style={st.boardText}>{boardLine}</Text>
+                        <View style={st.bwBox}>
+                          <TextInput
+                            style={st.bwInput}
+                            value={bodyweightStr}
+                            onChangeText={setBodyweightStr}
+                            keyboardType="decimal-pad"
+                            maxLength={5}
+                            placeholder="0.0"
+                            placeholderTextColor={olyColors.text.disabled}
+                          />
+                          <Text style={st.bwUnit}>KG BW</Text>
                         </View>
-                      )}
-                    </TouchableOpacity>
-                  )}
-
-                  {setsWithVideo.length > 1 && (
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={st.miniRow}
-                    >
-                      {setsWithVideo.map((sv, i) => (
-                        <TouchableOpacity
-                          key={sv.setNumber}
-                          style={[st.miniThumb, i === selectedSetIndex && st.miniThumbActive]}
-                          onPress={() => setSelectedSetIndex(i)}
-                          activeOpacity={0.7}
-                        >
-                          {thumbMap[sv.setNumber] ? (
-                            <Image source={{ uri: thumbMap[sv.setNumber] }} style={st.miniThumbImg} />
-                          ) : (
-                            <Text style={st.miniThumbText}>S{sv.setNumber}</Text>
-                          )}
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
+                      </View>
+                      <Text style={st.proof}>
+                        {visibility === "private"
+                          ? "Your feed post stays private, but this video will be public on the leaderboard as proof of the lift."
+                          : "This video becomes public proof of the lift on the leaderboard."}
+                      </Text>
+                    </Animated.View>
                   )}
                 </View>
-              </View>
-            </View>
+              </LinearGradient>
+            </Animated.View>
+          )}
 
-            {/* ── Standalone: workout selector + manual inputs ── */}
-            {isStandalone && !filledFromWorkout && (
-              <TouchableOpacity
-                style={st.workoutBtn}
-                onPress={() => workoutSheetRef.current?.present()}
-                activeOpacity={0.7}
-              >
-                <Text style={st.workoutBtnText}>SELECT FROM A WORKOUT</Text>
-              </TouchableOpacity>
+          {/* 4 · CAPTION */}
+          <Text style={st.secLabel}>CAPTION</Text>
+          <TextInput
+            style={st.caption}
+            value={caption}
+            onChangeText={setCaption}
+            placeholder="Say something about this lift…"
+            placeholderTextColor={olyColors.text.disabled}
+            multiline
+            textAlignVertical="top"
+          />
+
+          {/* 5 · SHOW ON POST */}
+          <Text style={st.secLabel}>SHOW ON POST</Text>
+          <View style={st.pills}>
+            {!!weight && (
+              <Pill on={showWeightPill} onPress={() => setShowWeightPill(!showWeightPill)}>
+                <Text style={st.pillBold(showWeightPill)}>{weight} kg</Text>
+              </Pill>
             )}
-
-            {filledFromWorkout && (
-              <TouchableOpacity style={st.filledBar} onPress={handleClearWorkout} activeOpacity={0.7}>
-                <Text style={st.filledBarText}>Filled from workout</Text>
-                <Text style={st.filledBarAction}>Clear</Text>
-              </TouchableOpacity>
+            {!isStandalone && (
+              <Pill on={showTopSet} onPress={() => setShowTopSet(!showTopSet)}>
+                <Text style={st.pillText(showTopSet)}>Top set</Text>
+              </Pill>
             )}
-
-            {showManualInputs && (
-              <>
-                {/* Lift Name */}
-                <View style={st.section}>
-                  <Text style={st.sectionLabel}>LIFT NAME</Text>
-                  <View style={st.chipCard}>
-                    <View style={st.chipWrap}>
-                      {LIFT_NAME_OPTIONS.map((opt) => (
-                        <TouchableOpacity
-                          key={opt}
-                          style={[st.liftChip, manualLiftName === opt && st.liftChipActive]}
-                          onPress={() => setManualLiftName(opt)}
-                          activeOpacity={0.7}
-                        >
-                          <Text style={[st.liftChipText, manualLiftName === opt && st.liftChipTextActive]}>
-                            {opt}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-                </View>
-
-                {/* Weight & Reps Steppers */}
-                <View style={st.stepperRow}>
-                  <View style={st.stepperCol}>
-                    <Text style={st.sectionLabel}>WEIGHT</Text>
-                    <View style={st.stepperCard}>
-                      <TouchableOpacity
-                        style={st.stepperBtn}
-                        onPress={() => setManualWeight((v) => Math.max(0, v - 5))}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={st.stepperBtnText}>–</Text>
-                      </TouchableOpacity>
-                      <View style={st.stepperCenter}>
-                        <Text style={st.stepperValue}>{manualWeight}</Text>
-                        <Text style={st.stepperUnit}>KG</Text>
-                      </View>
-                      <TouchableOpacity
-                        style={st.stepperBtn}
-                        onPress={() => setManualWeight((v) => v + 5)}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={st.stepperBtnText}>+</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                  <View style={st.stepperCol}>
-                    <Text style={st.sectionLabel}>REPS</Text>
-                    <View style={st.stepperCard}>
-                      <TouchableOpacity
-                        style={st.stepperBtn}
-                        onPress={() => setManualReps((v) => Math.max(1, v - 1))}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={st.stepperBtnText}>–</Text>
-                      </TouchableOpacity>
-                      <View style={st.stepperCenter}>
-                        <Text style={st.stepperValue}>{manualReps}</Text>
-                        <Text style={st.stepperUnit}>REPS</Text>
-                      </View>
-                      <TouchableOpacity
-                        style={st.stepperBtn}
-                        onPress={() => setManualReps((v) => v + 1)}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={st.stepperBtnText}>+</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </View>
-
-                {/* Effort */}
-                <View style={st.section}>
-                  <Text style={st.sectionLabel}>EFFORT</Text>
-                  <View style={st.effortRow}>
-                    {EFFORT_OPTIONS.map((opt) => (
-                      <TouchableOpacity
-                        key={opt}
-                        style={[st.effortChip, manualEffort === opt && st.effortChipActive]}
-                        onPress={() => setManualEffort(manualEffort === opt ? null : opt)}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={[st.effortChipText, manualEffort === opt && st.effortChipTextActive]}>
-                          {opt}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-
-                {/* PR Toggle */}
-                <View style={st.toggleCard}>
-                  <View style={st.toggleInfo}>
-                    <Text style={st.toggleTitle}>Personal Record</Text>
-                    <Text style={st.toggleSub}>Mark if this is a new PR</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={[st.toggleTrack, isPR && st.toggleTrackOn]}
-                    onPress={() => setIsPR((v) => !v)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={[st.toggleThumb, isPR && st.toggleThumbOn]} />
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
-
-            {/* ── Leaderboard claim (singles: snatch / clean & jerk) ── */}
-            {isRankable && (
-              <View style={[st.rankCard, rankLift && st.rankCardOn]}>
-                <View style={st.rankHeader}>
-                  <View style={st.toggleInfo}>
-                    <Text style={st.toggleTitle}>
-                      Claim your spot on the leaderboard
-                    </Text>
-                    <Text style={st.toggleSub}>
-                      {seasonLabel
-                        ? `${seasonLabel} is live — a made single counts as your ranked ${liftName.toLowerCase()}`
-                        : `A made single counts as your ranked ${liftName.toLowerCase()}`}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    style={[st.toggleTrack, rankLift && st.toggleTrackOn]}
-                    onPress={() => setRankLift((v) => !v)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={[st.toggleThumb, rankLift && st.toggleThumbOn]} />
-                  </TouchableOpacity>
-                </View>
-
-                {rankLift && (
-                  <>
-                    <View style={st.rankBwRow}>
-                      <Text style={st.rankBwLabel}>BODYWEIGHT TODAY</Text>
-                      <View style={st.rankBwField}>
-                        <TextInput
-                          style={st.rankBwInput}
-                          value={bodyweightStr}
-                          onChangeText={setBodyweightStr}
-                          keyboardType="decimal-pad"
-                          maxLength={5}
-                          placeholder="0.0"
-                          placeholderTextColor={olyColors.text.disabled}
-                        />
-                        <Text style={st.rankBwUnit}>kg</Text>
-                      </View>
-                    </View>
-                    <Text style={st.rankNote}>
-                      {visibility === "private"
-                        ? "Your feed post stays private, but this video will be public on the leaderboard as proof of the lift."
-                        : "This video becomes public proof of the lift on the leaderboard."}
-                    </Text>
-                  </>
-                )}
-              </View>
-            )}
-
-            {/* ── Post Settings Card ── */}
-            <View style={st.settingsCard}>
-              {/* Caption */}
-              <View style={st.settingsSection}>
-                <Text style={st.settingsLabel}>CAPTION</Text>
-                <TextInput
-                  style={st.captionInput}
-                  value={caption}
-                  onChangeText={setCaption}
-                  placeholder="Say something about this lift..."
-                  placeholderTextColor={olyColors.text.disabled}
-                  multiline
-                  textAlignVertical="top"
-                />
-              </View>
-
-              {/* Show on Post */}
-              {allPills.length > 0 && (
-                <>
-                  <View style={st.settingsDivider} />
-                  <View style={st.settingsSection}>
-                    <View style={st.sessionHeader}>
-                      <Text style={st.settingsLabel}>SHOW ON POST</Text>
-                      <TouchableOpacity
-                        onPress={() => setSessionDataVisible((v) => !v)}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={st.tapToggle}>
-                          {sessionDataVisible ? "Hide" : "Show"}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                    {sessionDataVisible && (
-                      <View style={st.sessionList}>
-                        {allPills.map((pill, idx) => {
-                          const on = enabledPills[pill.key] !== false;
-                          return (
-                            <React.Fragment key={pill.key}>
-                              <TouchableOpacity
-                                style={st.sessionRow}
-                                onPress={() => togglePill(pill.key)}
-                                activeOpacity={0.7}
-                              >
-                                <View style={[st.sessionCheck, on && st.sessionCheckOn]}>
-                                  {on && <Ionicons name="checkmark" size={12} color={olyPalette.white} />}
-                                </View>
-                                <Text style={[st.sessionLabel, on && st.sessionLabelOn]}>{pill.label}</Text>
-                                <Text style={[st.sessionValue, on && st.sessionValueOn]}>{pill.value}</Text>
-                              </TouchableOpacity>
-                              {idx < allPills.length - 1 && <View style={st.sessionDivider} />}
-                            </React.Fragment>
-                          );
-                        })}
-                      </View>
-                    )}
-                  </View>
-                </>
-              )}
-
-              {/* Visibility */}
-              <View style={st.settingsDivider} />
-              <View style={st.settingsSection}>
-                <Text style={st.settingsLabel}>VISIBILITY</Text>
-                <View style={st.visRow}>
-                  <TouchableOpacity
-                    style={[st.visOpt, visibility === "private" && st.visActive]}
-                    onPress={() => setVisibility("private")}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="lock-closed-outline" size={ICON_MD} color={visibility === "private" ? olyColors.text.primary : olyColors.text.secondary} />
-                    <Text style={[st.visText, visibility === "private" && st.visTextOn]}>PRIVATE</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[st.visOpt, visibility === "community" && st.visActive]}
-                    onPress={() => setVisibility("community")}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="people-outline" size={ICON_MD} color={visibility === "community" ? olyColors.text.primary : olyColors.text.secondary} />
-                    <Text style={[st.visText, visibility === "community" && st.visTextOn]}>COMMUNITY</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </ScrollView>
-
-          {/* ── Sticky POST ── */}
-          <View style={st.bottomBar}>
-            <TouchableOpacity
-              style={[st.postBtn, isLoading && st.postBtnOff]}
-              onPress={onSubmit}
-              activeOpacity={0.8}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator size="small" color={olyPalette.white} />
-              ) : (
-                <Text style={st.postBtnText}>POST</Text>
-              )}
-            </TouchableOpacity>
+            <Pill on={speedOn} onPress={() => setChooser("speed")}>
+              <Text style={st.pillText(speedOn)}>Bar speed: <Text style={st.pillBold(speedOn)}>{speedVal}</Text></Text>
+            </Pill>
+            <Pill on={effortOn} onPress={() => setChooser("effort")}>
+              <Text style={st.pillText(effortOn)}>Effort: <Text style={st.pillBold(effortOn)}>{effortVal}</Text></Text>
+            </Pill>
           </View>
 
-          {/* ── Workout Selector Sheet ── */}
-          <BottomSheetModal
-            ref={workoutSheetRef}
-            snapPoints={workoutSnapPoints}
-            backgroundStyle={{ backgroundColor: olyPalette.card }}
-            handleIndicatorStyle={{ backgroundColor: olyColors.text.disabled }}
+          {/* 6 · VISIBILITY */}
+          <Text style={st.secLabel}>VISIBILITY</Text>
+          <View style={st.visRow}>
+            <TouchableOpacity
+              style={[st.visOpt, visibility === "private" && st.visOn]}
+              onPress={() => setVisibility("private")}
+            >
+              <Ionicons name="lock-closed-outline" size={15}
+                color={visibility === "private" ? olyPalette.white : olyColors.text.secondary} />
+              <Text style={[st.visText, visibility === "private" && st.visTextOn]}>PRIVATE</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[st.visOpt, visibility === "community" && st.visOn]}
+              onPress={() => setVisibility("community")}
+            >
+              <Ionicons name="people-outline" size={15}
+                color={visibility === "community" ? olyPalette.white : olyColors.text.secondary} />
+              <Text style={[st.visText, visibility === "community" && st.visTextOn]}>COMMUNITY</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+
+        {/* STICKY POST */}
+        <View style={st.postBar}>
+          <TouchableOpacity
+            style={[st.postBtn, !canPost && st.postBtnDim, ticketOn && st.postBtnClaim]}
+            onPress={onSubmit}
+            activeOpacity={0.85}
+            disabled={isLoading}
           >
-            <BottomSheetScrollView style={st.sheetBody} showsVerticalScrollIndicator={false}>
-              <Text style={st.sheetTitle}>SELECT FROM A WORKOUT</Text>
-              <Text style={st.sheetSub}>Choose a training day and exercise to auto-fill your post</Text>
-              {trainingDays.length === 0 ? (
-                <View style={st.sheetEmpty}>
-                  <Text style={st.sheetEmptyText}>No training sessions found</Text>
-                </View>
-              ) : (
-                <View style={st.sheetList}>
-                  {trainingDays.map(({ key, label, exercises }) => (
-                    <View key={key}>
-                      <TouchableOpacity
-                        style={st.dayRow}
-                        onPress={() => setExpandedDay(expandedDay === key ? null : key)}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={st.dayLabel}>{label}</Text>
-                        <Text style={st.dayCount}>{exercises.length} exercise{exercises.length !== 1 ? "s" : ""}</Text>
-                      </TouchableOpacity>
-                      {expandedDay === key && exercises.map((ex) => {
-                        const topW = ex.sets?.reduce((m, s) => Math.max(m, s.weight), 0) ?? 0;
-                        return (
-                          <TouchableOpacity
-                            key={ex.exercise_name}
-                            style={st.exRow}
-                            onPress={() => handleSelectExercise(ex)}
-                            activeOpacity={0.7}
-                          >
-                            <View style={st.exInfo}>
-                              <Text style={st.exName}>{ex.exercise_name}</Text>
-                              <Text style={st.exMeta}>{ex.no_of_set} sets · Top: {topW} kg</Text>
-                            </View>
-                            <Text style={st.exSelect}>Select</Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
-                  ))}
-                </View>
-              )}
-            </BottomSheetScrollView>
-          </BottomSheetModal>
-        </SafeAreaView>
-      </BottomSheetModalProvider>
-    </GestureHandlerRootView>
+            {isLoading ? (
+              <ActivityIndicator size="small" color={olyPalette.white} />
+            ) : (
+              <Text style={st.postText}>{ticketOn ? "Post · Claim your spot" : "Post"}</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+
+      {/* LIFT PICKER SHEET */}
+      <Modal visible={liftSheet} transparent animationType="fade" onRequestClose={() => setLiftSheet(false)}>
+        <Pressable style={st.sheetBackdrop} onPress={() => setLiftSheet(false)}>
+          <Pressable style={st.sheet} onPress={() => {}}>
+            <View style={st.handle} />
+            <Text style={st.sheetLabel}>RANKED LIFTS</Text>
+            {["Snatch", "Clean & Jerk"].map((l) => (
+              <TouchableOpacity key={l} style={st.sheetOpt}
+                onPress={() => { setLift(l); setLiftSheet(false); Haptics.selectionAsync(); }}>
+                <Text style={st.sheetOptText}>{l}</Text>
+                <View style={st.lbTag}><Text style={st.lbTagText}>LEADERBOARD</Text></View>
+              </TouchableOpacity>
+            ))}
+            <Text style={st.sheetLabel}>EVERYTHING ELSE</Text>
+            <View style={st.sheetChips}>
+              {OTHER_LIFTS.map((l) => (
+                <TouchableOpacity key={l}
+                  style={[st.chip, lift === l && st.chipOn]}
+                  onPress={() => { setLift(l); setLiftSheet(false); Haptics.selectionAsync(); }}>
+                  <Text style={[st.chipText, lift === l && st.chipTextOn]}>{l}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* VALUE CHOOSER SHEET (bar speed / effort) */}
+      <Modal visible={chooser !== null} transparent animationType="fade" onRequestClose={() => setChooser(null)}>
+        <Pressable style={st.sheetBackdrop} onPress={() => setChooser(null)}>
+          <Pressable style={st.sheet} onPress={() => {}}>
+            <View style={st.handle} />
+            <Text style={st.sheetLabel}>{chooser === "speed" ? "BAR SPEED" : "EFFORT"}</Text>
+            {(chooser === "speed" ? SPEED_OPTIONS : EFFORT_OPTIONS).map((o) => (
+              <TouchableOpacity key={o} style={st.sheetOpt}
+                onPress={() => {
+                  if (chooser === "speed") { setSpeedVal(o); setSpeedOn(true); }
+                  else { setEffortVal(o); setEffortOn(true); }
+                  setChooser(null);
+                }}>
+                <Text style={st.sheetOptText}>{o}</Text>
+                {((chooser === "speed" && speedOn && speedVal === o) ||
+                  (chooser === "effort" && effortOn && effortVal === o)) && (
+                  <Ionicons name="checkmark" size={18} color={olyColors.text.primary} />
+                )}
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity style={st.sheetOpt}
+              onPress={() => {
+                if (chooser === "speed") setSpeedOn(false); else setEffortOn(false);
+                setChooser(null);
+              }}>
+              <Text style={[st.sheetOptText, { color: olyColors.text.disabled }]}>Don’t show on post</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* WEIGHT KEYPAD MODAL */}
+      <Modal visible={weightModal} transparent animationType="fade" onRequestClose={() => setWeightModal(false)}>
+        <KeyboardAvoidingView style={st.kav} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+          <Pressable style={st.sheetBackdrop} onPress={() => setWeightModal(false)}>
+            <Pressable style={st.sheet} onPress={() => {}}>
+              <View style={st.handle} />
+              <Text style={st.sheetLabel}>WEIGHT</Text>
+              <View style={st.weightEditRow}>
+                <TextInput
+                  style={st.weightInput}
+                  value={weightDraft}
+                  onChangeText={setWeightDraft}
+                  keyboardType="decimal-pad"
+                  maxLength={6}
+                  autoFocus
+                  placeholder="0"
+                  placeholderTextColor={olyColors.text.disabled}
+                />
+                <Text style={st.weightEditUnit}>kg</Text>
+              </View>
+              <TouchableOpacity
+                style={st.doneBtn}
+                onPress={() => {
+                  const w = parseFloat(weightDraft);
+                  if (Number.isFinite(w) && w > 0 && w <= 400) {
+                    setWeight(Math.round(w * 10) / 10);
+                    setWeightModal(false);
+                  } else {
+                    showError("Enter a weight between 1 and 400 kg");
+                  }
+                }}
+              >
+                <Text style={st.doneText}>Done</Text>
+              </TouchableOpacity>
+            </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Modal>
+    </SafeAreaView>
   );
 }
 
-/* ── Styles ──────────────────────────────────── */
+/* ── Show-on-post pill (quiet grammar: on = tint+border, off = neutral dim) ── */
+function Pill({ on, onPress, children }: { on: boolean; onPress: () => void; children: React.ReactNode }) {
+  return (
+    <TouchableOpacity
+      style={[st.pill, on ? st.pillOn : st.pillOff]}
+      onPress={() => { Haptics.selectionAsync(); onPress(); }}
+      activeOpacity={0.7}
+    >
+      {children}
+    </TouchableOpacity>
+  );
+}
 
-const st = StyleSheet.create({
-  /* ── Layout ── */
-  container: { flex: 1, backgroundColor: olyPalette.background },
-  safeArea: { flex: 1, backgroundColor: olyPalette.background },
+/* ── Styles ─────────────────────────── */
 
-  /* ── Header ── */
-  header: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center",
-    height: olyLayout.navBarHeight, position: "relative",
-  },
-  backBtn: {
-    position: "absolute", left: olyLayout.screenPadding,
-    width: olyLayout.minTouchTarget, height: olyLayout.minTouchTarget,
-    alignItems: "center", justifyContent: "center",
-  },
-  backIcon: { width: ICON_SM, height: ICON_SM, tintColor: olyColors.text.primary },
-  headerTitle: {
-    ...olyTypography.label, color: olyColors.text.primary,
-    letterSpacing: olyLetterSpacing.uppercase, textTransform: "uppercase",
-  },
+const TINT = "rgba(0, 74, 173, 0.12)";
+const TINT_BORDER = "rgba(0, 74, 173, 0.55)";
 
-  scroll: {
-    padding: olyLayout.screenPadding,
-    paddingBottom: olyLayout.gymTouchTarget + olySpacing[40],
-    gap: olyLayout.cardGap,
-  },
+const st = {
+  ...StyleSheet.create({
+    safe: { flex: 1, backgroundColor: olyPalette.background },
+    kav: { flex: 1 },
 
-  /* ── Hero Card ── */
-  heroCard: {
-    backgroundColor: olyPalette.card, borderRadius: olyRadius.lg,
-    padding: olyLayout.cardPadding,
-  },
-  heroRow: { flexDirection: "row", gap: olySpacing[12] },
-  heroLeft: { flex: 1, justifyContent: "space-between" },
-  heroRight: { alignItems: "flex-start", gap: olySpacing[8] },
+    header: {
+      flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between",
+      paddingHorizontal: olyLayout.screenPadding, paddingTop: olySpacing[8],
+    },
+    kicker: {
+      ...olyTypography.caption, color: olyColors.text.disabled,
+      letterSpacing: olyLetterSpacing.uppercase, marginBottom: 2,
+    },
+    title: { ...olyTypography.title1, color: olyColors.text.primary },
+    close: {
+      width: 34, height: 34, borderRadius: olyRadius.full,
+      backgroundColor: olyPalette.card, alignItems: "center", justifyContent: "center",
+      marginTop: olySpacing[4],
+    },
 
-  userRow: { flexDirection: "row", alignItems: "center", gap: olySpacing[8] },
-  avatar: {
-    width: 24, height: 24, borderRadius: olyRadius.full,
-    backgroundColor: olyColors.bg.activeHighlight, alignItems: "center", justifyContent: "center",
-  },
-  avatarLetter: { ...olyTypography.caption, fontFamily: olyFonts.medium, color: olyColors.text.primary },
-  userName: { ...olyTypography.caption, color: olyColors.text.secondary },
-  userDot: { ...olyTypography.caption, color: olyColors.text.disabled, marginHorizontal: -olySpacing[4] },
-  userSub: { ...olyTypography.caption, color: olyColors.text.disabled },
-  liftBlock: { gap: 2, marginTop: olySpacing[8] },
-  liftName: {
-    ...olyTypography.label, color: olyColors.text.secondary,
-    letterSpacing: olyLetterSpacing.uppercase, textTransform: "uppercase",
-  },
-  weightRow: { flexDirection: "row", alignItems: "baseline", gap: olySpacing[4] },
-  weightNum: { ...olyTypography.display, color: olyColors.text.primary },
-  weightUnit: { ...olyTypography.body, color: olyColors.text.disabled },
+    scroll: {
+      paddingHorizontal: olyLayout.screenPadding,
+      paddingTop: olySpacing[16], paddingBottom: 120,
+    },
 
-  previewPillWrap: { flexDirection: "row", flexWrap: "wrap", gap: olySpacing[4] },
-  previewPill: {
-    borderRadius: olyRadius.full, borderWidth: 1, borderColor: olyColors.border.default,
-    paddingHorizontal: olySpacing[8], paddingVertical: olySpacing[4],
-  },
-  previewPillText: { ...olyTypography.caption, color: olyColors.text.secondary },
+    /* video hero */
+    hero: {
+      borderRadius: olyRadius.lg, overflow: "hidden",
+      aspectRatio: 4 / 4.2, backgroundColor: olyPalette.card,
+    },
+    heroImg: { ...StyleSheet.absoluteFillObject, width: "100%", height: "100%" },
+    heroLoading: { alignItems: "center", justifyContent: "center" },
+    heroFade: { position: "absolute", left: 0, right: 0, bottom: 0, height: "46%" },
+    playBtn: {
+      position: "absolute", top: "50%", left: "50%", marginLeft: -29, marginTop: -32,
+      width: 58, height: 58, borderRadius: olyRadius.full,
+      backgroundColor: "rgba(9,14,21,0.55)",
+      alignItems: "center", justifyContent: "center",
+    },
+    replaceBtn: {
+      position: "absolute", right: 14, top: 14,
+      width: 36, height: 36, borderRadius: olyRadius.full,
+      backgroundColor: "rgba(9,14,21,0.55)",
+      alignItems: "center", justifyContent: "center",
+    },
+    stamp: { position: "absolute", left: 20, bottom: 18 },
+    stampLift: { ...olyTypography.bodySmall, color: olyColors.text.secondary, marginBottom: 2 },
+    stampKg: { ...olyTypography.display, fontSize: 34, color: olyColors.text.primary },
+    stampUnit: { ...olyTypography.bodySmall, color: olyColors.text.secondary },
+    timecode: {
+      position: "absolute", right: 20, bottom: 20,
+      ...olyTypography.caption, color: olyColors.text.secondary,
+    },
 
-  /* ── Video Thumbnail ── */
-  thumbWrap: {
-    width: THUMB_WIDTH, height: THUMB_HEIGHT, borderRadius: olyRadius.lg,
-    overflow: "hidden", backgroundColor: olyPalette.cardElevated,
-  },
-  thumbDashed: {
-    borderWidth: 1, borderStyle: "dashed", borderColor: olyColors.border.default,
-    alignItems: "center", justifyContent: "center",
-  },
-  thumbImg: { width: "100%", height: "100%" },
-  thumbEmpty: {
-    width: THUMB_WIDTH,
-    height: THUMB_HEIGHT,
-    borderRadius: olyRadius.lg,
-    backgroundColor: olyPalette.card,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
-    borderStyle: "dashed" as const,
-  },
-  playOverlay: {
-    position: "absolute", top: "50%", left: "50%",
-    marginTop: -(PLAY_SIZE / 2), marginLeft: -(PLAY_SIZE / 2),
-    width: PLAY_SIZE, height: PLAY_SIZE,
-    borderRadius: olyRadius.full, backgroundColor: olyColors.bg.overlay,
-    alignItems: "center", justifyContent: "center",
-  },
-  playIcon: { width: ICON_SM, height: ICON_SM, tintColor: olyPalette.white },
+    setRow: { flexDirection: "row", gap: olySpacing[8], marginTop: olySpacing[12] },
+    setChip: {
+      width: 40, height: 40, borderRadius: olyRadius.lg,
+      backgroundColor: olyPalette.card, alignItems: "center", justifyContent: "center",
+      opacity: 0.5,
+    },
+    setChipOn: { opacity: 1, borderWidth: 1, borderColor: olyPalette.primary },
+    setChipText: { ...olyTypography.caption, color: olyColors.text.secondary },
+    setChipTextOn: { color: olyColors.text.primary },
 
-  uploadContent: { alignItems: "center", gap: olySpacing[4] },
-  uploadIcon: { width: ICON_LG, height: ICON_LG, tintColor: olyColors.text.secondary },
-  uploadText: { ...olyTypography.caption, color: olyColors.text.secondary },
+    secLabel: {
+      ...olyTypography.caption, color: olyColors.text.disabled,
+      letterSpacing: olyLetterSpacing.uppercase,
+      marginTop: olySpacing[24], marginBottom: olySpacing[8], marginLeft: 2,
+    },
 
-  /* ── Mini Set Thumbnails ── */
-  miniRow: { flexDirection: "row", gap: olySpacing[4], alignSelf: "flex-start" },
-  miniThumb: {
-    width: MINI_THUMB_SIZE, height: MINI_THUMB_SIZE, borderRadius: olyRadius.sm,
-    backgroundColor: olyPalette.cardElevated, alignItems: "center", justifyContent: "center",
-    borderWidth: 1, borderColor: "transparent", overflow: "hidden", opacity: 0.45,
-  },
-  miniThumbActive: { borderColor: olyPalette.primary, opacity: 1 },
-  miniThumbImg: { width: "100%", height: "100%", borderRadius: olyRadius.sm },
-  miniThumbText: { ...olyTypography.caption, color: olyColors.text.disabled },
+    /* the lift stat cards */
+    liftRow: { flexDirection: "row", gap: olySpacing[8] },
+    statCard: {
+      backgroundColor: olyPalette.card, borderRadius: olyRadius.lg,
+      paddingHorizontal: olySpacing[16], paddingVertical: olySpacing[12],
+      gap: olySpacing[8],
+    },
+    statK: {
+      ...olyTypography.caption, color: olyColors.text.secondary,
+      letterSpacing: olyLetterSpacing.uppercase, fontSize: 11,
+    },
+    statVRow: { height: 26, flexDirection: "row", alignItems: "center" },
+    statVal: {
+      fontSize: 18, fontFamily: olyFonts.medium, color: olyColors.text.primary,
+      flexShrink: 1,
+    },
+    statPlaceholder: { color: olyColors.text.disabled, fontFamily: olyFonts.regular },
+    statUnit: { ...olyTypography.caption, color: olyColors.text.disabled, marginLeft: 4 },
+    chev: { marginLeft: 7 },
+    repsRow: { justifyContent: "space-between" },
+    stepBtn: {
+      width: 24, height: 24, borderRadius: olyRadius.full,
+      backgroundColor: olyPalette.cardElevated,
+      alignItems: "center", justifyContent: "center",
+    },
+    stepBtnOff: { opacity: 0.28 },
+    stepTxt: { fontSize: 14, color: olyColors.text.secondary, lineHeight: 16 },
 
-  /* ── Reusable Section ── */
-  section: { gap: olySpacing[8] },
-  sectionLabel: {
-    ...olyTypography.label, color: olyColors.text.secondary,
-    letterSpacing: olyLetterSpacing.uppercase, textTransform: "uppercase",
-  },
+    /* golden ticket */
+    ticketBorder: {
+      borderRadius: olyRadius.lg, padding: 1.5, marginTop: olySpacing[16],
+    },
+    ticketInner: {
+      borderRadius: olyRadius.lg - 1.5, backgroundColor: "#0E1520",
+      paddingHorizontal: olySpacing[16], paddingVertical: olySpacing[16],
+      overflow: "hidden",
+    },
+    sheen: {
+      position: "absolute", top: -60, bottom: -60, width: 90, left: 0,
+    },
+    ticketRow: { flexDirection: "row", alignItems: "center", gap: olySpacing[12] },
+    ticketTitle: {
+      ...olyTypography.body, fontFamily: olyFonts.medium,
+      color: olyColors.text.primary, marginBottom: 3,
+    },
+    ticketSub: { ...olyTypography.caption, color: olyColors.text.secondary, lineHeight: 17 },
+    ticketGlow: { color: GLOW, fontFamily: olyFonts.medium },
+    tgl: {
+      width: 50, height: 30, borderRadius: olyRadius.full,
+      backgroundColor: olyPalette.cardElevated, padding: 3,
+    },
+    tglOn: { backgroundColor: olyPalette.primary },
+    tglKnob: {
+      width: 24, height: 24, borderRadius: olyRadius.full,
+      backgroundColor: olyColors.text.disabled,
+    },
+    tglKnobOn: {
+      transform: [{ translateX: 20 }], backgroundColor: olyPalette.white,
+      shadowColor: GLOW, shadowOpacity: 0.9, shadowRadius: 8, shadowOffset: { width: 0, height: 0 },
+    },
+    stamped: {
+      marginTop: olySpacing[12], paddingTop: olySpacing[12],
+      borderTopWidth: 1, borderStyle: "dashed", borderTopColor: "rgba(121,168,255,0.25)",
+    },
+    boardLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: olySpacing[8] },
+    boardText: {
+      ...olyTypography.caption, color: GLOW, fontFamily: olyFonts.medium,
+      letterSpacing: olyLetterSpacing.uppercase, flexShrink: 1,
+    },
+    bwBox: {
+      flexDirection: "row", alignItems: "baseline", gap: 6,
+      backgroundColor: olyPalette.cardElevated, borderRadius: olyRadius.sm,
+      paddingHorizontal: olySpacing[12], paddingVertical: olySpacing[8],
+    },
+    bwInput: {
+      minWidth: 46, padding: 0, textAlign: "right",
+      fontSize: 15, fontFamily: olyFonts.medium, color: olyColors.text.primary,
+    },
+    bwUnit: { fontSize: 10, color: olyColors.text.disabled, letterSpacing: 1 },
+    proof: { ...olyTypography.caption, color: olyColors.text.disabled, marginTop: olySpacing[8], lineHeight: 16 },
 
-  /* ── Workout Selector Button ── */
-  workoutBtn: {
-    backgroundColor: olyPalette.card, borderRadius: olyRadius.full,
-    height: olyLayout.gymTouchTarget, alignItems: "center", justifyContent: "center",
-  },
-  workoutBtnText: { ...olyTypography.label, color: olyColors.text.secondary, letterSpacing: olyLetterSpacing.uppercase },
+    /* caption */
+    caption: {
+      backgroundColor: olyPalette.card, borderRadius: olyRadius.lg,
+      paddingHorizontal: olySpacing[16], paddingVertical: olySpacing[12],
+      minHeight: 76, ...olyTypography.body, color: olyColors.text.primary,
+    },
 
-  filledBar: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    backgroundColor: olyColors.bg.activeHighlight, borderRadius: olyRadius.full,
-    borderWidth: 1, borderColor: olyColors.border.brand,
-    height: olyLayout.minTouchTarget, paddingHorizontal: olyLayout.cardPadding,
-  },
-  filledBarText: { ...olyTypography.bodySmall, fontFamily: olyFonts.medium, color: olyColors.text.primary },
-  filledBarAction: { ...olyTypography.caption, color: olyColors.text.secondary },
+    /* pills */
+    pills: { flexDirection: "row", flexWrap: "wrap", gap: olySpacing[8] },
+    pill: {
+      borderRadius: olyRadius.full, borderWidth: 1,
+      paddingHorizontal: olySpacing[16], paddingVertical: 10,
+    },
+    pillOn: { backgroundColor: TINT, borderColor: TINT_BORDER },
+    pillOff: { backgroundColor: olyPalette.card, borderColor: "transparent", opacity: 0.55 },
 
-  /* ── Lift Name Chips ── */
-  chipCard: {
-    backgroundColor: olyPalette.card, borderRadius: olyRadius.lg,
-    padding: olyLayout.cardPadding,
-  },
-  chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: olySpacing[8] },
-  liftChip: {
-    paddingHorizontal: olySpacing[12], paddingVertical: olySpacing[8],
-    borderRadius: olyRadius.full, borderWidth: 1,
-    borderColor: olyColors.border.brandUnselected, backgroundColor: olyColors.bg.activeHighlight,
-  },
-  liftChipActive: { backgroundColor: olyColors.bg.cardSelected, borderColor: olyColors.border.brand },
-  liftChipText: { ...olyTypography.bodySmall, fontFamily: olyFonts.medium, color: olyColors.text.secondary },
-  liftChipTextActive: { color: olyColors.text.primary },
+    /* visibility */
+    visRow: {
+      flexDirection: "row", backgroundColor: olyPalette.card,
+      borderRadius: olyRadius.full, padding: 4,
+    },
+    visOpt: {
+      flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+      gap: olySpacing[8], paddingVertical: olySpacing[12], borderRadius: olyRadius.full,
+    },
+    visOn: { backgroundColor: olyPalette.primary },
+    visText: {
+      ...olyTypography.caption, fontFamily: olyFonts.medium,
+      color: olyColors.text.secondary, letterSpacing: olyLetterSpacing.uppercase,
+    },
+    visTextOn: { color: olyPalette.white },
 
-  /* ── Weight & Reps Steppers ── */
-  stepperRow: { flexDirection: "row", gap: olyLayout.cardGap },
-  stepperCol: { flex: 1, gap: olySpacing[8] },
-  stepperCard: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    backgroundColor: olyPalette.cardElevated, borderRadius: olyRadius.lg,
-    paddingHorizontal: olySpacing[12], paddingVertical: olySpacing[16],
-  },
-  stepperBtn: {
-    width: olyLayout.minTouchTarget, height: olyLayout.minTouchTarget,
-    borderRadius: olyRadius.full, backgroundColor: olyPalette.card,
-    alignItems: "center", justifyContent: "center",
-  },
-  stepperBtnText: { ...olyTypography.title1, color: olyColors.text.secondary },
-  stepperCenter: { alignItems: "center" },
-  stepperValue: { ...olyTypography.display, color: olyColors.text.primary },
-  stepperUnit: {
-    ...olyTypography.caption, color: olyColors.text.disabled,
-    letterSpacing: olyLetterSpacing.uppercase,
-  },
+    /* sticky post */
+    postBar: {
+      position: "absolute", bottom: 0, left: 0, right: 0,
+      paddingHorizontal: olyLayout.screenPadding,
+      paddingBottom: olySpacing[32], paddingTop: olySpacing[12],
+      backgroundColor: olyPalette.background,
+    },
+    postBtn: {
+      height: olyLayout.gymTouchTarget, borderRadius: olyRadius.full,
+      backgroundColor: olyPalette.primary,
+      alignItems: "center", justifyContent: "center",
+    },
+    postBtnDim: { opacity: 0.4 },
+    postBtnClaim: {
+      shadowColor: olyPalette.primary, shadowOpacity: 0.55, shadowRadius: 16,
+      shadowOffset: { width: 0, height: 4 }, elevation: 8,
+    },
+    postText: { ...olyTypography.button, color: olyPalette.white },
 
-  /* ── Effort Chips ── */
-  effortRow: { flexDirection: "row", gap: olySpacing[8] },
-  effortChip: {
-    flex: 1, alignItems: "center", justifyContent: "center",
-    paddingVertical: olySpacing[12], borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.card,
-  },
-  effortChipActive: { backgroundColor: olyPalette.primary },
-  effortChipText: { ...olyTypography.bodySmall, fontFamily: olyFonts.medium, color: olyColors.text.secondary },
-  effortChipTextActive: { color: olyColors.text.primary },
+    /* sheets */
+    sheetBackdrop: {
+      flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end",
+    },
+    sheet: {
+      backgroundColor: olyPalette.card,
+      borderTopLeftRadius: olyRadius.lg, borderTopRightRadius: olyRadius.lg,
+      paddingHorizontal: olyLayout.cardPadding, paddingTop: olySpacing[12],
+      paddingBottom: olySpacing[40],
+    },
+    handle: {
+      width: 36, height: 4, borderRadius: olyRadius.sm,
+      backgroundColor: olyColors.text.disabled, alignSelf: "center",
+      marginBottom: olySpacing[16],
+    },
+    sheetLabel: {
+      ...olyTypography.caption, color: olyColors.text.disabled,
+      letterSpacing: olyLetterSpacing.uppercase,
+      marginTop: olySpacing[12], marginBottom: olySpacing[4],
+    },
+    sheetOpt: {
+      flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+      paddingVertical: olySpacing[16],
+      borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: olyColors.border.default,
+    },
+    sheetOptText: { ...olyTypography.body, fontFamily: olyFonts.medium, color: olyColors.text.primary },
+    lbTag: {
+      backgroundColor: TINT, borderRadius: olyRadius.full,
+      paddingHorizontal: olySpacing[12], paddingVertical: 4,
+    },
+    lbTagText: {
+      fontSize: 10, fontFamily: olyFonts.medium, color: GLOW,
+      letterSpacing: 1.2,
+    },
+    sheetChips: { flexDirection: "row", flexWrap: "wrap", gap: olySpacing[8], paddingTop: olySpacing[8] },
+    chip: {
+      backgroundColor: olyColors.bg.activeHighlight, borderRadius: olyRadius.full,
+      borderWidth: 1, borderColor: olyColors.border.brandUnselected,
+      paddingHorizontal: olySpacing[12], paddingVertical: olySpacing[8],
+    },
+    chipOn: { backgroundColor: olyPalette.primary, borderColor: olyPalette.primary },
+    chipText: { ...olyTypography.bodySmall, fontFamily: olyFonts.medium, color: olyColors.text.secondary },
+    chipTextOn: { color: olyPalette.white },
 
-  /* ── PR Toggle ── */
-  toggleCard: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    backgroundColor: olyPalette.card, borderRadius: olyRadius.lg,
-    paddingHorizontal: olyLayout.cardPadding, paddingVertical: olySpacing[16],
-  },
-  toggleInfo: { flex: 1, gap: olySpacing[4] },
-  toggleTitle: { ...olyTypography.body, fontFamily: olyFonts.medium, color: olyColors.text.primary },
-  toggleSub: { ...olyTypography.caption, color: olyColors.text.secondary },
-  toggleTrack: {
-    width: 48, height: 28, borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.cardElevated, justifyContent: "center",
-    paddingHorizontal: 2,
-  },
-  toggleTrackOn: { backgroundColor: olyPalette.primary },
-  toggleThumb: {
-    width: 24, height: 24, borderRadius: olyRadius.full,
-    backgroundColor: olyColors.text.secondary,
-  },
-  toggleThumbOn: { alignSelf: "flex-end", backgroundColor: olyPalette.white },
-
-  /* ── Leaderboard claim card ── */
-  rankCard: {
-    backgroundColor: olyPalette.card, borderRadius: olyRadius.lg,
-    paddingHorizontal: olyLayout.cardPadding, paddingVertical: olySpacing[16],
-    borderWidth: 1, borderColor: olyColors.border.default,
-  },
-  rankCardOn: { borderColor: olyColors.border.brand },
-  rankHeader: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    gap: olySpacing[12],
-  },
-  rankBwRow: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    marginTop: olySpacing[16],
-  },
-  rankBwLabel: {
-    ...olyTypography.label, color: olyColors.text.secondary,
-    letterSpacing: olyLetterSpacing.uppercase, textTransform: "uppercase",
-  },
-  rankBwField: {
-    flexDirection: "row", alignItems: "center", gap: olySpacing[4],
-    backgroundColor: olyPalette.cardElevated, borderRadius: olyRadius.sm,
-    paddingHorizontal: olySpacing[12], paddingVertical: olySpacing[8],
-  },
-  rankBwInput: {
-    ...olyTypography.body, fontFamily: olyFonts.medium, color: olyColors.text.primary,
-    minWidth: 48, textAlign: "right", padding: 0,
-  },
-  rankBwUnit: { ...olyTypography.caption, color: olyColors.text.disabled },
-  rankNote: {
-    ...olyTypography.caption, color: olyColors.text.secondary,
-    marginTop: olySpacing[12],
-  },
-
-  /* ── Post Settings Card ── */
-  settingsCard: {
-    backgroundColor: olyPalette.card, borderRadius: olyRadius.lg,
-    padding: olyLayout.cardPadding,
-  },
-  settingsSection: { gap: olySpacing[8] },
-  settingsLabel: {
-    ...olyTypography.label, color: olyColors.text.secondary,
-    letterSpacing: olyLetterSpacing.uppercase, textTransform: "uppercase",
-  },
-  settingsDivider: {
-    height: 1, backgroundColor: olyColors.border.default,
-    marginVertical: olySpacing[16],
-  },
-
-  /* ── Caption ── */
-  captionInput: {
-    backgroundColor: olyPalette.cardElevated, borderRadius: olyRadius.sm,
-    paddingHorizontal: olySpacing[12], paddingVertical: olySpacing[12],
-    minHeight: olyLayout.gymTouchTarget, ...olyTypography.body, color: olyColors.text.primary,
-  },
-
-  /* ── Show on Post ── */
-  sessionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  tapToggle: { ...olyTypography.caption, color: olyColors.text.disabled },
-  sessionList: {},
-  sessionRow: {
-    flexDirection: "row", alignItems: "center", gap: olySpacing[12],
-    paddingVertical: olySpacing[12],
-  },
-  sessionCheck: {
-    width: CHECK_SIZE, height: CHECK_SIZE, borderRadius: olyRadius.full,
-    borderWidth: 1, borderColor: olyColors.border.default,
-    alignItems: "center", justifyContent: "center",
-  },
-  sessionCheckOn: { backgroundColor: olyPalette.primary, borderColor: olyPalette.primary },
-  sessionLabel: { ...olyTypography.body, color: olyColors.text.disabled, flex: 1 },
-  sessionLabelOn: { color: olyColors.text.secondary },
-  sessionValue: { ...olyTypography.body, color: olyColors.text.disabled },
-  sessionValueOn: { color: olyColors.text.primary, fontFamily: olyFonts.medium },
-  sessionDivider: { height: 1, backgroundColor: olyColors.border.default },
-
-  /* ── Visibility ── */
-  visRow: {
-    flexDirection: "row", backgroundColor: olyPalette.cardElevated, borderRadius: olyRadius.full,
-    padding: olySpacing[4],
-  },
-  visOpt: {
-    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: olySpacing[8], height: olyLayout.minTouchTarget, borderRadius: olyRadius.full,
-    borderWidth: 1, borderColor: "transparent",
-  },
-  visActive: { borderColor: olyPalette.primary, backgroundColor: olyColors.bg.activeHighlight },
-  visText: { ...olyTypography.label, color: olyColors.text.secondary, letterSpacing: olyLetterSpacing.uppercase },
-  visTextOn: { color: olyColors.text.primary },
-
-  /* ── Sticky POST ── */
-  bottomBar: {
-    position: "absolute", bottom: 0, left: 0, right: 0,
-    paddingHorizontal: olyLayout.screenPadding, paddingBottom: olySpacing[32],
-    paddingTop: olySpacing[12], backgroundColor: olyPalette.background,
-  },
-  postBtn: {
-    backgroundColor: olyPalette.primary, borderRadius: olyRadius.full,
-    height: olyLayout.gymTouchTarget, alignItems: "center", justifyContent: "center",
-  },
-  postBtnOff: { opacity: 0.6 },
-  postBtnText: { ...olyTypography.button, color: olyPalette.white, letterSpacing: olyLetterSpacing.uppercase },
-
-  /* ── Bottom Sheet ── */
-  sheetBody: { flex: 1, padding: olyLayout.screenPadding },
-  sheetTitle: {
-    ...olyTypography.label, color: olyColors.text.primary,
-    letterSpacing: olyLetterSpacing.uppercase, textTransform: "uppercase",
-    marginBottom: olySpacing[4],
-  },
-  sheetSub: { ...olyTypography.bodySmall, color: olyColors.text.secondary, marginBottom: olySpacing[24] },
-  sheetEmpty: { alignItems: "center", paddingVertical: olySpacing[40] },
-  sheetEmptyText: { ...olyTypography.body, color: olyColors.text.disabled },
-  sheetList: { gap: olySpacing[4] },
-  dayRow: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    backgroundColor: olyPalette.cardElevated, borderRadius: olyRadius.lg,
-    paddingHorizontal: olyLayout.cardPadding, minHeight: olyLayout.gymTouchTarget,
-  },
-  dayLabel: { ...olyTypography.body, fontFamily: olyFonts.medium, color: olyColors.text.primary },
-  dayCount: { ...olyTypography.bodySmall, color: olyColors.text.secondary },
-  exRow: {
-    flexDirection: "row", alignItems: "center",
-    paddingHorizontal: olyLayout.cardPadding, paddingLeft: olySpacing[32],
-    minHeight: olyLayout.minTouchTarget, borderBottomWidth: 1, borderBottomColor: olyColors.border.default,
-  },
-  exInfo: { flex: 1 },
-  exName: { ...olyTypography.bodySmall, fontFamily: olyFonts.medium, color: olyColors.text.primary, textTransform: "capitalize" },
-  exMeta: { ...olyTypography.caption, color: olyColors.text.secondary },
-  exSelect: {
-    ...olyTypography.caption, fontFamily: olyFonts.medium, color: olyPalette.primary,
-    letterSpacing: olyLetterSpacing.uppercase, textTransform: "uppercase",
-  },
-});
+    /* weight modal */
+    weightEditRow: {
+      flexDirection: "row", alignItems: "baseline", justifyContent: "center",
+      gap: olySpacing[8], paddingVertical: olySpacing[16],
+    },
+    weightInput: {
+      minWidth: 110, textAlign: "center", padding: 0,
+      fontSize: 44, fontFamily: olyFonts.medium, color: olyColors.text.primary,
+    },
+    weightEditUnit: { ...olyTypography.body, color: olyColors.text.disabled },
+    doneBtn: {
+      height: olyLayout.minTouchTarget + 8, borderRadius: olyRadius.full,
+      backgroundColor: olyPalette.primary, alignItems: "center", justifyContent: "center",
+      marginTop: olySpacing[8],
+    },
+    doneText: { ...olyTypography.button, color: olyPalette.white },
+  }),
+  /* dynamic text styles for pills */
+  pillText: (on: boolean) => ({
+    fontSize: 13.5,
+    color: on ? "#B9C6DC" : "rgba(226,232,240,0.4)",
+  }),
+  pillBold: (on: boolean) => ({
+    fontSize: 13.5,
+    fontFamily: olyFonts.medium,
+    color: on ? olyColors.text.primary : "rgba(226,232,240,0.4)",
+  }),
+};
