@@ -50,6 +50,7 @@ import Animated, {
   Easing,
   FadeIn,
   FadeOut,
+  interpolateColor,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -99,9 +100,6 @@ function classFor(sex: "M" | "F", bw: number): string {
   for (const [limit, label] of bounds) if (bw <= limit) return label;
   return sex === "M" ? "+110" : "+86";
 }
-
-/** The one accent the ticket is allowed beyond the brand blue. */
-const GLOW = "#79A8FF";
 
 /* ── Golden ticket sheen (the Willy Wonka pass) ── */
 
@@ -242,6 +240,16 @@ export default function CreateNewPost() {
   const [ticketOn, setTicketOn] = useState(false);
   useEffect(() => { if (!isRankable && ticketOn) setTicketOn(false); }, [isRankable, ticketOn]);
 
+  // Smooth color transition when the ticket toggles (brand tokens only)
+  const ticketAnim = useSharedValue(0);
+  useEffect(() => {
+    ticketAnim.value = withTiming(ticketOn ? 1 : 0, { duration: 320, easing: Easing.out(Easing.quad) });
+  }, [ticketOn, ticketAnim]);
+  const ticketCardAnim = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(ticketAnim.value, [0, 1], [TINT, olyColors.bg.activeHighlight]),
+    borderColor: interpolateColor(ticketAnim.value, [0, 1], [TINT_BORDER, olyPalette.primary]),
+  }));
+
   const seasonQ = useGetCurrentSeasonQuery(undefined, { skip: !isRankable });
   const seasonLabel = seasonQ.data?.season?.label ?? null;
 
@@ -261,7 +269,6 @@ export default function CreateNewPost() {
 
   const bwNum = parseFloat(bodyweightStr);
   const boardClass = Number.isFinite(bwNum) && bwNum > 0 ? classFor(sexLetter, bwNum) : null;
-  const boardLine = `${(seasonLabel ?? "Season").toUpperCase()} · ${sexLetter === "M" ? "MEN" : "WOMEN"} ${boardClass ?? "—"} KG`;
 
   // One idempotency key per screen visit — retries can't duplicate a lift.
   const idemKeyRef = useRef(`app-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
@@ -488,13 +495,7 @@ export default function CreateNewPost() {
           {/* 3 · GOLDEN TICKET */}
           {isRankable && (
             <Animated.View entering={FadeIn.duration(320)} exiting={FadeOut.duration(180)}>
-              <LinearGradient
-                colors={[`${olyPalette.primary}E6`, GLOW, `${olyPalette.primary}E6`]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={st.ticketBorder}
-              >
-                <View style={st.ticketInner}>
+              <Animated.View style={[st.ticketCard, ticketCardAnim]}>
                   <TicketSheen />
                   <View style={st.ticketRow}>
                     <View style={{ flex: 1 }}>
@@ -515,9 +516,9 @@ export default function CreateNewPost() {
                   </View>
                   {ticketOn && (
                     <Animated.View entering={FadeIn.duration(250)} style={st.stamped}>
-                      <View style={st.boardLine}>
-                        <Text style={st.boardText}>{boardLine}</Text>
-                        <View style={st.bwBox}>
+                      <View style={st.tRow}>
+                        <Text style={st.miniLabel}>BODYWEIGHT</Text>
+                        <View style={st.bwField}>
                           <TextInput
                             style={st.bwInput}
                             value={bodyweightStr}
@@ -527,18 +528,25 @@ export default function CreateNewPost() {
                             placeholder="0.0"
                             placeholderTextColor={olyColors.text.disabled}
                           />
-                          <Text style={st.bwUnit}>KG BW</Text>
+                          <Text style={st.bwUnit}>kg</Text>
                         </View>
                       </View>
+                      {!!boardClass && (
+                        <View style={st.tRow}>
+                          <Text style={st.miniLabel}>BOARD</Text>
+                          <Text style={st.miniValue}>
+                            {sexLetter === "M" ? "Men" : "Women"} {boardClass} kg
+                          </Text>
+                        </View>
+                      )}
                       <Text style={st.proof}>
                         {visibility === "private"
-                          ? "Your feed post stays private, but this video will be public on the leaderboard as proof of the lift."
-                          : "This video becomes public proof of the lift on the leaderboard."}
+                          ? "Feed post stays private — the leaderboard shows this video as public proof."
+                          : "This video becomes public proof on the leaderboard."}
                       </Text>
                     </Animated.View>
                   )}
-                </View>
-              </LinearGradient>
+              </Animated.View>
             </Animated.View>
           )}
 
@@ -830,14 +838,12 @@ const st = {
     stepBtnOff: { opacity: 0.28 },
     stepTxt: { fontSize: 14, color: olyColors.text.secondary, lineHeight: 16 },
 
-    /* golden ticket */
-    ticketBorder: {
-      borderRadius: olyRadius.lg, padding: 1.5, marginTop: olySpacing[16],
-    },
-    ticketInner: {
-      borderRadius: olyRadius.lg - 1.5, backgroundColor: "#0E1520",
+    /* golden ticket — same surface grammar as the pills (tint + border) */
+    ticketCard: {
+      borderRadius: olyRadius.lg, borderWidth: 1,
+      borderColor: TINT_BORDER, backgroundColor: TINT,
       paddingHorizontal: olySpacing[16], paddingVertical: olySpacing[16],
-      overflow: "hidden",
+      marginTop: olySpacing[16], overflow: "hidden",
     },
     sheen: {
       position: "absolute", top: -60, bottom: -60, width: 90, left: 0,
@@ -848,7 +854,7 @@ const st = {
       color: olyColors.text.primary, marginBottom: 3,
     },
     ticketSub: { ...olyTypography.caption, color: olyColors.text.secondary, lineHeight: 17 },
-    ticketGlow: { color: GLOW, fontFamily: olyFonts.medium },
+    ticketGlow: { color: olyColors.text.primary, fontFamily: olyFonts.medium },
     tgl: {
       width: 50, height: 30, borderRadius: olyRadius.full,
       backgroundColor: olyPalette.cardElevated, padding: 3,
@@ -860,27 +866,36 @@ const st = {
     },
     tglKnobOn: {
       transform: [{ translateX: 20 }], backgroundColor: olyPalette.white,
-      shadowColor: GLOW, shadowOpacity: 0.9, shadowRadius: 8, shadowOffset: { width: 0, height: 0 },
+      shadowColor: olyPalette.primary, shadowOpacity: 0.9, shadowRadius: 8, shadowOffset: { width: 0, height: 0 },
     },
     stamped: {
       marginTop: olySpacing[12], paddingTop: olySpacing[12],
-      borderTopWidth: 1, borderStyle: "dashed", borderTopColor: "rgba(121,168,255,0.25)",
+      borderTopWidth: 1, borderStyle: "dashed", borderTopColor: olyColors.border.brandUnselected,
     },
-    boardLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: olySpacing[8] },
-    boardText: {
-      ...olyTypography.caption, color: GLOW, fontFamily: olyFonts.medium,
-      letterSpacing: olyLetterSpacing.uppercase, flexShrink: 1,
+    tRow: {
+      flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+      paddingVertical: olySpacing[8],
     },
-    bwBox: {
-      flexDirection: "row", alignItems: "baseline", gap: 6,
-      backgroundColor: olyPalette.cardElevated, borderRadius: olyRadius.sm,
+    tRowVal: { flexDirection: "row", alignItems: "center", gap: olySpacing[8] },
+    bwField: {
+      flexDirection: "row", alignItems: "baseline", gap: 4,
+      // brand white at the Design Bible's "subtle" opacity — a light well on the blue card
+      backgroundColor: "rgba(226, 232, 240, 0.12)", borderRadius: olyRadius.sm,
       paddingHorizontal: olySpacing[12], paddingVertical: olySpacing[8],
     },
     bwInput: {
-      minWidth: 46, padding: 0, textAlign: "right",
-      fontSize: 15, fontFamily: olyFonts.medium, color: olyColors.text.primary,
+      minWidth: 40, padding: 0, textAlign: "right",
+      fontSize: 16, fontFamily: olyFonts.medium, color: olyColors.text.primary,
     },
-    bwUnit: { fontSize: 10, color: olyColors.text.disabled, letterSpacing: 1 },
+    bwUnit: { fontSize: 11, color: olyColors.text.secondary },
+    miniLabel: {
+      fontSize: 11, color: olyColors.text.disabled,
+      letterSpacing: olyLetterSpacing.uppercase, fontFamily: olyFonts.medium,
+    },
+    miniValue: {
+      ...olyTypography.body, fontFamily: olyFonts.medium,
+      color: olyColors.text.primary,
+    },
     proof: { ...olyTypography.caption, color: olyColors.text.disabled, marginTop: olySpacing[8], lineHeight: 16 },
 
     /* caption */
@@ -965,7 +980,7 @@ const st = {
       paddingHorizontal: olySpacing[12], paddingVertical: 4,
     },
     lbTagText: {
-      fontSize: 10, fontFamily: olyFonts.medium, color: GLOW,
+      fontSize: 10, fontFamily: olyFonts.medium, color: olyColors.text.primary,
       letterSpacing: 1.2,
     },
     sheetChips: { flexDirection: "row", flexWrap: "wrap", gap: olySpacing[8], paddingTop: olySpacing[8] },
