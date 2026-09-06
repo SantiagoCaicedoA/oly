@@ -1,6 +1,11 @@
 import { Images } from "@/assets";
 import { useToast } from "@/context/toast-context";
-import { useCreateNewPostMutation } from "@/store/api";
+import {
+  useCreateNewPostMutation,
+  useGetCurrentSeasonQuery,
+  useGetProfileQuery,
+  useSubmitLiftMutation,
+} from "@/store/api";
 import { Exercise } from "@/store/reducer/trainingSlice";
 import { RootState } from "@/store/store";
 import { olyTypography, olyFonts, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
@@ -31,7 +36,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
 
-/* ── Types ─────────────────────────────────────────── */
+/* ── Types ─────────────────────────────────── */
 
 interface SetVideo {
   setNumber: number;
@@ -43,7 +48,7 @@ interface SetVideo {
   positionQuality?: string;
 }
 
-/* ── Constants ─────────────────────────────────────── */
+/* ── Constants ─────────────────────────────── */
 
 const LIFT_NAME_OPTIONS = [
   "Snatch", "Clean & Jerk", "Power Snatch", "Clean",
@@ -59,6 +64,16 @@ const DAY_LABELS: Record<string, string> = {
 
 const EFFORT_OPTIONS = ["Easy", "Moderate", "Hard", "Max"];
 
+/**
+ * Leaderboard bridge (design doc §5): only single snatches and clean & jerks
+ * can rank. The lift name must match one of these exactly (power variations,
+ * squats, presses are feed-only).
+ */
+const RANKABLE_LIFTS: Record<string, "snatch" | "cleanjerk"> = {
+  "snatch": "snatch",
+  "clean & jerk": "cleanjerk",
+};
+
 /* ── Size constants (not in design system — screen-specific) ── */
 const THUMB_WIDTH = 110;
 const THUMB_HEIGHT = 140;
@@ -69,7 +84,7 @@ const ICON_SM = 14;
 const ICON_MD = 16;
 const ICON_LG = 20;
 
-/* ── Component ─────────────────────────────────────── */
+/* ── Component ─────────────────────────────── */
 
 export default function CreateNewPost() {
   const params = useLocalSearchParams();
@@ -173,6 +188,47 @@ export default function CreateNewPost() {
   const activeThumbnailUri = (selectedVideo ? thumbMap[selectedVideo.setNumber] : null) ?? thumbnailUri;
   const showManualInputs = isStandalone && !filledFromWorkout;
 
+  /* ── Leaderboard bridge ── */
+  const [submitLift] = useSubmitLiftMutation();
+  const rankLiftType = RANKABLE_LIFTS[liftName.trim().toLowerCase()] ?? null;
+  // Singles only. In training mode reps per set aren't tracked here, so the
+  // card copy carries the "single" contract; standalone mode enforces reps=1.
+  const isRankable =
+    !!rankLiftType &&
+    liftWeight > 0 &&
+    !!activeVideoUri &&
+    (!isStandalone || manualReps === 1);
+
+  const [rankLift, setRankLift] = useState(false);
+  useEffect(() => {
+    if (!isRankable && rankLift) setRankLift(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRankable]);
+
+  // Season reminder — fetched only when the card can show
+  const seasonQ = useGetCurrentSeasonQuery(undefined, { skip: !isRankable });
+  const seasonLabel = seasonQ.data?.season?.label ?? null;
+
+  // Bodyweight (kg) — prefilled from the profile, editable per lift
+  const profileQ = useGetProfileQuery(undefined, { skip: !isRankable });
+  const [bodyweightStr, setBodyweightStr] = useState("");
+  useEffect(() => {
+    if (!rankLift || bodyweightStr) return;
+    const p = profileQ.data?.data?.profile;
+    const v = p?.bodyweight_value;
+    if (typeof v === "number" && v > 0) {
+      const kg = p?.bodyweight_unit === "lbs" ? v * 0.453592 : v;
+      setBodyweightStr(String(Math.round(kg * 10) / 10));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rankLift, profileQ.data]);
+
+  // One idempotency key per screen visit — a retry after a network error
+  // can never create a duplicate lift (backend dedupes on it).
+  const idemKeyRef = useRef(
+    `app-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+  );
+
   useEffect(() => {
     setsWithVideo.forEach((sv) => {
       if (!thumbMap[sv.setNumber] && sv.videoUri) {
@@ -251,6 +307,14 @@ export default function CreateNewPost() {
       return;
     }
 
+    // Leaderboard pre-checks — fail BEFORE anything uploads
+    const wantRank = rankLift && isRankable && !!rankLiftType;
+    const bwKg = Math.round(parseFloat(bodyweightStr) * 10) / 10;
+    if (wantRank && (!Number.isFinite(bwKg) || bwKg < 30 || bwKg > 250)) {
+      showError("Enter your bodyweight (kg) to rank this lift");
+      return;
+    }
+
     const formData = new FormData();
     formData.append("video", {
       uri: activeVideo,
@@ -270,13 +334,57 @@ export default function CreateNewPost() {
 
     formData.append("data", JSON.stringify(payload));
 
+    let videoUrl: string | undefined;
     try {
-      await createPost({ formData }).unwrap();
-      showSuccess("Post created!", "");
-      router.push("/(tabs)/home");
+      const res = await createPost({ formData }).unwrap();
+      videoUrl = res?.data?.video_url || undefined;
     } catch (error: any) {
       console.error("Create post error:", error);
       showError("Failed to create post");
+      return;
+    }
+
+    if (!wantRank) {
+      showSuccess("Post created!", "");
+      router.push("/(tabs)/home");
+      return;
+    }
+
+    // The feed post is up — now claim the rank with the same uploaded video.
+    try {
+      if (!videoUrl) throw new Error("no video url on post response");
+      const r = await submitLift({
+        liftType: rankLiftType!,
+        weightKg: liftWeight,
+        bodyweightKg: bwKg,
+        liftDate: new Date().toISOString(),
+        videoUrl,
+        idemKey: idemKeyRef.current,
+      }).unwrap();
+
+      if (r.held) {
+        showSuccess(
+          "Posted! Your lift is being reviewed",
+          "It will appear on the leaderboard once approved"
+        );
+      } else if (r.ranks) {
+        const cls = r.ranks.weightClass;
+        showSuccess(
+          `You're #${r.ranks.lift} in ${cls} kg!`,
+          seasonLabel ? `${liftName} · ${seasonLabel}` : liftName
+        );
+      } else {
+        showSuccess("Posted and submitted to the leaderboard!", "");
+      }
+      router.push("/(tabs)/rank");
+    } catch (error: any) {
+      console.error("Submit lift error:", error);
+      const msg = error?.data?.error || error?.data?.message;
+      showError(
+        "Posted to your feed, but the leaderboard submission failed",
+        typeof msg === "string" ? msg : "You can try again with your next lift"
+      );
+      router.push("/(tabs)/home");
     }
   };
 
@@ -525,6 +633,56 @@ export default function CreateNewPost() {
               </>
             )}
 
+            {/* ── Leaderboard claim (singles: snatch / clean & jerk) ── */}
+            {isRankable && (
+              <View style={[st.rankCard, rankLift && st.rankCardOn]}>
+                <View style={st.rankHeader}>
+                  <View style={st.toggleInfo}>
+                    <Text style={st.toggleTitle}>
+                      Claim your spot on the leaderboard
+                    </Text>
+                    <Text style={st.toggleSub}>
+                      {seasonLabel
+                        ? `${seasonLabel} is live — a made single counts as your ranked ${liftName.toLowerCase()}`
+                        : `A made single counts as your ranked ${liftName.toLowerCase()}`}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[st.toggleTrack, rankLift && st.toggleTrackOn]}
+                    onPress={() => setRankLift((v) => !v)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[st.toggleThumb, rankLift && st.toggleThumbOn]} />
+                  </TouchableOpacity>
+                </View>
+
+                {rankLift && (
+                  <>
+                    <View style={st.rankBwRow}>
+                      <Text style={st.rankBwLabel}>BODYWEIGHT TODAY</Text>
+                      <View style={st.rankBwField}>
+                        <TextInput
+                          style={st.rankBwInput}
+                          value={bodyweightStr}
+                          onChangeText={setBodyweightStr}
+                          keyboardType="decimal-pad"
+                          maxLength={5}
+                          placeholder="0.0"
+                          placeholderTextColor={olyColors.text.disabled}
+                        />
+                        <Text style={st.rankBwUnit}>kg</Text>
+                      </View>
+                    </View>
+                    <Text style={st.rankNote}>
+                      {visibility === "private"
+                        ? "Your feed post stays private, but this video will be public on the leaderboard as proof of the lift."
+                        : "This video becomes public proof of the lift on the leaderboard."}
+                    </Text>
+                  </>
+                )}
+              </View>
+            )}
+
             {/* ── Post Settings Card ── */}
             <View style={st.settingsCard}>
               {/* Caption */}
@@ -681,7 +839,7 @@ export default function CreateNewPost() {
   );
 }
 
-/* ── Styles ─────────────────────────────────────────── */
+/* ── Styles ──────────────────────────────────── */
 
 const st = StyleSheet.create({
   /* ── Layout ── */
@@ -877,6 +1035,40 @@ const st = StyleSheet.create({
     backgroundColor: olyColors.text.secondary,
   },
   toggleThumbOn: { alignSelf: "flex-end", backgroundColor: olyPalette.white },
+
+  /* ── Leaderboard claim card ── */
+  rankCard: {
+    backgroundColor: olyPalette.card, borderRadius: olyRadius.lg,
+    paddingHorizontal: olyLayout.cardPadding, paddingVertical: olySpacing[16],
+    borderWidth: 1, borderColor: olyColors.border.default,
+  },
+  rankCardOn: { borderColor: olyColors.border.brand },
+  rankHeader: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    gap: olySpacing[12],
+  },
+  rankBwRow: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    marginTop: olySpacing[16],
+  },
+  rankBwLabel: {
+    ...olyTypography.label, color: olyColors.text.secondary,
+    letterSpacing: olyLetterSpacing.uppercase, textTransform: "uppercase",
+  },
+  rankBwField: {
+    flexDirection: "row", alignItems: "center", gap: olySpacing[4],
+    backgroundColor: olyPalette.cardElevated, borderRadius: olyRadius.sm,
+    paddingHorizontal: olySpacing[12], paddingVertical: olySpacing[8],
+  },
+  rankBwInput: {
+    ...olyTypography.body, fontFamily: olyFonts.medium, color: olyColors.text.primary,
+    minWidth: 48, textAlign: "right", padding: 0,
+  },
+  rankBwUnit: { ...olyTypography.caption, color: olyColors.text.disabled },
+  rankNote: {
+    ...olyTypography.caption, color: olyColors.text.secondary,
+    marginTop: olySpacing[12],
+  },
 
   /* ── Post Settings Card ── */
   settingsCard: {
