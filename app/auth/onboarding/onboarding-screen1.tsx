@@ -382,15 +382,22 @@ export default function OnboardingScreen1({
         const selectedAsset = result.assets[0];
         setImageLoading(true);
         try {
-          const uploadResult = await uploadProfileImage({
+          // The upload endpoint expects multipart form data with an "image"
+          // field — a bare { uri } object uploads nothing and 400s.
+          const formData = new FormData();
+          formData.append("image", {
             uri: selectedAsset.uri,
-          }).unwrap();
+            type: selectedAsset.mimeType ?? "image/jpeg",
+            name: "profile.jpg",
+          } as any);
 
-          setProfileImage(uploadResult.photo_url);
+          const uploadResult = await uploadProfileImage(formData).unwrap();
+
+          setProfileImage(uploadResult.url);
           dispatch(
             saveOnboardingData({
               ...onboardingData,
-              photo_url: uploadResult.photo_url,
+              photo_url: uploadResult.url,
             })
           );
           showToast("Profile image updated", "success");
