@@ -41,6 +41,7 @@ export const LEADERBOARD_ROUTES = {
   FLAG_LIFT: (liftId: string) => `/api/lifts/${liftId}/flag`,
   UPLOAD_LIFT_VIDEO: "/api/videos/upload",
   FOLLOW: (userId: string) => `/api/follow/${userId}`,
+  FOLLOW_STATUS: (userId: string) => `/api/follow/status/${userId}`,
 } as const;
 
 export const API_ROUTES = {
