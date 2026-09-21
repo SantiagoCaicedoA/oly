@@ -13,7 +13,7 @@ import { olySpacing } from "@/src/oly-theme/oly-spacing";
 import { olyTypography } from "@/src/oly-theme/oly-typography";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import Svg, { Polygon, Rect, Text as SvgText } from "react-native-svg";
+import Svg, { Polygon, Polyline, Rect, Text as SvgText } from "react-native-svg";
 
 /* ── Spec geometry (viewBox 0 0 200 200) ─────────────────────── */
 
@@ -137,6 +137,34 @@ export function HexBadgeProgress({ size = 64 }: { size?: number }) {
   );
 }
 
+/**
+ * Verified mark — flat brand-blue hexagon (pointy-top) with a white check.
+ * Sits on proof videos. Deliberately flat: the metallic facets stay
+ * reserved for season awards.
+ */
+export function HexVerifiedMark({ size = 26 }: { size?: number }) {
+  const HEX_POINTY = "100,10 178,55 178,145 100,190 22,145 22,55";
+  return (
+    <Svg width={size} height={size} viewBox="0 0 200 200">
+      <Polygon
+        points={HEX_POINTY}
+        fill={olyPalette.primary}
+        stroke={olyPalette.primary}
+        strokeWidth={20}
+        strokeLinejoin="round"
+      />
+      <Polyline
+        points="62,102 90,130 140,72"
+        fill="none"
+        stroke={olyPalette.white}
+        strokeWidth={18}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 export function HexBadgeLocked({ size = 64 }: { size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 200 200">
@@ -158,31 +186,71 @@ export interface SeasonBadge {
 
 export const SeasonBadgesShelf: React.FC<{ badges: SeasonBadge[] }> = ({
   badges,
-}) => (
-  <View style={styles.shelf}>
-    {badges.map((b, i) => (
-      <View key={i} style={styles.tile}>
-        {b.state === "earned" && b.tier && b.value ? (
-          <HexBadgeEarned tier={b.tier} value={b.value} />
-        ) : b.state === "progress" ? (
-          <HexBadgeProgress />
-        ) : (
-          <HexBadgeLocked />
-        )}
-        <Text
-          style={[styles.caption, b.state === "locked" && styles.captionLocked]}
-        >
-          {b.caption}
-        </Text>
+}) => {
+  // Nothing earned yet: one quiet row for the season in progress — locked
+  // slots only appear once there's at least one real badge on the shelf.
+  if (badges.length === 1 && badges[0].state === "progress") {
+    return (
+      <View style={styles.rowCard}>
+        <HexBadgeProgress size={48} />
+        <View style={styles.rowText}>
+          <Text style={styles.rowTitle}>{badges[0].caption}</Text>
+          <Text style={styles.rowSub}>
+            In progress — finish top 3 when the season ends to earn it
+          </Text>
+        </View>
       </View>
-    ))}
-  </View>
-);
+    );
+  }
+  return (
+    <View style={styles.shelf}>
+      {badges.map((b, i) => (
+        <View key={i} style={styles.tile}>
+          {b.state === "earned" && b.tier && b.value ? (
+            <HexBadgeEarned tier={b.tier} value={b.value} />
+          ) : b.state === "progress" ? (
+            <HexBadgeProgress />
+          ) : (
+            <HexBadgeLocked />
+          )}
+          <Text
+            style={[
+              styles.caption,
+              b.state === "locked" && styles.captionLocked,
+            ]}
+          >
+            {b.caption}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   shelf: {
     flexDirection: "row",
     gap: olySpacing[12],
+  },
+  rowCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: olySpacing[16],
+    backgroundColor: olyPalette.card,
+    borderRadius: olyRadius.lg,
+    padding: olySpacing[16],
+  },
+  rowText: { flex: 1, minWidth: 0 },
+  rowTitle: {
+    ...olyTypography.bodySmall,
+    fontFamily: olyTypography.label.fontFamily,
+    color: olyColors.text.primary,
+  },
+  rowSub: {
+    ...olyTypography.caption,
+    color: olyColors.text.secondary,
+    marginTop: 2,
+    lineHeight: 16,
   },
   tile: {
     flex: 1,

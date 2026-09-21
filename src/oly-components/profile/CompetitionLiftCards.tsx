@@ -13,6 +13,7 @@ import {
   olyLetterSpacing,
   olyTypography,
 } from "@/src/oly-theme/oly-typography";
+import { HexVerifiedMark } from "@/src/oly-components/profile/SeasonBadges";
 import type { AthleteCardLift } from "@/types/api/leaderboard";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
@@ -41,14 +42,23 @@ function LiftCard({
     >
       <View style={styles.video}>
         {lift ? (
-          <View style={styles.playBtn}>
-            <Ionicons
-              name="play"
-              size={16}
-              color={olyColors.text.primary}
-              style={{ marginLeft: 2 }}
-            />
-          </View>
+          <>
+            <View style={styles.playBtn}>
+              <Ionicons
+                name="play"
+                size={16}
+                color={olyColors.text.primary}
+                style={{ marginLeft: 2 }}
+              />
+            </View>
+            <View style={styles.videoMark}>
+              {lift.pendingReview ? (
+                <Text style={styles.pending}>PENDING</Text>
+              ) : (
+                <HexVerifiedMark size={22} />
+              )}
+            </View>
+          </>
         ) : (
           <Text style={styles.noLift}>No lift yet</Text>
         )}
@@ -60,21 +70,6 @@ function LiftCard({
             {lift ? lift.weightKg : "—"}
             {lift && <Text style={styles.kgUnit}> kg</Text>}
           </Text>
-          {lift &&
-            (lift.pendingReview ? (
-              <Text style={styles.pending}>PENDING</Text>
-            ) : (
-              <View style={styles.verified}>
-                <View style={styles.verifiedDot}>
-                  <Ionicons
-                    name="checkmark"
-                    size={9}
-                    color={olyColors.text.onBrand}
-                  />
-                </View>
-                <Text style={styles.verifiedText}>VERIFIED</Text>
-              </View>
-            ))}
         </View>
         {lift && (
           <Text style={styles.date}>
@@ -149,24 +144,10 @@ const styles = StyleSheet.create({
     ...olyTypography.caption,
     color: olyColors.text.secondary,
   },
-  verified: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: olySpacing[4],
-  },
-  verifiedDot: {
-    width: 14,
-    height: 14,
-    borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  verifiedText: {
-    ...olyTypography.caption,
-    fontSize: 12,
-    color: olyColors.text.secondary,
-    letterSpacing: olyLetterSpacing.uppercase,
+  videoMark: {
+    position: "absolute",
+    top: olySpacing[8],
+    right: olySpacing[8],
   },
   pending: {
     ...olyTypography.caption,

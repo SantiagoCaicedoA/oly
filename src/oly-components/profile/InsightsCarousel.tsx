@@ -27,7 +27,16 @@ import {
   Text,
   View,
 } from "react-native";
-import Svg, { Circle, Line, Polyline, Text as SvgText } from "react-native-svg";
+import Svg, {
+  Circle,
+  Defs,
+  Line,
+  LinearGradient,
+  Path,
+  Polyline,
+  Stop,
+  Text as SvgText,
+} from "react-native-svg";
 
 const CARD_W = Dimensions.get("window").width - olyLayout.screenPadding * 2;
 
@@ -62,53 +71,69 @@ function totalSeries(lifts: MyLift[]): TotalPoint[] {
   );
 }
 
-const MONTH = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const fmtDay = (t: number) =>
+  new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
 /* ── chart ────────────────────────────────────────────────────── */
 
 function TotalChart({ points }: { points: TotalPoint[] }) {
-  const W = 320;
-  const H = 112;
-  const PAD = 8;
-  const t0 = points[0].t;
-  const t1 = points[points.length - 1].t;
+  // Pixel-true canvas (no viewBox stretching) and index-spaced x:
+  // sparse PR events read as a clean staircase, never a vertical cliff.
+  const W = CARD_W - olySpacing[16] * 2;
+  const H = 124;
+  const PAD_X = 6;
+  const PAD_TOP = 14;
+  const PAD_BOT = 10;
+  const LABEL_W = 40;
+  const n = points.length;
   const vMin = Math.min(...points.map((p) => p.total));
   const vMax = Math.max(...points.map((p) => p.total));
-  const x = (t: number) =>
-    t1 === t0 ? W / 2 : PAD + ((t - t0) / (t1 - t0)) * (W - PAD * 2 - 34);
+  const x = (i: number) =>
+    PAD_X + (i * (W - PAD_X * 2 - LABEL_W)) / Math.max(1, n - 1);
   const y = (v: number) =>
     vMax === vMin
       ? H / 2
-      : H - PAD - ((v - vMin) / (vMax - vMin)) * (H - PAD * 2 - 14);
-  const pts = points.map((p) => `${x(p.t)},${y(p.total)}`).join(" ");
-  const last = points[points.length - 1];
+      : H - PAD_BOT - ((v - vMin) / (vMax - vMin)) * (H - PAD_TOP - PAD_BOT);
+  const linePts = points.map((p, i) => `${x(i)},${y(p.total)}`).join(" ");
+  const area =
+    `M ${x(0)},${y(points[0].total)} ` +
+    points.map((p, i) => `L ${x(i)},${y(p.total)}`).join(" ") +
+    ` L ${x(n - 1)},${H} L ${x(0)},${H} Z`;
+  const last = points[n - 1];
   return (
-    <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
-      {[0.25, 0.5, 0.75].map((f) => (
+    <Svg width={W} height={H}>
+      <Defs>
+        <LinearGradient id="totalFill" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={olyPalette.white} stopOpacity={0.14} />
+          <Stop offset="1" stopColor={olyPalette.white} stopOpacity={0} />
+        </LinearGradient>
+      </Defs>
+      {[0.3, 0.62].map((f) => (
         <Line
           key={f}
           x1={0}
           y1={H * f}
           x2={W}
           y2={H * f}
-          stroke="rgba(226, 232, 240, 0.08)"
+          stroke="rgba(226, 232, 240, 0.07)"
           strokeWidth={1}
         />
       ))}
+      <Path d={area} fill="url(#totalFill)" />
       <Polyline
-        points={pts}
+        points={linePts}
         fill="none"
         stroke={olyPalette.white}
-        strokeWidth={2.5}
+        strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <Circle cx={x(last.t)} cy={y(last.total)} r={3.5} fill={olyPalette.white} />
+      <Circle cx={x(n - 1)} cy={y(last.total)} r={3.5} fill={olyPalette.white} />
       <SvgText
-        x={x(last.t) + 7}
+        x={x(n - 1) + 8}
         y={y(last.total) + 4}
-        fontSize={11}
-        fontWeight="600"
+        fontSize={12}
+        fontWeight="500"
         fill={olyPalette.white}
       >
         {last.total}
@@ -197,12 +222,8 @@ function TotalCard({ lifts }: { lifts: MyLift[] }) {
         <>
           <TotalChart points={points} />
           <View style={styles.xAxis}>
-            <Text style={styles.xAxisText}>
-              {MONTH[new Date(first.t).getMonth()]}
-            </Text>
-            <Text style={styles.xAxisText}>
-              {MONTH[new Date(last.t).getMonth()]}
-            </Text>
+            <Text style={styles.xAxisText}>{fmtDay(first.t)}</Text>
+            <Text style={styles.xAxisText}>{fmtDay(last.t)}</Text>
           </View>
           <Text style={styles.foot}>
             <Text style={styles.verdictBold}>
@@ -391,7 +412,7 @@ const styles = StyleSheet.create({
     backgroundColor: olyPalette.card,
     borderRadius: olyRadius.lg,
     padding: olySpacing[16],
-    marginRight: 0,
+    minHeight: 312,
   },
   cardTitle: {
     ...olyTypography.label,

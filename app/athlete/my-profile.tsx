@@ -78,28 +78,28 @@ export default function MyProfile() {
   }, [profile?.bodyweight_value, profile?.bodyweight_unit]);
   const weightClass = bwKg ? classFor(sex, bwKg) : null;
 
-  const boardParams: BoardParams | null = useMemo(
-    () =>
-      weightClass
-        ? {
-            lift: "total",
-            scope: "season",
-            sex,
-            age: "open",
-            class: weightClass,
-          }
-        : null,
-    [weightClass, sex]
-  );
-
   const seasonQ = useGetCurrentSeasonQuery();
-  const rankQ = useGetMyRankQuery(boardParams as BoardParams, {
-    skip: !boardParams,
-  });
+  // Card first, class-less: the server returns my best verified entry
+  // wherever it actually lives — never a guess from profile bodyweight.
   const cardQ = useGetAthleteCardQuery(
-    { userId: myId as string, ...(boardParams as BoardParams) },
-    { skip: !myId || !boardParams }
+    {
+      userId: myId as string,
+      lift: "sinclair",
+      scope: "season",
+      sex,
+      age: "open",
+    },
+    { skip: !myId }
   );
+  // Rank uses the server's class when a verified entry exists; the
+  // profile-derived class is only the fallback for provisional athletes.
+  const rankClass = cardQ.data?.athlete.weightClass ?? weightClass;
+  const rankParams: BoardParams | null = rankClass
+    ? { lift: "total", scope: "season", sex, age: "open", class: rankClass }
+    : null;
+  const rankQ = useGetMyRankQuery(rankParams as BoardParams, {
+    skip: !rankParams || cardQ.isLoading,
+  });
   const liftsQ = useGetMyLiftsQuery();
   const postsQ = useGetMyPostsQuery({ page: 1, limit: 24 });
   const followQ = useGetFollowStatusQuery(myId as string, { skip: !myId });
@@ -111,8 +111,13 @@ export default function MyProfile() {
   const posts = postsQ.data?.data ?? [];
   const counts = followQ.data?.data;
 
-  const boardLabel = weightClass
-    ? `${sex === "M" ? "Men" : "Women"} ${weightClass} kg`
+  const hasVerified =
+    !!card?.videos.snatch || !!card?.videos.cleanjerk || lifts.length > 0;
+  const hasArchive = lifts.length > 0 || posts.length > 0;
+
+  const shownClass = card?.athlete.weightClass ?? weightClass;
+  const boardLabel = shownClass
+    ? `${sex === "M" ? "Men" : "Women"} ${shownClass} kg`
     : null;
 
   const onShare = () => {
@@ -264,14 +269,16 @@ export default function MyProfile() {
           )
         )}
 
-        {/* competition lifts */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>COMPETITION LIFTS</Text>
-          <CompetitionLiftCards
-            snatch={card?.videos.snatch ?? null}
-            cleanjerk={card?.videos.cleanjerk ?? null}
-          />
-        </View>
+        {/* competition lifts — only once there's something verified */}
+        {hasVerified && (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>COMPETITION LIFTS</Text>
+            <CompetitionLiftCards
+              snatch={card?.videos.snatch ?? null}
+              cleanjerk={card?.videos.cleanjerk ?? null}
+            />
+          </View>
+        )}
 
         {/* season badges */}
         <View style={styles.section}>
@@ -279,13 +286,12 @@ export default function MyProfile() {
           <SeasonBadgesShelf
             badges={[
               { state: "progress", caption: season?.label ?? "This season" },
-              { state: "locked", caption: "Locked" },
-              { state: "locked", caption: "Locked" },
             ]}
           />
         </View>
 
-        {/* insights — own profile only */}
+        {/* insights — own profile only, and only with data to read */}
+        {hasVerified && (
         <View style={styles.section}>
           <View style={styles.sectionHead}>
             <Text style={styles.sectionLabel}>INSIGHTS</Text>
@@ -306,8 +312,10 @@ export default function MyProfile() {
             sex={sex}
           />
         </View>
+        )}
 
         {/* archive */}
+        {hasArchive && (
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>ARCHIVE</Text>
           <ProfileArchive
@@ -321,6 +329,7 @@ export default function MyProfile() {
             }
           />
         </View>
+        )}
       </ScrollView>
     </OlyScreenWrapper>
   );
