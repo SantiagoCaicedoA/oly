@@ -43,3 +43,5 @@ app-example
 .env.dev
 .env.prod
 .env*
+_to_delete/
+seed-profile-data.js

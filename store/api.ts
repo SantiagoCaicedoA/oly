@@ -45,6 +45,11 @@ import {
     SubmitLiftResponse,
 } from "@/types/api/leaderboard";
 
+import {
+    FollowStatusResponse,
+    MyLiftsResponse,
+} from "@/types/api/profile";
+
 import { Days, ProfileSnapshot } from "@/store/reducer/trainingSlice";
 
 interface GetAiTrainingResponse {
@@ -370,6 +375,29 @@ export const api = createApi({
       }),
       invalidatesTags: ["Leaderboard"],
     }),
+
+    // ---- Profile screen -----------------------------------------------------
+    getMyLifts: builder.query<MyLiftsResponse, void>({
+      query: () => ({
+        url: API_ROUTES.LEADERBOARD.MY_LIFTS,
+        method: "GET",
+      }),
+      providesTags: ["Leaderboard"],
+    }),
+    getFollowStatus: builder.query<FollowStatusResponse, string>({
+      query: (userId) => ({
+        url: API_ROUTES.LEADERBOARD.FOLLOW_STATUS(userId),
+        method: "GET",
+      }),
+      providesTags: ["Leaderboard"],
+    }),
+    getMyPosts: builder.query<GetPostsResponse, GetPostsParams>({
+      query: ({ page, limit }) => ({
+        url: `${API_ROUTES.ATHLETE.GET_POSTS}?page=${page}&limit=${limit}&feed=mine`,
+        method: "GET",
+      }),
+      providesTags: ["Athlete"],
+    }),
   }),
 });
 
@@ -408,4 +436,8 @@ export const {
   useFlagLiftMutation,
   useFollowAthleteMutation,
   useUnfollowAthleteMutation,
+
+  useGetMyLiftsQuery,
+  useGetFollowStatusQuery,
+  useGetMyPostsQuery,
 } = api;
