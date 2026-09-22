@@ -6,7 +6,6 @@ import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyElevation } from "@/src/oly-theme/oly-elevation";
 import { Ionicons } from "@expo/vector-icons";
 import { OlyHomeIcon } from "@/components/icons/OlyHomeIcon";
-import { OlyAnalyticsIcon } from "@/components/icons/OlyAnalyticsIcon";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { router, Tabs } from "expo-router";
 import React, { createContext, useEffect, useState } from "react";
@@ -43,7 +42,7 @@ function TabsWithLoader() {
     show();
   }, [show]);
 
-  // shown before opening Home / Workout / Rank / Analytics
+  // shown before opening Home / Rank / Profile
   const loaderListeners = { tabPress: () => show() };
 
   return (
@@ -100,13 +99,17 @@ function TabsWithLoader() {
             }}
           />
 
+          {/* AI training is out of the MVP: route stays, tab is hidden. */}
+          <Tabs.Screen name="workout" options={{ href: null }} />
+
+
           <Tabs.Screen
-            name="workout"
+            name="rank"
             listeners={loaderListeners}
             options={{
-              title: "Workout",
+              title: "Rank",
               tabBarIcon: ({ color }) => (
-                <Ionicons name="calendar-outline" size={ICON_SIZE} color={color} />
+                <Ionicons name="pulse-outline" size={ICON_SIZE} color={color} />
               ),
             }}
           />
@@ -136,24 +139,20 @@ function TabsWithLoader() {
             }}
           />
 
-          <Tabs.Screen
-            name="rank"
-            listeners={loaderListeners}
-            options={{
-              title: "Rank",
-              tabBarIcon: ({ color }) => (
-                <Ionicons name="pulse-outline" size={ICON_SIZE} color={color} />
-              ),
-            }}
-          />
+          {/* stub kept only until the file is deleted */}
+          <Tabs.Screen name="analytics" options={{ href: null }} />
 
           <Tabs.Screen
-            name="analytics"
+            name="profile"
             listeners={loaderListeners}
             options={{
-              title: "Analytics",
+              title: "Profile",
               tabBarIcon: ({ color }) => (
-                <OlyAnalyticsIcon size={ICON_SIZE} color={color} />
+                <Ionicons
+                  name="person-outline"
+                  size={ICON_SIZE}
+                  color={color}
+                />
               ),
             }}
           />

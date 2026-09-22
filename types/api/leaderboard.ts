@@ -39,6 +39,8 @@ export interface BoardRowUser {
   weightClass: string;
   /** Overlapping labels, e.g. ["open","junior"] — never a raw birth year. */
   ageCategories: string[];
+  /** True once the athlete deleted their account. Result stays, identity goes. */
+  anonymized?: boolean;
 }
 
 export interface BoardRow {
@@ -91,7 +93,8 @@ export interface AthleteCardLift {
   weightKg: number;
   bodyweightKg: number;
   liftDate: string;
-  videoUrl: string;
+  /** null once the athlete deleted their account — result stays, face does not. */
+  videoUrl: string | null;
   pendingReview: boolean;
 }
 
@@ -107,6 +110,7 @@ export interface AthleteCardResponse {
     weightClass: string;
     ageCategories: string[];
     following: boolean;
+    anonymized?: boolean;
   };
   stats: {
     totalKg: number | null;

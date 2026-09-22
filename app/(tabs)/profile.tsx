@@ -143,17 +143,21 @@ export default function MyProfile() {
     <OlyScreenWrapper padded={false}>
       {/* nav */}
       <View style={styles.nav}>
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={olySpacing[8]}
-          style={styles.navBtn}
-        >
-          <Ionicons
-            name="chevron-back"
-            size={22}
-            color={olyColors.text.secondary}
-          />
-        </Pressable>
+        {router.canGoBack() ? (
+          <Pressable
+            onPress={() => router.back()}
+            hitSlop={olySpacing[8]}
+            style={styles.navBtn}
+          >
+            <Ionicons
+              name="chevron-back"
+              size={22}
+              color={olyColors.text.secondary}
+            />
+          </Pressable>
+        ) : (
+          <View style={styles.navBtn} />
+        )}
         <View style={styles.navRight}>
           <Pressable onPress={onShare} hitSlop={olySpacing[8]} style={styles.navBtn}>
             <Ionicons
@@ -168,7 +172,7 @@ export default function MyProfile() {
             style={styles.navBtn}
           >
             <Ionicons
-              name="options-outline"
+              name="settings-outline"
               size={20}
               color={olyColors.text.secondary}
             />

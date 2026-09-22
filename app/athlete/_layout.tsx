@@ -16,11 +16,11 @@ export default function AthleteLayout() {
       <Stack.Screen name="daily-check-in" />
       <Stack.Screen name="training-exercise" />
       <Stack.Screen name="create-new-post" />
-      <Stack.Screen name="my-profile" />
       <Stack.Screen name="add-exercise" />
       <Stack.Screen name="archive" />
       <Stack.Screen name="settings" />
       <Stack.Screen name="settings-personal-bests" />
+      <Stack.Screen name="settings-competition" />
       <Stack.Screen name="settings-availability" />
       <Stack.Screen name="settings-training-preference" />
       <Stack.Screen name="settings-equipment" />

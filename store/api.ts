@@ -170,6 +170,13 @@ export const api = createApi({
       invalidatesTags: ["Athlete"],
     }),
 
+    deleteAccount: builder.mutation<{ success: boolean; message: string }, void>({
+      query: () => ({
+        url: API_ROUTES.AUTH.DELETE_ACCOUNT,
+        method: "DELETE",
+      }),
+    }),
+
     getProfile: builder.query<{ success: boolean; data: any }, void>({
       query: () => ({
         url: API_ROUTES.ATHLETE.GET_PROFILE,
@@ -406,6 +413,7 @@ export const {
   useLoginMutation,
   useLazyCheckUsernameQuery,
   useSubmitProfileMutation,
+  useDeleteAccountMutation,
   useGetProfileQuery,
   useUploadProfileImageMutation,
   useUploadAthleteVideoMutation,

@@ -159,13 +159,6 @@ export default function Home() {
         <View style={styles.stickyHeader}>
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <TouchableOpacity
-                style={styles.profileAvatar}
-                onPress={() => router.push("/athlete/my-profile")}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.profileAvatarText}>OF</Text>
-              </TouchableOpacity>
               <Text style={styles.headerTitle}>COMMUNITY</Text>
             </View>
             <View style={styles.headerIcons}>

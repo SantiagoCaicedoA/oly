@@ -83,6 +83,7 @@ type Ranked = {
   pending: boolean;
   achievedAt: string | null;
   isYou: boolean;
+  anonymized: boolean;
 };
 
 const toRanked = (r: BoardRow, myId: string | undefined): Ranked => ({
@@ -103,6 +104,7 @@ const toRanked = (r: BoardRow, myId: string | undefined): Ranked => ({
   pending: !!r.pendingReview,
   achievedAt: r.achievedAt,
   isYou: !!myId && r.user.id === myId,
+  anonymized: !!r.user.anonymized,
 });
 
 const fmtDate = (iso: string | null | undefined) =>
@@ -574,11 +576,20 @@ export default function Rank() {
                 <View style={styles.rowInfo}>
                   <View style={styles.rowNameLine}>
                     <Text
-                      style={[styles.rowName, a.isYou && styles.rowNameMe]}
+                      style={[
+                        styles.rowName,
+                        a.isYou && styles.rowNameMe,
+                        a.anonymized && styles.rowNameInactive,
+                      ]}
                       numberOfLines={1}
                     >
                       {a.isYou ? "You" : a.name}
                     </Text>
+                    {a.anonymized && (
+                      <View style={styles.inactivePill}>
+                        <Text style={styles.inactivePillText}>INACTIVE</Text>
+                      </View>
+                    )}
                     {a.pending && (
                       <View style={styles.pendingPill}>
                         <Text style={styles.pendingPillText}>PENDING</Text>
@@ -1228,6 +1239,20 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   rowNameMe: { fontFamily: olyTypography.label.fontFamily },
+  rowNameInactive: { color: olyColors.text.disabled },
+  inactivePill: {
+    paddingHorizontal: olySpacing[8],
+    paddingVertical: 2,
+    borderRadius: olyRadius.full,
+    borderWidth: 1,
+    borderColor: olyColors.border.default,
+  },
+  inactivePillText: {
+    ...olyTypography.caption,
+    color: olyColors.text.disabled,
+    fontSize: 9,
+    letterSpacing: olyLetterSpacing.uppercase,
+  },
   rowSub: {
     ...olyTypography.caption,
     color: olyColors.text.secondary,

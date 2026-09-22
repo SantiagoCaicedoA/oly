@@ -618,7 +618,9 @@ export default function OnboardingScreen1({
 
           {/* DOB Section — single dropdown trigger */}
           <View style={styles.fieldContainer}>
-            <Text style={styles.label}>DATE OF BIRTH</Text>
+            <Text style={styles.label}>
+              {isSettings ? "BIRTH YEAR" : "DATE OF BIRTH"}
+            </Text>
             <Pressable
               onPress={openDobModal}
               style={({ pressed }) => [
@@ -629,13 +631,18 @@ export default function OnboardingScreen1({
               <Text
                 style={[
                   styles.dropdownButtonText,
-                  !(watchedValues.dobDay && watchedValues.dobMonth && watchedValues.dobYear) &&
-                    styles.dropdownPlaceholder,
+                  !(isSettings
+                    ? watchedValues.dobYear
+                    : watchedValues.dobDay &&
+                      watchedValues.dobMonth &&
+                      watchedValues.dobYear) && styles.dropdownPlaceholder,
                 ]}
               >
-                {watchedValues.dobDay && watchedValues.dobMonth && watchedValues.dobYear
-                  ? `${getMonthShort(watchedValues.dobMonth)} ${watchedValues.dobDay}, ${watchedValues.dobYear}`
-                  : "Select date of birth"}
+                {isSettings
+                  ? watchedValues.dobYear || "Select birth year"
+                  : watchedValues.dobDay && watchedValues.dobMonth && watchedValues.dobYear
+                    ? `${getMonthShort(watchedValues.dobMonth)} ${watchedValues.dobDay}, ${watchedValues.dobYear}`
+                    : "Select date of birth"}
               </Text>
               <Ionicons
                 name="calendar-outline"
@@ -664,7 +671,9 @@ export default function OnboardingScreen1({
 
                 {/* Header */}
                 <View style={styles.dobSheetHeader}>
-                  <Text style={styles.dobSheetTitle}>DATE OF BIRTH</Text>
+                  <Text style={styles.dobSheetTitle}>
+                    {isSettings ? "BIRTH YEAR" : "DATE OF BIRTH"}
+                  </Text>
                   <Pressable
                     onPress={() => setDobModalVisible(false)}
                     hitSlop={olySpacing[12]}
@@ -677,8 +686,12 @@ export default function OnboardingScreen1({
 
                 {/* Column labels */}
                 <View style={styles.wheelLabels}>
-                  <Text style={styles.wheelLabel}>Day</Text>
-                  <Text style={styles.wheelLabel}>Month</Text>
+                  {!isSettings && (
+                    <>
+                      <Text style={styles.wheelLabel}>Day</Text>
+                      <Text style={styles.wheelLabel}>Month</Text>
+                    </>
+                  )}
                   <Text style={styles.wheelLabel}>Year</Text>
                 </View>
 
@@ -699,7 +712,7 @@ export default function OnboardingScreen1({
                       decelerationRate="fast"
                       nestedScrollEnabled
                       bounces={false}
-                      style={styles.wheelColumn}
+                      style={[styles.wheelColumn, isSettings && styles.wheelHidden]}
                       contentContainerStyle={{
                         paddingVertical: DOB_ITEM_HEIGHT * 2,
                       }}
@@ -741,7 +754,7 @@ export default function OnboardingScreen1({
                       decelerationRate="fast"
                       nestedScrollEnabled
                       bounces={false}
-                      style={styles.wheelColumn}
+                      style={[styles.wheelColumn, isSettings && styles.wheelHidden]}
                       contentContainerStyle={{
                         paddingVertical: DOB_ITEM_HEIGHT * 2,
                       }}
@@ -1285,6 +1298,7 @@ const styles = StyleSheet.create({
     flexDirection: "row" as const,
     flex: 1,
   },
+  wheelHidden: { display: "none" },
   wheelColumn: {
     flex: 1,
   },
