@@ -28,6 +28,20 @@ type OlyTextStyle = {
 };
 
 export const olyTypography: Record<string, OlyTextStyle> = {
+  /**
+   * 48/52 Medium — the rank numeral, and nothing else.
+   *
+   * Added because ProfileRankCard was setting 56 inline, off the scale
+   * entirely. A leaderboard position is the one number in the app that
+   * has to be legible across a room, so it earns a step above `display`.
+   * If a second use ever appears, that is a decision, not a convenience.
+   */
+  hero: {
+    fontSize: 48,
+    lineHeight: 52,
+    fontWeight: "500",
+    fontFamily: olyFonts.medium,
+  },
   /** 32/40 Medium — Hero numbers: weight on bar, PR display */
   display: {
     fontSize: 32,

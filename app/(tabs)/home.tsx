@@ -1,401 +1,391 @@
 import PostCard from "@/components/post-card";
-import CustomButton from "@/constants/custom-button";
+import { OlyIcon } from "@/components/icons/OlyIcon";
+import { ProfileRankCard } from "@/src/oly-components/profile/ProfileRankCard";
+import { useMyStanding } from "@/src/oly-hooks/useMyStanding";
+import { OLY_LOGO_PATH, OLY_LOGO_VIEWBOX } from "@/constants/oly-logo";
 import { olyTypography, olyFonts, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
 import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
-import { Ionicons } from "@expo/vector-icons";
 import { useGetPostsQuery } from "@/store/api";
 import { RootState } from "@/store/store";
 import { router, Stack } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
+  Animated,
   FlatList,
-  ScrollView,
+  Pressable,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import Svg, { Path } from "react-native-svg";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
 
-const HEADER_ICON_SIZE = 24;
+/**
+ * Home feed.
+ *
+ * Design system: Feed and rank / HomeFeed.
+ *
+ * Removed from the previous version:
+ *  - The search and mail icons. Both are tabs now; a header icon that
+ *    duplicates a tab teaches nothing.
+ *  - Four of the six filters. Squats is not a competition lift, and the
+ *    question a feed answers is whose lifts you are seeing.
+ *  - The "COMMUNITY" title. It named nothing. The wordmark does the job.
+ *  - The loading spinner, replaced by a skeleton in the feed's own shape.
+ *
+ * Added:
+ *  - The two header actions, post and notifications, as a pair of circles
+ *    on the right. The wordmark grows to 40 to hold the other end of the
+ *    row, so the top no longer reads as empty.
+ *
+ * Removed after that:
+ *  - The full width compose prompt. The plus in the header does the same
+ *    job in a quarter of the space, and the empty state still offers it
+ *    in words when there is nothing to read.
+ *
+ * Above the first post sits the compact ProfileRankCard, the same
+ * component the profile screen uses as its hero. A feed is pleasant to
+ * scroll; a standing is a reason to post. It is the one thing on this
+ * screen that connects the feed to Rank, which is the actual product.
+ * It renders nothing at all until there is a rank to show.
+ *
+ * NOT HERE YET: the Following / Everyone filter. `GetPostsParams` has no
+ * `scope`, so the pills would be a control that does nothing. When the API
+ * takes a scope, add it to GetPostsParams, put the two pills back from the
+ * design system (Feed and rank / HomeFeed), and pass `scope` to the query.
+ */
 
-const FEED_FILTERS = [
-  "All",
-  "Snatch",
-  "Clean & Jerk",
-  "Squats",
-  "PRs",
-  "Following",
-] as const;
+const LIMIT = 10;
+
+function Wordmark() {
+  return (
+    <Svg width={40} height={40} viewBox={OLY_LOGO_VIEWBOX}>
+      <Path d={OLY_LOGO_PATH} fill={olyColors.text.primary} />
+    </Svg>
+  );
+}
+
+/* A dim block in the shape of what is coming, with a slow pulse. */
+function Skeleton({ height, width = "100%", radius = olyRadius.sm }: any) {
+  const o = useRef(new Animated.Value(0.5)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(o, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(o, { toValue: 0.5, duration: 700, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [o]);
+  return (
+    <Animated.View
+      style={{
+        height,
+        width,
+        borderRadius: radius,
+        backgroundColor: olyPalette.cardElevated,
+        opacity: o,
+      }}
+    />
+  );
+}
+
+function SkeletonCard() {
+  return (
+    <View style={styles.skelCard}>
+      <View style={styles.skelAuthor}>
+        <Skeleton height={32} width={32} radius={olyRadius.full} />
+        <Skeleton height={12} width={110} />
+      </View>
+      <Skeleton height={300} radius={0} />
+      <View style={styles.skelBody}>
+        <Skeleton height={16} width="45%" />
+        <Skeleton height={12} width="72%" />
+      </View>
+    </View>
+  );
+}
 
 export default function Home() {
-  const insets = useSafeAreaInsets();
-  const token = useSelector((state: RootState) => state.auth.token);
-  const LIMIT = 10;
+  const token = useSelector((s: RootState) => s.auth.token);
   const [page, setPage] = useState(1);
-  const [activeFilter, setActiveFilter] = useState<string>("All");
-  const isLoadingMore = useRef(false);
-  const [hasMore, setHasMore] = useState(true);
   const [allPosts, setAllPosts] = useState<any[]>([]);
-  const [visiblePostIds, setVisiblePostIds] = useState<Set<string>>(new Set());
-  const {
-    data: postsData,
-    isLoading,
-    isError,
-    isFetching,
-  } = useGetPostsQuery({ page, limit: LIMIT }, { skip: !token });
-  const posts = postsData?.data ?? [];
+  const [hasMore, setHasMore] = useState(true);
+  const [visibleIds, setVisibleIds] = useState<Set<string>>(new Set());
+  const loadingMore = useRef(false);
+
+  const { data, isLoading, isError, isFetching } = useGetPostsQuery(
+    { page, limit: LIMIT },
+    { skip: !token },
+  );
 
   useEffect(() => {
-    if (postsData?.data) {
-      if (page === 1) {
-        setAllPosts(postsData.data);
-      } else {
-        setAllPosts((prev) => {
-          const existingIds = new Set(prev.map((p) => p._id));
-          const unique = postsData.data.filter((p) => !existingIds.has(p._id));
-          return [...prev, ...unique];
-        });
-      }
-      if (postsData.data.length < LIMIT) setHasMore(false);
-      else setHasMore(true);
-    }
-  }, [page, postsData]);
+    if (!data?.data) return;
+    setAllPosts((prev) => {
+      if (page === 1) return data.data;
+      const seen = new Set(prev.map((p: any) => p._id));
+      return [...prev, ...data.data.filter((p: any) => !seen.has(p._id))];
+    });
+    setHasMore(data.data.length >= LIMIT);
+  }, [page, data]);
 
-  
   useEffect(() => {
     setAllPosts([]);
     setPage(1);
     setHasMore(true);
   }, [token]);
 
-  const handlePostPress = (post_id: string) => {
-    router.push({
-      pathname: "/athlete/post-expanded",
-      params: { post_id },
-    });
-  };
-  const handleLoadMore = () => {
-    if (isLoadingMore.current || isFetching || isLoading || !hasMore) return;
-    isLoadingMore.current = true;
-    setPage((prev) => prev + 1);
-  };
   useEffect(() => {
-    if (!isFetching) {
-      isLoadingMore.current = false;
-    }
+    if (!isFetching) loadingMore.current = false;
   }, [isFetching]);
-  const handleRefresh = () => {
-    setHasMore(true);
-    setPage(1);
+
+  const onViewable = useRef(({ viewableItems }: any) =>
+    setVisibleIds(new Set(viewableItems.map((v: any) => v.item._id))),
+  ).current;
+
+  const loadMore = () => {
+    if (loadingMore.current || isFetching || isLoading || !hasMore) return;
+    loadingMore.current = true;
+    setPage((p) => p + 1);
   };
-  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
-    const ids = new Set<string>(
-      viewableItems.map((item: any) => item.item._id),
-    );
-    setVisiblePostIds(ids);
-  }).current;
 
-  const renderEmptyComponent = () => {
+  const compose = () => router.push("/athlete/create-new-post");
+
+  const standing = useMyStanding();
+
+  /* No skeleton and no placeholder. An athlete with no rank yet gets the
+     feed starting where it always did, rather than a box apologising. */
+  const standingCard =
+    standing.me && !standing.isLoading ? (
+      <ProfileRankCard
+        compact
+        me={standing.me}
+        season={standing.season}
+        sex={standing.sex}
+        onClaim={compose}
+        onPress={() => router.push("/(tabs)/rank")}
+      />
+    ) : null;
+
+  const header = (
+    <View style={styles.header}>
+      <Wordmark />
+      <View style={styles.actions}>
+        <Pressable
+          style={[styles.act, styles.actBrand]}
+          onPress={compose}
+          accessibilityRole="button"
+          accessibilityLabel="Post a lift"
+        >
+          {/* text-primary on the blue disc. The glyph is never blue. */}
+          <OlyIcon name="plus" size={22} color={olyColors.text.primary} />
+        </Pressable>
+        <Pressable
+          style={styles.act}
+          accessibilityRole="button"
+          accessibilityLabel="Notifications"
+        >
+          <OlyIcon name="bell" size={22} color={olyColors.text.secondary} />
+          <View style={styles.dot} />
+        </Pressable>
+      </View>
+    </View>
+  );
+
+  const empty = () => {
     if (isLoading) return null;
-
+    if (isError) {
+      return (
+        <View style={styles.state}>
+          <Text style={styles.stateTitle}>Couldn&apos;t load the feed</Text>
+          <Text style={styles.stateBody}>
+            Check your connection and try again.
+          </Text>
+          <Pressable style={styles.stateCta} onPress={() => setPage(1)}>
+            <Text style={styles.stateCtaText}>Retry</Text>
+          </Pressable>
+        </View>
+      );
+    }
     return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyTitle}>No posts yet</Text>
-        <Text style={styles.emptySubtitle}>
-          Share your first lift and start tracking your progress.
+      <View style={styles.state}>
+        <Text style={styles.stateTitle}>Nothing here yet</Text>
+        <Text style={styles.stateBody}>
+          Follow a few athletes, or post the first lift and let the board find
+          you.
         </Text>
-        <CustomButton
-          title="Create Post"
-          onPress={() => router.push("athlete/create-new-post")}
-          style={styles.button}
-        />
+        <Pressable style={styles.stateCta} onPress={compose}>
+          <Text style={styles.stateCtaText}>Post a lift</Text>
+        </Pressable>
       </View>
     );
   };
 
-  const renderErrorComponent = () => (
-    <View style={styles.emptyContainer}>
-      <Text style={styles.errorText}>
-        Something went wrong. Please try again.
-      </Text>
-
-      <CustomButton
-        title="Retry"
-        onPress={handleRefresh}
-        style={styles.button}
-      />
-    </View>
-  );
-  if (isLoading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={olyPalette.primary} />
-        </View>
-      </SafeAreaView>
-    );
-  }
-  if (isError) {
-    return (
-      <SafeAreaView style={styles.container}>
-        {renderErrorComponent()}
-      </SafeAreaView>
-    );
-  }
-
   return (
     <>
       <Stack.Screen options={{ gestureEnabled: false }} />
-      <SafeAreaView style={styles.container}>
-        <View style={styles.stickyHeader}>
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Text style={styles.headerTitle}>COMMUNITY</Text>
-            </View>
-            <View style={styles.headerIcons}>
-              <TouchableOpacity hitSlop={olySpacing[8]} activeOpacity={0.6}>
-                <Ionicons
-                  name="search-outline"
-                  size={HEADER_ICON_SIZE}
-                  color={olyColors.text.secondary}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity hitSlop={olySpacing[8]} activeOpacity={0.6}>
-                <View>
-                  <Ionicons
-                    name="mail-outline"
-                    size={HEADER_ICON_SIZE}
-                    color={olyColors.text.secondary}
-                  />
-                  <View style={styles.notificationDot} />
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity hitSlop={olySpacing[8]} activeOpacity={0.6}>
-                <Ionicons
-                  name="notifications-outline"
-                  size={HEADER_ICON_SIZE}
-                  color={olyColors.text.secondary}
-                />
-              </TouchableOpacity>
-            </View>
+      <SafeAreaView style={styles.screen} edges={["top"]}>
+        {header}
+
+        {isLoading ? (
+          <View style={styles.skelWrap}>
+            <SkeletonCard />
+            <SkeletonCard />
           </View>
-
-          {/* Filter pills */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterRow}
-            style={styles.filterContainer}
-          >
-            {FEED_FILTERS.map((filter) => {
-              const isActive = activeFilter === filter;
-              return (
-                <TouchableOpacity
-                  key={filter}
-                  style={[styles.filterPill, isActive && styles.filterPillActive]}
-                  onPress={() => setActiveFilter(filter)}
-                  activeOpacity={0.7}
-                >
-                  <Text
-                    style={[
-                      styles.filterText,
-                      isActive && styles.filterTextActive,
-                    ]}
-                  >
-                    {filter}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-          <LinearGradient
-            colors={[olyPalette.background, "transparent"]}
-            style={styles.headerFade}
-          />
-        </View>
-
-        <FlatList
-          data={allPosts}
-          keyExtractor={(item) => item._id}
-          renderItem={({ item }) => (
-            <PostCard
-              post={item}
-              onPress={handlePostPress}
-              isVisible={visiblePostIds.has(item._id)}
-            />
-          )}
-          onViewableItemsChanged={onViewableItemsChanged}
-          viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
-          contentContainerStyle={[
-            styles.listContent,
-            allPosts.length === 0 && { flex: 1 },
-          ]}
-          ListFooterComponent={() =>
-            isFetching && !isLoading ? (
-              <ActivityIndicator
-                size="small"
-                color={olyPalette.primary}
-                style={{ padding: olySpacing[8] }}
+        ) : (
+          <FlatList
+            data={allPosts}
+            keyExtractor={(i) => i._id}
+            ListHeaderComponent={
+              standingCard ? (
+                <View style={styles.standing}>{standingCard}</View>
+              ) : null
+            }
+            renderItem={({ item, index }) => (
+              <PostCard
+                first={index === 0}
+                post={item}
+                onPress={(id) =>
+                  router.push({
+                    pathname: "/athlete/post-expanded",
+                    params: { post_id: id },
+                  })
+                }
+                isVisible={visibleIds.has(item._id)}
               />
-            ) : null
-          }
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.1}
-          windowSize={5}
-          initialNumToRender={10}
-          maxToRenderPerBatch={10}
-          removeClippedSubviews={true}
-          ListEmptyComponent={renderEmptyComponent}
-          showsVerticalScrollIndicator={false}
-        />
+            )}
+            onViewableItemsChanged={onViewable}
+            viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
+            contentContainerStyle={[
+              styles.list,
+              allPosts.length === 0 && styles.listEmpty,
+            ]}
+            ListEmptyComponent={empty}
+            ListFooterComponent={
+              isFetching && allPosts.length ? (
+                <View style={styles.footer}>
+                  <Skeleton height={12} width="40%" />
+                </View>
+              ) : null
+            }
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.1}
+            showsVerticalScrollIndicator={false}
+            windowSize={5}
+            initialNumToRender={6}
+            removeClippedSubviews
+          />
+        )}
       </SafeAreaView>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "transparent",
-  },
-  stickyHeader: {
-    backgroundColor: olyPalette.background,
-    zIndex: 1,
-  },
-  headerFade: {
-    height: 12,
-    marginTop: -1,
-  },
+  screen: { flex: 1, backgroundColor: "transparent" },
+
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: olySpacing[12],
     paddingHorizontal: olyLayout.screenPadding,
+    paddingTop: olySpacing[12],
+    paddingBottom: olySpacing[12],
   },
-  headerLeft: {
+  actions: {
+    marginLeft: "auto",
     flexDirection: "row",
-    alignItems: "center",
-    gap: olySpacing[12],
+    gap: olySpacing[8],
   },
-  profileAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: olyPalette.cardElevated,
+  /* A circular action sits one elevation step above the screen. */
+  act: {
+    width: 38,
+    height: 38,
+    borderRadius: olyRadius.full,
+    backgroundColor: olyPalette.card,
     alignItems: "center",
     justifyContent: "center",
   },
-  profileAvatarText: {
-    fontSize: 11,
-    fontFamily: olyTypography.caption.fontFamily,
-    fontWeight: "500",
-    color: olyColors.text.secondary,
-  },
-  headerTitle: {
-    ...olyTypography.title2,
-    color: olyColors.text.primary,
-    letterSpacing: olyLetterSpacing.uppercase,
-  },
-  headerIcons: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: olySpacing[20],
-  },
-  notificationDot: {
+  actBrand: { backgroundColor: olyPalette.primary },
+  dot: {
     position: "absolute",
-    top: -2,
-    right: -2,
+    top: 7,
+    right: 8,
     width: 8,
     height: 8,
     borderRadius: olyRadius.full,
     backgroundColor: olyPalette.primary,
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: olyPalette.card,
   },
-  filterContainer: {
-    flexGrow: 0,
+
+  standing: {
+    marginHorizontal: olyLayout.screenPadding,
+    marginBottom: olySpacing[16],
   },
-  filterRow: {
-    flexDirection: "row",
-    gap: olySpacing[8],
+
+  skelWrap: {
     paddingHorizontal: olyLayout.screenPadding,
-    paddingVertical: olySpacing[12],
-  },
-  filterPill: {
-    paddingHorizontal: olySpacing[16],
-    height: 32,
-    borderRadius: olyRadius.full,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
-    backgroundColor: "transparent",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  filterPillActive: {
-    backgroundColor: olyPalette.primary,
-    borderColor: olyPalette.primary,
-  },
-  filterText: {
-    ...olyTypography.caption,
-    fontFamily: olyFonts.medium,
-    color: olyColors.text.secondary,
-  },
-  filterTextActive: {
-    color: olyPalette.white,
-  },
-  listContent: {
-    paddingTop: olySpacing[4],
     paddingBottom: olySpacing[16],
-    paddingHorizontal: olyLayout.screenPadding,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
+
+  /* No horizontal padding. Posts run edge to edge and supply their own
+     gutters for text; the media deliberately has none. */
+  list: {
+    paddingBottom: olySpacing[16],
+  },
+  listEmpty: { flexGrow: 1 },
+  footer: { paddingVertical: olySpacing[16], alignItems: "center" },
+
+  skelCard: {
+    backgroundColor: olyPalette.card,
+    borderRadius: olyRadius.lg,
+    overflow: "hidden",
+    marginBottom: olySpacing[16],
+  },
+  skelAuthor: {
+    flexDirection: "row",
     alignItems: "center",
+    gap: olySpacing[8],
+    padding: olySpacing[12],
   },
+  skelBody: { padding: olySpacing[16], gap: olySpacing[8] },
 
-  emptyText: {
-    ...olyTypography.body,
-    color: olyColors.text.primary,
-  },
-
-  errorText: {
-    ...olyTypography.body,
-    color: olyColors.text.error,
-  },
-
-  emptyContainer: {
+  state: {
     flex: 1,
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
     paddingHorizontal: olySpacing[24],
-    gap: olySpacing[12],
+    gap: olySpacing[8],
   },
-
-  emptyTitle: {
-    ...olyTypography.title2,
+  stateTitle: {
+    ...olyTypography.body,
+    fontFamily: olyFonts.medium,
     color: olyColors.text.primary,
   },
-
-  emptySubtitle: {
-    ...olyTypography.body,
+  stateBody: {
+    ...olyTypography.bodySmall,
+    lineHeight: 20,
     color: olyColors.text.secondary,
     textAlign: "center",
-    maxWidth: 260,
+    maxWidth: 300,
   },
-
-  button: {
-    width: "70%",
-    maxWidth: 160,
+  stateCta: {
+    marginTop: olySpacing[8],
+    height: olyLayout.minTouchTarget,
+    paddingHorizontal: olySpacing[20],
+    borderRadius: olyRadius.full,
+    backgroundColor: olyColors.button.primary.bg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stateCtaText: {
+    ...olyTypography.button,
+    color: olyColors.button.primary.text,
+    textTransform: "uppercase",
+    letterSpacing: olyLetterSpacing.uppercase,
   },
 });

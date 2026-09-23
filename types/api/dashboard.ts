@@ -65,6 +65,14 @@ export interface SessionDetail {
   lifted_kg: number;
   rpe: string;
   context_value: string;
+  /** Athlete's bodyweight at the time of the lift. Drives the x bodyweight cell. */
+  bodyweight_kg?: number;
+  /** "Fast" | "Moderate" | "Grinder", as the composer's pill sets it. */
+  bar_speed?: string;
+  /** "Easy" | "Hard" | "Max", as the composer's pill sets it. */
+  effort?: string;
+  /** True when the athlete marked this the top set of the session. */
+  top_set?: boolean;
 }
 
 export interface PostUser {

@@ -309,7 +309,18 @@ export default function CreateNewPost() {
     formData.append("data", JSON.stringify({
       lift_name: lift,
       opinion: caption,
-      session_detail: { lifted_kg: weight },
+      /* Bar speed, effort, top set and bodyweight were all being
+         collected by the pills above and then dropped here: the payload
+         only ever carried lifted_kg. Every one of them is what the feed's
+         stat strip reads, so a post made before this fix will show no
+         strip at all. Send only what the athlete actually set. */
+      session_detail: {
+        lifted_kg: weight,
+        ...(Number.isFinite(bwKg) && bwKg > 0 ? { bodyweight_kg: bwKg } : {}),
+        ...(speedOn && speedVal ? { bar_speed: speedVal } : {}),
+        ...(effortOn && effortVal ? { effort: effortVal } : {}),
+        ...(showTopSet ? { top_set: true } : {}),
+      },
       is_public: visibility === "community",
       is_private: visibility === "private",
       username: user?.username,

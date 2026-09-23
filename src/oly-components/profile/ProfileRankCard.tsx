@@ -1,15 +1,32 @@
 /**
- * ProfileRankCard — the profile's competitive hero.
+ * ProfileRankCard — the competitive hero.
  *
- * Three states, driven by /api/leaderboard/me:
- * - leader   (rank 1, verified): blue-bordered card, SEASON LEADER pill,
- *   big #1, slow light sweep (same grammar as the golden ticket).
- * - ranked   (rank 2+, verified): same layout, quiet — no pill, no sweep.
- * - provisional (onboarding 1RMs only): greyed rank + full-width claim CTA.
- * Renders nothing while there is no rank at all (new user) — the parent
- * shows its own empty CTA in that case.
+ * One component, two sizes, three states.
+ *
+ * States, driven by /api/leaderboard/me:
+ *  - leader      rank 1, verified. Blue hairline, filled SEASON LEADER
+ *                pill, and a slow light sweep.
+ *  - ranked      rank 2+, verified. The same card, quiet. No hairline,
+ *                no pill, no sweep.
+ *  - provisional onboarding 1RMs only. Muted numeral and a claim CTA.
+ * Renders nothing when there is no rank at all; the parent shows its
+ * own empty state.
+ *
+ * Sizes:
+ *  - full     the profile screen. Numeral at `hero`, divider, lifts line.
+ *  - compact  the home feed, above the first post. Numeral at `display`,
+ *             no divider, no lifts line. Same card, a third of the height.
+ *
+ * Two defects this replaced, both measured rather than guessed:
+ *  - the hairline was rgba(0, 74, 173, 0.9), which composites to #1B4398
+ *    and reads 1.43:1 on the card. A border carrying meaning needs 3:1.
+ *  - the card filled with surface.leader #12203A, which is 1.08:1 against
+ *    the page. As a surface it was not there, so an invisible shape was
+ *    being outlined by an invisible line. The card now uses the ordinary
+ *    card colour and belongs to the same family as every post.
  */
 
+import { OlyIcon } from "@/components/icons/OlyIcon";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olySpacing } from "@/src/oly-theme/oly-spacing";
@@ -18,51 +35,147 @@ import {
   olyTypography,
 } from "@/src/oly-theme/oly-typography";
 import type { MyRankResponse, SeasonMeta } from "@/types/api/leaderboard";
-import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   Easing,
+  cancelAnimation,
   interpolate,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
+  type SharedValue,
   withDelay,
   withRepeat,
+  withSequence,
   withTiming,
 } from "react-native-reanimated";
 
 type Me = NonNullable<MyRankResponse["me"]>;
 
+/** Whole days until the season closes, or null when there is no date. */
+function daysLeft(season: SeasonMeta | null): number | null {
+  if (!season?.endsAt) return null;
+  const ms = new Date(season.endsAt).getTime() - Date.now();
+  if (!Number.isFinite(ms)) return null;
+  return Math.max(0, Math.ceil(ms / 86_400_000));
+}
+
 interface ProfileRankCardProps {
   me: Me;
   season: SeasonMeta | null;
   sex: "M" | "F";
-  /** Rank-1 sweep + provisional CTA target */
+  /** Provisional CTA target. */
   onClaim: () => void;
   onPress?: () => void;
+  /** Home feed size. Drops the divider and the lifts line. */
+  compact?: boolean;
 }
 
-/** Slow crystal sweep across the leader card (reduced-motion friendly: subtle, slow). */
-function Sheen() {
+/** Band width. Wide, because light has no edges. */
+const SWEEP_W = 150;
+/** Time to cross the card. */
+const SWEEP_MS = 2200;
+/** Time spent off the card between passes. */
+const SWEEP_REST_MS = 4200;
+
+/**
+ * The light sweep across the leader card.
+ *
+ * A gradient, not a block. A hard edged rectangle at 7% reads as a grey
+ * bar sliding past, which is what it was. Light has no edges, so the band
+ * is wide, its brightest point is a thin core, and both sides fall off to
+ * nothing. It travels slowly and rests between passes.
+ *
+ * Reduce Motion is non-negotiable in this system, so it renders nothing
+ * at all rather than animating more gently.
+ *
+ * Two things here are load bearing, and both were wrong first time.
+ *
+ * The sequence resets to 0 before every pass. `withRepeat` re-runs an
+ * animation from wherever the value currently sits, so a sequence that
+ * only ever animates TO 1 moves on its first pass and then, already at 1,
+ * sits still for good. It swept once and looked broken after that.
+ *
+ * The card's width lives in a shared value, not React state. Held in
+ * state it re-renders the card on every layout pass, which remounts this
+ * component and restarts the animation mid-travel. A shared value is read
+ * on the UI thread and changes nothing above it.
+ */
+function Sheen({ width }: { width: SharedValue<number> }) {
+  const reduced = useReducedMotion();
   const t = useSharedValue(0);
+
   useEffect(() => {
+    if (reduced) {
+      cancelAnimation(t);
+      return;
+    }
     t.value = withRepeat(
-      withDelay(
-        2600,
-        withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.quad) })
+      withSequence(
+        /* Back to the start, instantly and off the card. */
+        withTiming(0, { duration: 0 }),
+        withDelay(
+          SWEEP_REST_MS,
+          withTiming(1, {
+            duration: SWEEP_MS,
+            /* Gentler than a cubic in-out, which visibly hangs at each
+               end. Eases in, holds its pace across the face of the card,
+               eases out. */
+            easing: Easing.bezier(0.42, 0.0, 0.38, 1.0),
+          }),
+        ),
       ),
       -1,
-      false
+      false,
     );
-  }, [t]);
+    return () => cancelAnimation(t);
+  }, [t, reduced]);
+
   const style = useAnimatedStyle(() => ({
+    opacity: width.value > 0 ? 1 : 0,
     transform: [
-      { translateX: interpolate(t.value, [0, 1], [-160, 420]) },
-      { rotate: "18deg" },
+      {
+        translateX: interpolate(
+          t.value,
+          [0, 1],
+          [-SWEEP_W, width.value + SWEEP_W],
+        ),
+      },
+      { rotate: "16deg" },
     ],
   }));
+
+  if (reduced) return null;
+
   return (
-    <Animated.View pointerEvents="none" style={[styles.sheen, style]} />
+    <Animated.View
+      pointerEvents="none"
+      /* The band is one flat layer moving over a clipped, rounded parent.
+         Promoting it keeps the compositor from re-rasterising the
+         gradient on every frame. */
+      shouldRasterizeIOS
+      renderToHardwareTextureAndroid
+      style={[styles.sheen, style]}
+    >
+      <LinearGradient
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        /* Soft shoulders, a narrow bright core. Nothing steps. */
+        colors={[
+          "rgba(226,232,240,0)",
+          "rgba(226,232,240,0.025)",
+          "rgba(226,232,240,0.07)",
+          "rgba(226,232,240,0.115)",
+          "rgba(226,232,240,0.07)",
+          "rgba(226,232,240,0.025)",
+          "rgba(226,232,240,0)",
+        ]}
+        locations={[0, 0.22, 0.4, 0.5, 0.6, 0.78, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+    </Animated.View>
   );
 }
 
@@ -72,26 +185,114 @@ export const ProfileRankCard: React.FC<ProfileRankCardProps> = ({
   sex,
   onClaim,
   onPress,
+  compact = false,
 }) => {
+  const cardW = useSharedValue(0);
   const isLeader = !me.provisional && me.rank === 1;
   const boardLabel = `${sex === "M" ? "Men" : "Women"} ${me.weightClass} kg`;
   const seasonLabel = season?.label ?? "Season";
 
+  const numeral = styles.rankFull;
+  const hash = styles.hashFull;
+  const pad = null;
+
+  /**
+   * The feed card is a different layout, not a smaller one.
+   *
+   * Shrinking the profile hero gives you three stacked rows in a box two
+   * thirds the height, which reads as a hero that lost an argument. Above
+   * a feed it has to be a strip. So the kicker carries the state instead
+   * of a pill, the rank and the board label share one baseline, and the
+   * countdown takes the right edge. Two lines, one row, no pill.
+   */
+  if (compact) {
+    const days = daysLeft(season);
+    const kicker = me.provisional
+      ? "UNCLAIMED"
+      : isLeader
+        ? "SEASON LEADER"
+        : "YOUR STANDING";
+
+    return (
+      <Pressable
+        onPress={me.provisional ? onClaim : onPress}
+        onLayout={(e) => {
+          cardW.value = e.nativeEvent.layout.width;
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={
+          `${kicker}. Rank ${me.rank}, ${boardLabel}.` +
+          (days != null ? ` ${days} days left in ${seasonLabel}.` : "")
+        }
+        /* No hairline on the compact card. On the feed it was the only
+           bordered surface on the screen and read as something that had
+           wandered in from elsewhere. The kicker and the sweep carry the
+           leader state; matching the posts is what makes it belong. */
+        style={[styles.card, styles.cardCompact]}
+      >
+        {isLeader && <Sheen width={cardW} />}
+
+        <View style={styles.cRow}>
+          <View style={styles.cLeft}>
+            <Text
+              style={[styles.cKicker, isLeader && styles.cKickerLeader]}
+              numberOfLines={1}
+            >
+              {kicker}
+            </Text>
+            <View style={styles.cLine}>
+              <Text style={[styles.cRank, me.provisional && styles.rankMuted]}>
+                <Text
+                  style={[styles.cHash, me.provisional && styles.rankMuted]}
+                >
+                  #
+                </Text>
+                {me.rank}
+              </Text>
+              <Text style={styles.cBoard} numberOfLines={1}>
+                {boardLabel}
+              </Text>
+            </View>
+          </View>
+
+          {days != null && (
+            <View style={styles.cDays}>
+              <Text style={styles.cDaysNum}>{days}</Text>
+              <Text style={styles.cDaysLabel}>
+                {days === 1 ? "DAY" : "DAYS"}
+              </Text>
+            </View>
+          )}
+        </View>
+      </Pressable>
+    );
+  }
+
+  const head = (
+    <View style={styles.headRow}>
+      <Text style={styles.kicker}>RANK</Text>
+      {me.provisional ? (
+        <View style={styles.provPill}>
+          <Text style={styles.provPillText}>UNCLAIMED</Text>
+        </View>
+      ) : isLeader ? (
+        /* Filled, not outlined. Brand blue is 1.60:1 on the card and
+           cannot be drawn as a line. It can be filled, with ink on top. */
+        <View style={styles.leaderPill}>
+          <Text style={styles.leaderPillText}>SEASON LEADER</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+
   if (me.provisional) {
     return (
-      <View style={[styles.card, styles.cardProvisional]}>
-        <View style={styles.headRow}>
-          <Text style={styles.kicker}>RANK</Text>
-          <View style={styles.provPill}>
-            <Text style={styles.provPillText}>UNCLAIMED</Text>
-          </View>
-        </View>
-        <View style={styles.rankRow}>
-          <Text style={[styles.rankBig, styles.rankBigMuted]}>
-            <Text style={[styles.rankHash, styles.rankBigMuted]}>#</Text>
-            {me.rank}
-          </Text>
-        </View>
+      <View style={[styles.card, pad]}>
+        {head}
+        <Text style={[numeral, styles.rankMuted]}>
+          <Text style={[hash, styles.rankMuted]}>#</Text>
+          {me.rank}
+        </Text>
         <Text style={styles.seasonLine}>
           {boardLabel} · {seasonLabel}
         </Text>
@@ -112,37 +313,34 @@ export const ProfileRankCard: React.FC<ProfileRankCardProps> = ({
   return (
     <Pressable
       onPress={onPress}
-      style={[styles.card, isLeader && styles.cardLeader]}
+      onLayout={(e) => {
+        cardW.value = e.nativeEvent.layout.width;
+      }}
+      style={[styles.card, pad, isLeader && styles.cardLeader]}
     >
-      {isLeader && <Sheen />}
-      <View style={styles.headRow}>
-        <Text style={styles.kicker}>RANK</Text>
-        {isLeader && (
-          <View style={styles.leaderPill}>
-            <Text style={styles.leaderPillText}>SEASON LEADER</Text>
-          </View>
-        )}
-      </View>
-      <Text style={styles.rankBig}>
-        <Text style={styles.rankHash}>#</Text>
+      {isLeader && <Sheen width={cardW} />}
+      {head}
+      <Text style={numeral}>
+        <Text style={hash}>#</Text>
         {me.rank}
       </Text>
       <Text style={styles.seasonLine}>
         {boardLabel} · {seasonLabel}
       </Text>
-      <View style={styles.divider} />
-      <View style={styles.proxRow}>
-        <Ionicons
-          name="stats-chart-outline"
-          size={14}
-          color={olyColors.text.disabled}
-        />
-        <Text style={styles.proxLineInline}>
-          {me.snatchKg != null && me.cleanKg != null
-            ? `Snatch ${me.snatchKg} · C&J ${me.cleanKg} · ${me.value} kg total`
-            : `${me.value} kg total`}
-        </Text>
-      </View>
+
+      {!compact && (
+        <>
+          <View style={styles.divider} />
+          <View style={styles.proxRow}>
+            <OlyIcon name="rank" size={14} color={olyColors.text.disabled} />
+            <Text style={styles.proxLineInline}>
+              {me.snatchKg != null && me.cleanKg != null
+                ? `Snatch ${me.snatchKg} · C&J ${me.cleanKg} · ${me.value} kg total`
+                : `${me.value} kg total`}
+            </Text>
+          </View>
+        </>
+      )}
     </Pressable>
   );
 };
@@ -154,48 +352,92 @@ const styles = StyleSheet.create({
     padding: olySpacing[16],
     overflow: "hidden",
   },
-  cardLeader: {
-    backgroundColor: "#12203A",
-    borderWidth: 1,
-    borderColor: "rgba(0, 74, 173, 0.9)",
-    shadowColor: olyPalette.primary,
-    shadowOpacity: 0.45,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 8,
+  /* The strip. Tighter than a card because it is a header, not a panel. */
+  cardCompact: {
+    paddingVertical: olySpacing[12],
+    paddingHorizontal: olySpacing[16],
   },
-  cardProvisional: {},
+  cRow: { flexDirection: "row", alignItems: "center", gap: olySpacing[12] },
+  cLeft: { flex: 1, minWidth: 0 },
+  cKicker: {
+    ...olyTypography.caption,
+    fontFamily: olyTypography.label.fontFamily,
+    fontSize: 11,
+    lineHeight: 14,
+    color: olyColors.text.secondary,
+    letterSpacing: olyLetterSpacing.uppercase,
+  },
+  /* 7.43:1 on card. Brand blue would be 1.60:1 and could not be read. */
+  cKickerLeader: { color: olyColors.text.leader },
+  /* Rank and board label share a baseline, so the eye reads one thing. */
+  cLine: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: olySpacing[8],
+    marginTop: olySpacing[4] - 1,
+  },
+  cRank: {
+    ...olyTypography.display,
+    color: olyColors.text.primary,
+    letterSpacing: -0.5,
+  },
+  cHash: { fontSize: 18, color: olyColors.text.disabled },
+  cBoard: {
+    ...olyTypography.bodySmall,
+    color: olyColors.text.secondary,
+    flexShrink: 1,
+  },
+  cDays: { alignItems: "center", minWidth: 40 },
+  cDaysNum: {
+    ...olyTypography.number,
+    color: olyColors.text.primary,
+  },
+  cDaysLabel: {
+    ...olyTypography.caption,
+    fontFamily: olyTypography.label.fontFamily,
+    fontSize: 10,
+    lineHeight: 13,
+    color: olyColors.text.disabled,
+    letterSpacing: olyLetterSpacing.uppercase,
+  },
+  /* No glow and no bespoke fill. One hairline at 3.35:1 does the work. */
+  cardLeader: {
+    borderWidth: 1,
+    borderColor: olyColors.border.leader,
+  },
   sheen: {
     position: "absolute",
+    /* left: 0 explicitly. Without it the band takes its static position,
+       which is inside the card's padding, so it starts 16px in and the
+       travel is off by that much at both ends. */
+    left: 0,
+    /* Overhang. A 150 wide band tilted 16 degrees needs about 41px of
+       vertical slack, plus enough to clear the taller card. */
     top: -60,
     bottom: -60,
-    width: 56,
-    backgroundColor: "rgba(226, 232, 240, 0.07)",
+    width: SWEEP_W,
   },
   headRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    minHeight: 26,
   },
   kicker: {
-    ...olyTypography.label,
-    fontSize: 12,
-    lineHeight: 16,
+    ...olyTypography.caption,
     color: olyColors.text.secondary,
     letterSpacing: olyLetterSpacing.uppercase,
   },
   leaderPill: {
+    backgroundColor: olyPalette.primary,
     borderRadius: olyRadius.full,
-    borderWidth: 1,
-    borderColor: "rgba(0, 74, 173, 0.9)",
     paddingHorizontal: olySpacing[12],
-    paddingVertical: olySpacing[4] + 2,
+    paddingVertical: olySpacing[4] + 1,
   },
   leaderPillText: {
-    ...olyTypography.label,
-    fontSize: 12,
-    lineHeight: 14,
-    color: "#AFC2FF",
+    ...olyTypography.caption,
+    fontFamily: olyTypography.label.fontFamily,
+    color: olyColors.text.onBrand,
     letterSpacing: olyLetterSpacing.uppercase,
   },
   provPill: {
@@ -203,47 +445,33 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: olyColors.border.default,
     paddingHorizontal: olySpacing[12],
-    paddingVertical: olySpacing[4] + 2,
+    paddingVertical: olySpacing[4],
   },
   provPillText: {
-    ...olyTypography.label,
-    fontSize: 12,
-    lineHeight: 14,
+    ...olyTypography.caption,
     color: olyColors.text.secondary,
     letterSpacing: olyLetterSpacing.uppercase,
   },
-  rankRow: { flexDirection: "row", alignItems: "flex-end" },
-  rankBig: {
-    fontSize: 56,
-    lineHeight: 60,
-    fontFamily: olyTypography.display.fontFamily,
-    fontWeight: "500",
+
+  rankFull: {
+    ...olyTypography.hero,
     color: olyColors.text.primary,
-    marginTop: olySpacing[8],
+    marginTop: olySpacing[4],
   },
-  rankHash: {
-    fontSize: 28,
-    color: olyColors.text.disabled,
-  },
-  rankBigMuted: {
-    color: olyColors.text.secondary,
-  },
+  hashFull: { fontSize: 26, color: olyColors.text.disabled },
+  rankMuted: { color: olyColors.text.secondary },
+
   seasonLine: {
     ...olyTypography.bodySmall,
     color: olyColors.text.secondary,
-    marginTop: olySpacing[8],
+    marginTop: olySpacing[4],
   },
   divider: {
     height: 1,
     backgroundColor: olyColors.border.default,
-    marginTop: olySpacing[12],
-    marginBottom: olySpacing[12],
+    marginVertical: olySpacing[12],
   },
-  proxRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: olySpacing[8],
-  },
+  proxRow: { flexDirection: "row", alignItems: "center", gap: olySpacing[8] },
   proxLineInline: {
     ...olyTypography.bodySmall,
     color: olyColors.text.secondary,
