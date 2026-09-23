@@ -65,7 +65,7 @@ export function useMyStanding() {
   );
 
   const rankClass =
-    cardQ.data?.athlete.weightClass ?? (bwKg ? classFor(sex, bwKg) : null);
+    cardQ.data?.athlete?.weightClass ?? (bwKg ? classFor(sex, bwKg) : null);
 
   const rankParams: BoardParams | null = rankClass
     ? { lift: "total", scope: "season", sex, age: "open", class: rankClass }

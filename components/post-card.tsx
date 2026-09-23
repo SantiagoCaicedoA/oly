@@ -169,7 +169,9 @@ export default function PostCard({
   const liftedKg = post.session_detail?.lifted_kg;
   const isPR = (post as any).isPR === true;
   const cells = buildCells(post);
-  const author = post.name || post.username;
+  /* Both can be absent on a post. getInitials guards for that; the note
+     byline calls .split() on it, which would throw and take the feed down. */
+  const author = post.name || post.username || "Athlete";
   /* Whatever context exists. Today that is the country; weight class and
      club slot in here when the post payload carries them. */
   const subtitle = [post.country].filter(Boolean).join(" · ");

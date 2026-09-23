@@ -53,6 +53,21 @@ if (!API) {
   process.exit(1);
 }
 
+/* API_URL in .env.dev points at the live API, so running this with no
+   arguments creates a real account and puts two lifts on the real season
+   leaderboard. Make that impossible to do by accident. */
+const PROD_HOSTS = ["api.olytraining.com", "api.olyapp.com"];
+const host = (() => { try { return new URL(API).host; } catch { return ""; } })();
+if (PROD_HOSTS.includes(host) && !has("yes-production")) {
+  console.error(
+    `Refusing to run against ${host}.\n` +
+    `This creates a real athlete and posts real lifts to the live leaderboard.\n` +
+    `Point it somewhere else with --api http://localhost:PORT, or, if you\n` +
+    `genuinely mean to write to production, re-run with --yes-production.`
+  );
+  process.exit(1);
+}
+
 const stamp = Date.now().toString(36);
 const SEX = (flag("sex", "M") || "M").toUpperCase() === "F" ? "F" : "M";
 const BW = Number(flag("bw", SEX === "M" ? 93 : 62));

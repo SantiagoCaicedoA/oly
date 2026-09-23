@@ -159,12 +159,17 @@ export default function CreateNewPost() {
   const [caption, setCaption] = useState("");
   const [visibility, setVisibility] = useState<"private" | "community">("community");
 
-  /* Show-on-post toggles (display metadata) */
+  /* Show-on-post toggles.
+     These used to be display-only and were dropped before the request, so
+     defaulting them on cost nothing. They are persisted now, and the feed
+     card prints them as things the athlete reported. Anything defaulted on
+     here becomes a claim nobody made, so all three start OFF and the
+     athlete opts in: picking a value in the chooser sets its flag true. */
   const [showWeightPill, setShowWeightPill] = useState(true);
-  const [showTopSet, setShowTopSet] = useState(!isStandalone);
-  const [speedOn, setSpeedOn] = useState(true);
+  const [showTopSet, setShowTopSet] = useState(false);
+  const [speedOn, setSpeedOn] = useState(false);
   const [speedVal, setSpeedVal] = useState("Fast");
-  const [effortOn, setEffortOn] = useState(true);
+  const [effortOn, setEffortOn] = useState(false);
   const [effortVal, setEffortVal] = useState("Hard");
 
   /* Sheets & modals */
