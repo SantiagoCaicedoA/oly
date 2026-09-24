@@ -252,31 +252,19 @@ export default function PostCard({
             .map((c) => `${c.value} ${c.label}`)
             .join(", ")}`}
         >
-          {cells.map((c) => (
-            <View key={c.label} style={styles.cell}>
-              {/* A short accent rule over each cell. It gives the row a
-                  rhythm across the width without putting another line
-                  through the card. It carries no meaning yet; colouring
-                  it by the value would make it earn its place. */}
-              <View style={styles.tick} />
-              <Text style={styles.cellValue} numberOfLines={1}>
-                {c.value}
-              </Text>
-              <Text style={styles.cellLabel} numberOfLines={1}>
-                {c.label}
-              </Text>
-            </View>
+          {cells.map((c, i) => (
+            <React.Fragment key={c.label}>
+              {i > 0 && <View style={styles.divider} />}
+              <View style={styles.cell}>
+                <Text style={styles.cellValue} numberOfLines={1}>
+                  {c.value}
+                </Text>
+                <Text style={styles.cellLabel} numberOfLines={1}>
+                  {c.label}
+                </Text>
+              </View>
+            </React.Fragment>
           ))}
-          {/* A disclosure chevron, in text-disabled. Not the accent: a
-              bright arrow on media reads as "next", and it would be the
-              loudest thing in a row of quiet facts. */}
-          <View style={styles.chev}>
-            <OlyIcon
-              name="chevron"
-              size={18}
-              color={olyColors.text.disabled}
-            />
-          </View>
         </Pressable>
       )}
 
@@ -417,6 +405,10 @@ const styles = StyleSheet.create({
     letterSpacing: olyLetterSpacing.uppercase,
   },
   liftName: {
+    /* Opposite end of the frame from the weight. Sitting next to KG it read
+       as one run-on label; pushed right it becomes the other half of a pair,
+       and the gap between them is what tells you they are different facts. */
+    marginLeft: "auto",
     ...olyTypography.caption,
     fontFamily: olyFonts.medium,
     color: "rgba(255, 255, 255, 0.82)",
@@ -461,12 +453,15 @@ const styles = StyleSheet.create({
      labelled columns, where it reads as a table. Same pixels, opposite
      impression. */
   cell: { flex: 1, minWidth: 0 },
-  tick: {
-    width: 18,
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: olyColors.accent,
-    marginBottom: olySpacing[8],
+  /* A hairline between cells instead of an accent rule above each one.
+     The ticks gave every cell its own blue mark, which made three quiet
+     facts look like three buttons. A rule between them says the same
+     thing a table says: these are separate columns of one readout. */
+  divider: {
+    width: StyleSheet.hairlineWidth,
+    alignSelf: "stretch",
+    backgroundColor: olyColors.border.hairline,
+    marginVertical: olySpacing[4],
   },
   /* `number`, 20/26, not `bodySmall`. These cells are readouts and that
      is the token the scale defines for readouts. At 14 against an 11
@@ -485,7 +480,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     marginTop: 1,
   },
-  chev: { marginLeft: "auto" },
 
   body: {
     paddingHorizontal: olyLayout.screenPadding,
