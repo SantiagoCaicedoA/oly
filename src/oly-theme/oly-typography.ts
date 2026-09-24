@@ -3,7 +3,14 @@
  * Source: Design Bible v3.0, Sections 3.1–3.6
  *
  * RULES:
- * - No Bold (700) weight. If Medium isn't enough, use size or color.
+ * - Three weights: Regular (400), Medium (500), Bold (700). Bold is for the
+ *   numbers that carry a post — the weight on the bar, a rank, a readout —
+ *   and for a name. It is not for body text and not for emphasis inside a
+ *   sentence; there, use size or colour.
+ *
+ *   (This file used to say "No Bold (700) weight" while utils/custom-styles.ts
+ *   asked for "Ubuntu-Bold" and app/_layout.tsx never registered it, so a
+ *   dozen components had been silently falling back to the system font.)
  * - All sizes even. Line height = size x 1.25, rounded to nearest even.
  * - Minimum text size: 12px. Nothing smaller, ever.
  * - Letter spacing: 0 everywhere. Exception: ALL-CAPS gets +0.5px.
@@ -16,6 +23,7 @@ import { TextStyle } from "react-native";
 export const olyFonts = {
   regular: "Ubuntu-Regular",
   medium: "Ubuntu-Medium",
+  bold: "Ubuntu-Bold",
 } as const;
 
 // ─── 3.2 Type Scale ──────────────────────────────────────────────

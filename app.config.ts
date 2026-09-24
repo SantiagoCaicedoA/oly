@@ -197,7 +197,11 @@ try {
   plugins.push([
     "expo-font",
     {
-      fonts: ["./assets/fonts/Ubuntu-Medium.ttf"],
+      fonts: [
+        "./assets/fonts/Ubuntu-Regular.ttf",
+        "./assets/fonts/Ubuntu-Medium.ttf",
+        "./assets/fonts/Ubuntu-Bold.ttf",
+      ],
     },
   ]);
   console.log("✅ Added expo-font plugin");

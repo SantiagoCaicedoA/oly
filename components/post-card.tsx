@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
   authorText: { flex: 1, minWidth: 0 },
   name: {
     ...olyTypography.bodySmall,
-    fontFamily: olyFonts.medium,
+    fontFamily: olyFonts.bold,
     color: olyColors.text.primary,
   },
   subtitle: {
@@ -404,6 +404,7 @@ const styles = StyleSheet.create({
   },
   kg: {
     ...olyTypography.hero,
+    fontFamily: olyFonts.bold,
     fontSize: 44,
     lineHeight: 46,
     color: olyColors.text.primary,
@@ -411,14 +412,14 @@ const styles = StyleSheet.create({
   },
   kgUnit: {
     ...olyTypography.caption,
-    fontFamily: olyFonts.medium,
-    color: "rgba(226, 232, 240, 0.8)",
+    fontFamily: olyFonts.bold,
+    color: "rgba(255, 255, 255, 0.80)",
     letterSpacing: olyLetterSpacing.uppercase,
   },
   liftName: {
     ...olyTypography.caption,
     fontFamily: olyFonts.medium,
-    color: "rgba(226, 232, 240, 0.82)",
+    color: "rgba(255, 255, 255, 0.82)",
     letterSpacing: olyLetterSpacing.uppercase,
     textTransform: "uppercase",
     flexShrink: 1,
@@ -431,13 +432,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: olySpacing[8] + 1,
     paddingVertical: 2,
   },
-  /* Dark ink on the accent, 5.43:1. Not white, which is 2.2:1 on it. */
+  /* Was dark ink, measured against the old #4A90EF accent. Against the new
+     #107BDB the numbers invert: dark ink is 4.05:1 and white is 4.30:1. */
   prText: {
     ...olyTypography.caption,
     fontSize: 11,
     lineHeight: 14,
-    fontFamily: olyFonts.medium,
-    color: "#0B1A2E",
+    fontFamily: olyFonts.bold,
+    color: olyColors.text.onAccent,
     letterSpacing: olyLetterSpacing.uppercase,
   },
 
@@ -471,6 +473,7 @@ const styles = StyleSheet.create({
      label there was no contrast and the row read as one grey block. */
   cellValue: {
     ...olyTypography.number,
+    fontFamily: olyFonts.bold,
     color: olyColors.text.primary,
     letterSpacing: -0.3,
   },

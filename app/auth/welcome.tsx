@@ -36,14 +36,14 @@ const logoEntering = new Keyframe({
 /* ── gradients from Figma ───────────────────────────────── */
 
 const BG_GRADIENT = {
-  colors: ['#1A2533', '#0F1A24', '#1E3348', '#0C1620'],
+  colors: ['#1A2533', '#0F1A24', '#1E3348', '#0C1620'] as const,
   locations: [0, 0.3, 0.6, 1] as [number, number, number, number],
   start: { x: 0.5, y: 0 },
   end: { x: 0.5, y: 1 },
 };
 
 const SIGNUP_GRADIENT = {
-  colors: ['#0058CC', '#004AAD', '#003D8F'],
+  colors: ['#0058CC', '#004AAD', '#003D8F'] as const,
   locations: [0, 0.4, 1] as [number, number, number],
   start: { x: 0, y: 0.5 },
   end: { x: 1, y: 0.5 },

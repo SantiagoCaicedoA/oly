@@ -57,6 +57,10 @@ export interface StrengthStats {
 export interface Considerations {
   has_limitations: boolean;
   affected_areas: string[];
+  /** Sent by onboarding-screen8 since before this type existed. Declared here
+      so the payload and the type agree; if the backend ignores it, that is a
+      separate conversation, but silently dropping injury data is not. */
+  status: string;
   impact_level: string;
   triggers: string[];
 }
@@ -97,6 +101,10 @@ export interface OnboardingApiPayload {
   equipment: Equipment;
   training_preference: string;
   performance_gaps: string[];
+  /** Sent by onboarding-screen8, never declared. Same story as
+      Considerations.status: the duplicate interface block above was
+      suppressing the error that would have caught it. */
+  recovery_profile: string;
   training_phase: string;
   recent_training_volume?: string;
   competition?: CompetitionInfo;
@@ -106,22 +114,6 @@ export interface StrengthItem {
   checked: boolean;
 }
 
-export interface Considerations {
-  has_limitations: boolean;
-  affected_areas: string[];
-  impact_level: string;
-  triggers: string[];
-}
-
-export interface Availability {
-  training_days_per_week: number;
-  session_duration: number;
-  preferred_rest_days: string[];
-}
-
-export interface Equipment {
-  optional: string[];
-}
 export interface Profile {
   image_url: string;
   video_urls: string[];

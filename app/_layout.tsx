@@ -22,14 +22,17 @@ function AppContent() {
   const colorScheme = useColorScheme();
   const router = useRouter();
 
-  const [loaded] = useFonts({
+  const [loaded, fontError] = useFonts({
     "Ubuntu-Regular": require("../assets/fonts/Ubuntu-Regular.ttf"),
     "Ubuntu-Medium": require("../assets/fonts/Ubuntu-Medium.ttf"),
-    // Ubuntu-Bold removed — Design Bible forbids 700 weight.
-    // Only Regular (400) and Medium (500) are allowed.
+    "Ubuntu-Bold": require("../assets/fonts/Ubuntu-Bold.ttf"),
   });
 
-  //if (!loaded) return null;
+  /* This was commented out, so every screen painted once in the system font
+     and then again in Ubuntu. The `|| fontError` matters: without it a font
+     that fails to load leaves the app on a blank screen forever, which is a
+     worse failure than the wrong typeface. */
+  if (!loaded && !fontError) return null;
 
   return (
     <ToastProvider>
