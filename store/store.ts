@@ -5,7 +5,6 @@ import { combineReducers, configureStore } from "@reduxjs/toolkit";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import { persistReducer, persistStore } from "redux-persist";
 import { api } from "./api";
-import trainingReducer from "./reducer/trainingSlice";
 
 const persistConfig = {
   key: "root",
@@ -16,7 +15,6 @@ const persistConfig = {
 const rootReducer = combineReducers({
   auth: authReducer,
   onboarding: onboardingReducer,
-  training: trainingReducer,
   [api.reducerPath]: api.reducer,
 });
 

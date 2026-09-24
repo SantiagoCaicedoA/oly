@@ -45,3 +45,6 @@ app-example
 .env*
 _to_delete/
 seed-profile-data.js
+
+# Claude scratch output, not part of the app
+Claude outputs/

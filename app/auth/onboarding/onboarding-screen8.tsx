@@ -10,7 +10,7 @@
 
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
 import { OlyScreenWrapper } from "@/src/oly-components/organisms/OlyScreenWrapper";
-import { useSubmitProfileMutation, useLazyGetAiTrainingQuery } from "@/store/api";
+import { useSubmitProfileMutation } from "@/store/api";
 import { setUser } from "@/store/reducer/authSlice";
 import { selectOnboardingData } from "@/store/reducer/onboardingSlice";
 import { RootState } from "@/store/store";
@@ -108,28 +108,9 @@ function weeksUntil(day?: string, month?: string, year?: string): number | null 
 export default function OnboardingScreen8() {
   const allData = useSelector(selectOnboardingData);
   const [submitProfile, { isLoading }] = useSubmitProfileMutation();
-  const [fetchTraining] = useLazyGetAiTrainingQuery();
   const dispatch = useDispatch();
   const token = useSelector((state: RootState) => state.auth.token);
 
-  // The backend generates the first week in the BACKGROUND now and returns
-  // immediately. Poll the training-week endpoint until that week is saved (or we
-  // hit the max wait), so we land on Home with the plan ready. Resolves either
-  // way — the Workout tab refetches on its own if it wasn't ready in time.
-  const waitForTrainingWeek = async () => {
-    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-    const maxAttempts = 40; // 40 x 3s = up to ~2 min
-    for (let i = 0; i < maxAttempts; i++) {
-      try {
-        const res: any = await fetchTraining(undefined, false).unwrap();
-        if (res && res.data) return true;
-      } catch {
-        // transient error — keep polling
-      }
-      await sleep(3000);
-    }
-    return false;
-  };
   /* ── Loading screen: fun facts + progress bar ── */
   const facts = useMemo(
     () => {
@@ -382,12 +363,6 @@ export default function OnboardingScreen8() {
 
       const result = await submitProfile(apiPayload).unwrap();
       dispatch(setUser(result.data));
-
-      // Backend returns immediately and builds the week in the background. Keep
-      // the loading screen up and wait for the plan before we go Home.
-      if ((result as any)?.generating) {
-        await waitForTrainingWeek();
-      }
 
       // Fill progress bar to 100%, then navigate
       Animated.timing(progressWidth, {

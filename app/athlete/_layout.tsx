@@ -13,8 +13,6 @@ export default function AthleteLayout() {
       }}
     >
       <Stack.Screen name="post-expanded" />
-      <Stack.Screen name="daily-check-in" />
-      <Stack.Screen name="training-exercise" />
       <Stack.Screen name="create-new-post" />
       <Stack.Screen name="add-exercise" />
       <Stack.Screen name="archive" />

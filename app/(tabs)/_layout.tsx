@@ -182,14 +182,9 @@ function TabsWithLoader() {
           options={tab("profile", "Profile")}
         />
 
-        {/* AI training is out of the MVP: route stays, tab is hidden. */}
-        <Tabs.Screen name="workout" options={{ href: null }} />
-
         {/* The old centre FAB. Posting lives in the Home header now. */}
         <Tabs.Screen name="upload" options={{ href: null }} />
 
-        {/* stub kept only until the file is deleted */}
-        <Tabs.Screen name="analytics" options={{ href: null }} />
       </Tabs>
     </BottomSheetModalProvider>
   );
