@@ -1,6 +1,5 @@
 import PostCard from "@/components/post-card";
 import { OlyIcon } from "@/components/icons/OlyIcon";
-import { ProfileRankCard } from "@/src/oly-components/profile/ProfileRankCard";
 import { useMyStanding } from "@/src/oly-hooks/useMyStanding";
 import { OLY_LOGO_PATH, OLY_LOGO_VIEWBOX } from "@/constants/oly-logo";
 import { olyTypography, olyFonts, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
@@ -46,16 +45,10 @@ import { useSelector } from "react-redux";
  *    job in a quarter of the space, and the empty state still offers it
  *    in words when there is nothing to read.
  *
- * Above the first post sits the compact ProfileRankCard, the same
- * component the profile screen uses as its hero. A feed is pleasant to
- * scroll; a standing is a reason to post. It is the one thing on this
- * screen that connects the feed to Rank, which is the actual product.
- * It renders nothing at all until there is a rank to show.
- *
- * NOT HERE YET: the Following / Everyone filter. `GetPostsParams` has no
- * `scope`, so the pills would be a control that does nothing. When the API
- * takes a scope, add it to GetPostsParams, put the two pills back from the
- * design system (Feed and rank / HomeFeed), and pass `scope` to the query.
+ * Standing lives in the header beside the wordmark, not above the first
+ * post. A rounded filled card was the only object of its kind on a screen
+ * that is otherwise full bleed with hairlines, and a feed whose first row
+ * is not a post teaches people to scroll past the top.
  */
 
 const LIMIT = 10;
@@ -157,23 +150,50 @@ export default function Home() {
 
   const standing = useMyStanding();
 
-  /* No skeleton and no placeholder. An athlete with no rank yet gets the
-     feed starting where it always did, rather than a box apologising. */
-  const standingCard =
-    standing.me && !standing.isLoading ? (
-      <ProfileRankCard
-        compact
-        me={standing.me}
-        season={standing.season}
-        sex={standing.sex}
-        onClaim={compose}
-        onPress={() => router.push("/(tabs)/rank")}
-      />
+  /* Standing used to be a compact ProfileRankCard above the first post. It
+     was the only boxed, rounded, filled object on a screen that is
+     otherwise full bleed with hairlines, so it read as a leftover — and a
+     feed whose first row is not a post teaches people to scroll past the
+     top. It is chrome now: two lines beside the wordmark, in the header
+     that was already there.
+
+     No skeleton and no placeholder. An athlete with no rank yet gets the
+     wordmark alone, rather than a box apologising. */
+  const me = standing.me;
+  const standingBlock =
+    me && !standing.isLoading ? (
+      <Pressable
+        style={styles.standing}
+        onPress={me.provisional ? compose : () => router.push("/(tabs)/rank")}
+        accessibilityRole="button"
+        accessibilityLabel={
+          me.provisional
+            ? "Unclaimed. Post a lift to rank."
+            : `Your rank, ${me.rank}, ${standing.sex === "M" ? "Men" : "Women"} ${me.weightClass} kg.`
+        }
+      >
+        <Text style={styles.standingKicker}>
+          {me.provisional ? "UNCLAIMED" : me.rank === 1 ? "SEASON LEADER" : "YOUR RANK"}
+        </Text>
+        {me.provisional ? (
+          <Text style={styles.standingBoard}>Post a lift to rank</Text>
+        ) : (
+          <Text style={styles.standingRank} numberOfLines={1}>
+            <Text style={styles.standingHash}>#</Text>
+            {me.rank}
+            <Text style={styles.standingBoard}>
+              {"  "}
+              {standing.sex === "M" ? "Men" : "Women"} {me.weightClass} kg
+            </Text>
+          </Text>
+        )}
+      </Pressable>
     ) : null;
 
   const header = (
     <View style={styles.header}>
       <Wordmark />
+      {standingBlock}
       <View style={styles.actions}>
         <Pressable
           style={[styles.act, styles.actBrand]}
@@ -240,11 +260,6 @@ export default function Home() {
           <FlatList
             data={allPosts}
             keyExtractor={(i) => i._id}
-            ListHeaderComponent={
-              standingCard ? (
-                <View style={styles.standing}>{standingCard}</View>
-              ) : null
-            }
             renderItem={({ item, index }) => (
               <PostCard
                 first={index === 0}
@@ -294,6 +309,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: olyLayout.screenPadding,
     paddingTop: olySpacing[12],
     paddingBottom: olySpacing[12],
+    /* The first post carries no top rule (see `postFirst` in post-card),
+       because the standing card used to sit between them. With standing
+       moved into the header there was nothing separating chrome from
+       content, so the rule belongs here now. Here rather than on the post,
+       so the header is closed whether or not the feed has loaded. */
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: olyColors.border.hairline,
   },
   actions: {
     marginLeft: "auto",
@@ -322,9 +344,38 @@ const styles = StyleSheet.create({
     borderColor: olyPalette.card,
   },
 
+  /* Sits between the wordmark and the actions. `flexShrink` so a long
+     board label gives way to the buttons rather than pushing them off. */
   standing: {
-    marginHorizontal: olyLayout.screenPadding,
-    marginBottom: olySpacing[16],
+    marginLeft: olySpacing[12],
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  standingKicker: {
+    ...olyTypography.caption,
+    fontSize: 11,
+    lineHeight: 14,
+    fontFamily: olyFonts.bold,
+    fontWeight: "700",
+    color: olyColors.text.disabled,
+    letterSpacing: olyLetterSpacing.uppercase,
+  },
+  standingRank: {
+    ...olyTypography.bodySmall,
+    fontSize: 17,
+    lineHeight: 20,
+    fontFamily: olyFonts.bold,
+    fontWeight: "700",
+    color: olyColors.text.primary,
+    marginTop: 1,
+  },
+  standingHash: { fontSize: 13, color: olyColors.text.secondary },
+  standingBoard: {
+    ...olyTypography.caption,
+    fontSize: 13,
+    fontFamily: olyFonts.regular,
+    fontWeight: "400",
+    color: olyColors.text.secondary,
   },
 
   skelWrap: {

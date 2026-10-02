@@ -62,9 +62,14 @@ const c = (cx: number, cy: number, rad: number): Shape => ({
 });
 
 const OUTLINE: Record<OlyIconName, Shape[]> = {
+  /* One contour, not a closed silhouette with a doorway stroked on top of
+     it. The old pair closed along the bottom and then drew the door over
+     that line, so the doorway had a floor across it and read as a panel
+     stuck to the wall rather than an opening. The bottom edge now breaks
+     at the door and the jambs are part of the same path, which is how a
+     door works. */
   home: [
-    p("M3 10 L12 3 L21 10 V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"),
-    p("M9.5 21V14h5v7"),
+    p("M12 3 L21 10 V19a2 2 0 0 1-2 2 H14.5 V14 H9.5 V21 H5a2 2 0 0 1-2-2 V10 Z"),
   ],
   /* Inset by half the set's 1.5 stroke, so the stroke's OUTER edge lands
      exactly on the filled shape's edge. Both states then occupy the same

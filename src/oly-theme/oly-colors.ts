@@ -10,13 +10,21 @@
  *
  *   (It used to be #004AAD at 1.60:1, which could only ever be a fill. That
  *   restriction is gone and `accent` is no longer a separate escape hatch.)
+ *
+ * - Ink is #EFF1F4, carrying the ground's own cool cast. 16.17:1 on the
+ *   ground, 14.09:1 on a card.
  * - Red is two tokens. `red` is the destructive button fill. `redInk` is every
  *   red mark drawn on a dark surface. Never swap them.
- * - Depth is surface luminance AND hairlines. On a near-black ground the
- *   luminance step between surfaces is only 1.20:1, down from 1.35:1 on the
- *   old blue-grey, because dark values cannot hold a large step. Where a
- *   surface needs a visible edge, give it border.hairline rather than
- *   reaching for a lighter fill.
+ * - Depth is surface luminance AND hairlines. The card sits 1.15:1 above
+ *   the ground, down from 1.35:1 on the old blue-grey, because dark values
+ *   cannot hold a large step. Where a surface needs a visible edge, give it
+ *   border.hairline rather than reaching for a lighter fill.
+ *
+ * - The ground is COOL GRAPHITE, hue 218 at 18% saturation. The hue matters
+ *   more than the lightness: the old ground was hue 209 and the accent is
+ *   hue 208, one degree apart, so the blue read as a brighter patch of the
+ *   background rather than as a colour. Dropping saturation from 41% to 18%
+ *   is what buys the separation back. Do not push this ground bluer.
  * - Opacity replaces gray variants: full 1, muted 0.65, faint 0.3.
  */
 
@@ -24,14 +32,14 @@
 export const olyPalette = {
   primary: "#107BDB",
   primaryPressed: "#0C63B0",
-  white: "#F2EFE8",
+  white: "#EFF1F4",
   /** Solid fallback for the gradient background — use olyGradient for the real thing */
-  background: "#0D0D0F",
+  background: "#12151A",
 
   /** Level 1 surface. 1.24:1 above the gradient's brightest stop. */
-  card: "#202024",
+  card: "#1E222A",
   /** Level 2 surface. 1.21:1 above level 1. */
-  cardElevated: "#2C2C31",
+  cardElevated: "#2C323D",
 
   yellow: "#FBBF24",
   green: "#B4F077",
@@ -50,7 +58,7 @@ export const olyPalette = {
 
 // ─── Gradient Background ─────────────────────────────────────────
 export const olyGradient = {
-  colors: ["#131316", "#0D0D0F", "#0A0A0C"],
+  colors: ["#171B22", "#12151A", "#0E1116"],
   locations: [0, 0.54, 1],
   start: { x: 0, y: 0 },
   end: { x: 0, y: 1 },
@@ -73,6 +81,13 @@ export const olyColors = {
   bg: {
     /** Gradient — use olyGradient with LinearGradient */
     app: "transparent",
+    /**
+     * The solid ground, for screens that do not draw the gradient.
+     * `app` is transparent because most screens sit on olyGradient; a
+     * full-bleed media screen wants one flat dark value behind the footage
+     * instead, so the video is the only thing with any luminance on it.
+     */
+    page: olyPalette.background,
     card: olyPalette.card,
     cardSelected: olyPalette.primary,
     /** Active pill or card highlight, and the disc behind an active tab icon */
@@ -90,6 +105,26 @@ export const olyColors = {
     },
     /** Season-leader card fill */
     leader: olyPalette.leader,
+    /**
+     * The disc behind an avatar with no image. Quiet by design: this is a
+     * placeholder, not a brand moment, and a column of them in a comment
+     * thread is the loudest thing on the screen if you let it be.
+     */
+    avatar: `rgba(239, 241, 244, 0.10)`,
+    /**
+     * Avatar discs picked by hashing a name. Categorical rather than
+     * semantic — the only requirement is that they are all quiet and all
+     * distinguishable. These were six shades of brand blue once; against a
+     * drawable accent that made every comment compete with the post.
+     */
+    avatarTints: [
+      `rgba(239, 241, 244, 0.10)`,
+      `rgba(239, 241, 244, 0.16)`,
+      `rgba(239, 241, 244, 0.13)`,
+      `rgba(239, 241, 244, 0.19)`,
+      `rgba(239, 241, 244, 0.08)`,
+      `rgba(239, 241, 244, 0.22)`,
+    ],
   },
 
   // — Text —
@@ -97,9 +132,9 @@ export const olyColors = {
     /** 10.6:1 on level 1, 8.7:1 on level 2, 14.3:1 on the gradient */
     primary: olyPalette.white,
     /** 5.4:1 on level 1, 4.7:1 on level 2 */
-    secondary: `rgba(242, 239, 232, ${olyOpacity.muted})`,
+    secondary: `rgba(239, 241, 244, ${olyOpacity.muted})`,
     /** 2.33:1 — below AA by design. Never carries meaning on its own. */
-    disabled: `rgba(242, 239, 232, ${olyOpacity.faint})`,
+    disabled: `rgba(239, 241, 244, ${olyOpacity.faint})`,
     /** Ink on a brand-blue fill. */
     onBrand: olyPalette.white,
     /**
@@ -139,7 +174,7 @@ export const olyColors = {
      * control, selectable option). Do NOT outline a card with it: a card is
      * identified by its surface step.
      */
-    default: `rgba(242, 239, 232, ${olyOpacity.faint})`,
+    default: `rgba(239, 241, 244, ${olyOpacity.faint})`,
     /**
      * FULL-BLEED SEPARATOR ONLY. Between posts in the feed, and anywhere
      * else a rule runs the whole width of the screen.
@@ -150,7 +185,7 @@ export const olyColors = {
      * table. 0.1 is enough to separate two posts and not enough to be
      * the first thing you notice.
      */
-    hairline: `rgba(242, 239, 232, ${olyOpacity.subtle})`,
+    hairline: `rgba(239, 241, 244, ${olyOpacity.subtle})`,
     /** Selected and active states. NOT focus — it is 1.60:1 and cannot be seen. */
     brand: olyPalette.primary,
     brandUnselected: `rgba(16, 123, 219, ${olyOpacity.muted})`,
@@ -179,13 +214,13 @@ export const olyColors = {
     },
     secondary: {
       bg: olyPalette.card,
-      border: `rgba(242, 239, 232, ${olyOpacity.faint})`,
+      border: `rgba(239, 241, 244, ${olyOpacity.faint})`,
       text: olyPalette.white,
       pressed: olyPalette.cardElevated,
     },
     disabled: {
-      bg: `rgba(242, 239, 232, ${olyOpacity.subtle})`,
-      text: `rgba(242, 239, 232, ${olyOpacity.faint})`,
+      bg: `rgba(239, 241, 244, ${olyOpacity.subtle})`,
+      text: `rgba(239, 241, 244, ${olyOpacity.faint})`,
     },
     destructive: {
       bg: olyPalette.red,
@@ -217,9 +252,9 @@ export const olyColors = {
   chart: {
     ink: olyPalette.white,
     /** Top stop of the area fill; fades to transparent at the baseline */
-    area: `rgba(242, 239, 232, 0.14)`,
+    area: `rgba(239, 241, 244, 0.14)`,
     /** Deliberately below 3:1 — a gridline carries no information */
-    grid: `rgba(242, 239, 232, 0.07)`,
+    grid: `rgba(239, 241, 244, 0.07)`,
     track: olyPalette.cardElevated,
     /** The ideal/target band inside a meter */
     band: `rgba(16, 123, 219, ${olyOpacity.faint})`,

@@ -51,18 +51,16 @@ interface CommentCardProps {
   isReply?: boolean;
 }
 
-/* Derive a consistent color from a string (username) */
-const AVATAR_COLORS = [
-  olyPalette.primary,
-  "rgba(0, 74, 173, 0.7)",
-  "rgba(100, 130, 180, 0.8)",
-  "rgba(75, 110, 160, 0.9)",
-  "rgba(50, 90, 150, 0.8)",
-  "rgba(0, 74, 173, 0.5)",
-];
+/* Derive a consistent surface from a string (username).
+   These used to be six shades of brand blue. Against the old #004AAD that
+   was quiet; against #107BDB a wall of them is the loudest thing on a screen
+   whose subject is a lift. The blue is spent once per screen, on the thing
+   you are meant to tap, and an avatar is not it. Neutral steps of the ink
+   give the same at-a-glance variety without competing. */
+const AVATAR_COLORS = olyColors.bg.avatarTints;
 
 function getAvatarColor(name?: string): string {
-  if (!name) return olyPalette.primary;
+  if (!name) return AVATAR_COLORS[0];
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -167,7 +165,7 @@ export default function CommentCard({
       <View style={styles.content}>
         {/* Name + Comment inline */}
         <Text style={[styles.commentLine, isReply && styles.replyCommentLine]}>
-          <Text style={styles.userName}>@{comment.user.name} </Text>
+          <Text style={styles.userName}>{comment.user.name} </Text>
           <Text style={[styles.commentText, isReply && styles.replyCommentText]}>
             {displayText}
           </Text>
@@ -285,13 +283,16 @@ const styles = StyleSheet.create({
     color: olyColors.text.primary,
     lineHeight: 20,
   },
+  /* Name in Bold, comment at full ink. It was the other way round: the name
+     was primary and the comment itself was secondary, which dimmed the only
+     part anyone came to read. Weight separates them, not brightness. */
   userName: {
-    fontFamily: olyFonts.medium,
+    fontFamily: olyFonts.bold,
     color: olyColors.text.primary,
   },
   commentText: {
     fontFamily: olyFonts.regular,
-    color: olyColors.text.secondary,
+    color: olyColors.text.primary,
   },
   replyCommentLine: {
     ...olyTypography.caption,

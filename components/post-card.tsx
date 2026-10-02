@@ -252,23 +252,32 @@ export default function PostCard({
             .map((c) => `${c.value} ${c.label}`)
             .join(", ")}`}
         >
-          {cells.map((c, i) => (
-            <React.Fragment key={c.label}>
-              {i > 0 && <View style={styles.divider} />}
-              <View style={styles.cell}>
-                <Text style={styles.cellValue} numberOfLines={1}>
-                  {c.value}
-                </Text>
-                <Text style={styles.cellLabel} numberOfLines={1}>
-                  {c.label}
-                </Text>
-              </View>
-            </React.Fragment>
+          {cells.map((c) => (
+            <View key={c.label} style={styles.cell}>
+              <Text style={styles.cellLabel} numberOfLines={1}>
+                {c.label}
+              </Text>
+              <Text style={styles.cellValue} numberOfLines={1}>
+                {c.value}
+              </Text>
+            </View>
           ))}
         </Pressable>
       )}
 
       <View style={styles.body}>
+        {note ? (
+          <Pressable onPress={() => setNoteOpen(true)} disabled={noteOpen}>
+            <Text
+              style={styles.note}
+              numberOfLines={noteOpen ? undefined : NOTE_CLAMP}
+            >
+              <Text style={styles.noteName}>{author.split(" ")[0]} </Text>
+              {note}
+            </Text>
+          </Pressable>
+        ) : null}
+
         <View style={styles.actions}>
           <Pressable
             onPress={handleLike}
@@ -306,25 +315,6 @@ export default function PostCard({
           </Pressable>
         </View>
 
-        {note ? (
-          <Pressable onPress={() => setNoteOpen(true)} disabled={noteOpen}>
-            <Text
-              style={styles.note}
-              numberOfLines={noteOpen ? undefined : NOTE_CLAMP}
-            >
-              <Text style={styles.noteName}>{author.split(" ")[0]} </Text>
-              {note}
-            </Text>
-          </Pressable>
-        ) : null}
-
-        {comments > 0 && (
-          <Pressable onPress={() => sheetRef.current?.present()}>
-            <Text style={styles.viewAll}>
-              View {comments === 1 ? "1 comment" : `all ${comments} comments`}
-            </Text>
-          </Pressable>
-        )}
       </View>
 
       <CommentBottomSheet ref={sheetRef} postId={post._id} />
@@ -401,7 +391,7 @@ const styles = StyleSheet.create({
   kgUnit: {
     ...olyTypography.caption,
     fontFamily: olyFonts.bold,
-    color: "rgba(255, 255, 255, 0.80)",
+    color: "rgba(255, 255, 255, 0.82)",
     letterSpacing: olyLetterSpacing.uppercase,
   },
   liftName: {
@@ -435,15 +425,16 @@ const styles = StyleSheet.create({
     letterSpacing: olyLetterSpacing.uppercase,
   },
 
+  /* Tiles, not a ruled row. Each fact is its own object with its own edge,
+     so the block needs no rules around or between it — the gaps do that
+     work. Label above value, because at a glance you scan for the thing
+     you want (BAR SPEED) before you read what it says. */
   strip: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: olySpacing[12],
+    alignItems: "stretch",
+    gap: olySpacing[8],
     paddingHorizontal: olyLayout.screenPadding,
-    /* No bottom rule. Boxing this row made it read as a table cell and
-       put a third line on a card that only needs one. Space separates it
-       from the actions instead. */
-    paddingTop: olySpacing[16],
+    paddingTop: olySpacing[12],
     paddingBottom: olySpacing[4],
   },
   /* Each cell takes an equal share of the row rather than packing left.
@@ -452,17 +443,24 @@ const styles = StyleSheet.create({
      that failed to load. Spread, the same empty space sits BETWEEN two
      labelled columns, where it reads as a table. Same pixels, opposite
      impression. */
-  cell: { flex: 1, minWidth: 0 },
+  /* Centred, like the expanded post's grid. Left aligned, each value
+     started at a different distance from the rule beside it and the row
+     read as one block of text with a stray line through it. The rule
+     itself was always on the midline; it was the type that was not. */
+  cell: {
+    flex: 1,
+    minWidth: 0,
+    backgroundColor: olyColors.bg.card,
+    borderRadius: olyRadius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: olyColors.border.hairline,
+    paddingVertical: olySpacing[12],
+    paddingHorizontal: olySpacing[12],
+  },
   /* A hairline between cells instead of an accent rule above each one.
      The ticks gave every cell its own blue mark, which made three quiet
      facts look like three buttons. A rule between them says the same
      thing a table says: these are separate columns of one readout. */
-  divider: {
-    width: StyleSheet.hairlineWidth,
-    alignSelf: "stretch",
-    backgroundColor: olyColors.border.hairline,
-    marginVertical: olySpacing[4],
-  },
   /* `number`, 20/26, not `bodySmall`. These cells are readouts and that
      is the token the scale defines for readouts. At 14 against an 11
      label there was no contrast and the row read as one grey block. */
@@ -478,29 +476,29 @@ const styles = StyleSheet.create({
     color: olyColors.text.disabled,
     letterSpacing: olyLetterSpacing.uppercase,
     textTransform: "uppercase",
-    marginTop: 1,
+    marginBottom: 2,
   },
 
   body: {
     paddingHorizontal: olyLayout.screenPadding,
-    paddingTop: olySpacing[12],
+    paddingTop: olySpacing[16],
     paddingBottom: olySpacing[20],
   },
-  actions: { flexDirection: "row", alignItems: "center", gap: olySpacing[20] },
+  actions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: olySpacing[20],
+    marginTop: olySpacing[12],
+  },
   action: { flexDirection: "row", alignItems: "center", gap: olySpacing[4] + 2 },
   count: { ...olyTypography.bodySmall, color: olyColors.text.secondary },
   note: {
     ...olyTypography.bodySmall,
     color: olyColors.text.secondary,
-    marginTop: olySpacing[8],
   },
   noteName: {
-    fontFamily: olyFonts.medium,
+    fontFamily: olyFonts.bold,
+    fontWeight: "700",
     color: olyColors.text.primary,
-  },
-  viewAll: {
-    ...olyTypography.bodySmall,
-    color: olyColors.text.disabled,
-    marginTop: olySpacing[4] + 1,
   },
 });

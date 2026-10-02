@@ -1,13 +1,12 @@
 import { TabLoaderProvider, useTabLoader } from "@/components/tab-loader";
 import { OlyIcon, OlyIconName } from "@/components/icons/OlyIcon";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
-import { olyRadius } from "@/src/oly-theme/oly-radius";
-import { olyElevation } from "@/src/oly-theme/oly-elevation";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import type { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
 import { Tabs } from "expo-router";
 import React, { createContext, useEffect, useState } from "react";
 import { Pressable, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 /**
@@ -39,19 +38,23 @@ export const TabBarContext = createContext({
   showTabBar: () => {},
 });
 
-/* Iconography / Sizes. 28 is `icon-tab`, one step above `icon-md`.
-   A floating bar sits further from the thumb than a flush one, so the
-   glyph carries more weight here than it does in a list row. */
+/* Iconography / Sizes. 28 is `icon-tab`, one step above `icon-md`. */
 const ICON_SIZE = 28;
 /* Layout / TabBar.
-   60, not the iOS standard 49. That number assumes a bar flush with the
-   bottom edge, where the home indicator supplies the lower gutter. This
-   bar floats, so it has to supply its own on both sides. 28 for the
-   glyph and a 16 gutter above and below, which is `screenPadding`, the
-   same gutter the content uses. */
-const TAB_BAR_HEIGHT = 60;
-const TAB_BAR_MARGIN_BOTTOM = 28;
-const TAB_BAR_MARGIN_H = 14;
+   The bar used to float: a rounded, filled, bordered pill inset 14 from
+   each side and 28 up from the bottom. That reads as a control sitting ON
+   the app, which was fine when every screen was made of cards. The feed is
+   full bleed now, so the pill was the only rounded object on screen and it
+   left a strip of video showing underneath it.
+
+   Flush to the bottom edge, full width, no fill. The bar is the ground plus
+   one hairline, which is the same separator the feed uses between posts.
+
+   68 is the content height, above the safe-area inset react-navigation adds
+   underneath. 28 for the glyph and 20 of gutter either side. iOS ships 49,
+   which assumes a 24pt glyph and labels; with a 28 glyph and no labels the
+   row needs the air or the icons crowd the rule above them. */
+const TAB_BAR_HEIGHT = 68;
 
 export default function TabLayout() {
   return (
@@ -65,6 +68,7 @@ export default function TabLayout() {
 
 function TabsWithLoader() {
   const [isTabBarVisible] = useState(true);
+  const insets = useSafeAreaInsets();
   const { show } = useTabLoader();
 
   // branded loader on the first open of the tabs
@@ -116,31 +120,29 @@ function TabsWithLoader() {
         screenOptions={{
           headerShown: false,
           sceneStyle: { backgroundColor: olyPalette.background },
-          /* Matches Layout / TabBar exactly. Height 49, elevation 1 fill,
-             a full 1px border-default on all four sides rather than a top
-             border only, radius lg. No horizontal padding: the five items
-             each take a fifth of the width and centre their own glyph. */
+          /* `height` on a tab bar is the TOTAL, and react-navigation adds
+             the bottom safe-area inset INSIDE it. Setting height alone to
+             68 therefore left a content box of 68 minus the inset, about
+             34 on a notched phone, and the glyphs centred in that — high
+             up, with the whole home-indicator strip empty beneath them.
+             Which is exactly what raising the number from 58 failed to fix.
+
+             Both values are stated here instead. The content box is
+             TAB_BAR_HEIGHT whatever the device, and the inset sits below
+             it as its own reserved strip. */
           tabBarStyle: isTabBarVisible
             ? {
-                position: "absolute",
-                height: TAB_BAR_HEIGHT,
-                marginHorizontal: TAB_BAR_MARGIN_H,
-                marginBottom: TAB_BAR_MARGIN_BOTTOM,
-                backgroundColor: olyElevation.level1.backgroundColor,
-                borderRadius: olyRadius.lg,
-                borderWidth: 1,
-                borderColor: olyColors.border.default,
-                /* RN draws the top border of a tab bar separately. */
-                borderTopWidth: 1,
-                borderTopColor: olyColors.border.default,
-                overflow: "hidden",
+                height: TAB_BAR_HEIGHT + insets.bottom,
+                paddingBottom: insets.bottom,
+                backgroundColor: olyColors.bg.page,
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderTopColor: olyColors.border.hairline,
                 elevation: 0,
                 shadowOpacity: 0,
-                /* The bar floats clear of the home indicator, so the safe
-                   area inset must not be added inside it. Left in, it pads
-                   the bottom and pushes every icon upward. */
+                /* No radius, no side borders, no margins. A bar flush with
+                   the screen edge is the edge of the app, and an edge does
+                   not need an outline to say so. */
                 paddingTop: 0,
-                paddingBottom: 0,
                 paddingHorizontal: 0,
               }
             : { display: "none" },
