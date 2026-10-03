@@ -16,10 +16,15 @@ import {
 } from "@/types/api/auth";
 import {
     CreateNewPostResponse,
+    CustomSetPayload,
+    CustomSetResponse,
+    DailyCheckInPayload,
     GetPostByIdResponse,
     GetPostsParams,
     GetPostsResponse,
-    LikeUnlikeResponse
+    LikeUnlikeResponse,
+    UpdateTrainingPayload,
+    UpdateTrainingResponse
 } from "@/types/api/dashboard";
 import {
     OnboardingApiPayload,
@@ -44,6 +49,18 @@ import {
     FollowStatusResponse,
     MyLiftsResponse,
 } from "@/types/api/profile";
+
+import { Days, ProfileSnapshot } from "@/store/reducer/trainingSlice";
+
+interface GetAiTrainingResponse {
+  data: {
+    days: Days;
+    is_first_week: boolean;
+    profile_snapshot: ProfileSnapshot;
+    week_start?: string;
+  };
+  success: boolean;
+}
 
 interface RootState {
   auth: AuthState;
@@ -210,6 +227,41 @@ export const api = createApi({
       providesTags: ["Athlete"],
     }),
 
+    getAiTraining: builder.query<GetAiTrainingResponse, void>({
+      query: () => ({
+        url: API_ROUTES.ATHLETE.GET_AI_TRAINING,
+        method: "GET",
+      }),
+      providesTags: ["Athlete"],
+    }),
+    updateTrainingData: builder.mutation<
+      UpdateTrainingResponse,
+      UpdateTrainingPayload
+    >({
+      query: (payload) => ({
+        url: API_ROUTES.ATHLETE.UPDATE_TRAINING_DATA,
+        method: "PATCH",
+        body: payload,
+      }),
+      invalidatesTags: ["Athlete"],
+    }),
+    dailyCheckIn: builder.mutation<void, DailyCheckInPayload>({
+      query: (payload) => ({
+        url: API_ROUTES.ATHLETE.DAILY_CHECK_IN,
+        method: "POST",
+        body: payload,
+      }),
+      invalidatesTags: ["Athlete"],
+    }),
+    customSet: builder.mutation<CustomSetResponse, CustomSetPayload>({
+      query: (payload) => ({
+        url: API_ROUTES.ATHLETE.CUSTOM_SET,
+        method: "POST",
+        body: payload,
+      }),
+      invalidatesTags: ["Athlete"],
+    }),
+
     likePost: builder.mutation<LikeUnlikeResponse, string>({
       query: (postId) => ({
         url: API_ROUTES.ATHLETE.LIKE_POST_BY_ID(postId),
@@ -369,6 +421,10 @@ export const {
 
   useGetPostsQuery,
   useGetPostByIdQuery,
+  useLazyGetAiTrainingQuery,
+  useUpdateTrainingDataMutation,
+  useDailyCheckInMutation,
+  useCustomSetMutation,
   useLikePostMutation,
   useUnLikePostMutation,
   useCommentOnPostMutation,
