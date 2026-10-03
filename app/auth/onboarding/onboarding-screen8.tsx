@@ -8,6 +8,7 @@
  * Abdul's submission logic unchanged.
  */
 
+import { olyAlert } from "@/src/oly-components/feedback/OlyAlert";
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
 import { OlyScreenWrapper } from "@/src/oly-components/organisms/OlyScreenWrapper";
 import { useSubmitProfileMutation } from "@/store/api";
@@ -28,7 +29,6 @@ import { router } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
-  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -395,7 +395,7 @@ export default function OnboardingScreen8() {
 
       setShowLoading(false);
       progressWidth.setValue(0);
-      Alert.alert("Error", errorMessage, [
+      olyAlert("Error", errorMessage, [
         { text: "Cancel", style: "cancel" },
         { text: "Retry", onPress: onSubmit },
       ]);

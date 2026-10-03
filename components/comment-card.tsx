@@ -1,10 +1,9 @@
 import {
   olyTypography,
   olyFonts,
-  olyLetterSpacing,
 } from "@/src/oly-theme/oly-typography";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
-import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
+import { olySpacing } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { Ionicons } from "@expo/vector-icons";
 import {

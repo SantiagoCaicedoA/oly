@@ -11,13 +11,12 @@
  */
 
 import React from "react";
-import { Pressable, StyleSheet, Text, View, ViewStyle } from "react-native";
+import { Pressable, StyleSheet, Text, ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { olyColors } from "@/src/oly-theme/oly-colors";
 import { olyTypography, olyMaxFontScale } from "@/src/oly-theme/oly-typography";
-import { olySpacing } from "@/src/oly-theme/oly-spacing";
-import { olyLayout } from "@/src/oly-theme/oly-spacing";
+import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
 
 // ─── Types ───────────────────────────────────────────────────────
 interface OlySettingsRowProps {

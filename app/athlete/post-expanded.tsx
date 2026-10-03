@@ -38,6 +38,7 @@ import {
 import { getRelativeTime } from "@/utils/time";
 import { BottomSheetModal, BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { Ionicons } from "@expo/vector-icons";
+import { OlyIcon } from "@/components/icons/OlyIcon";
 import { LinearGradient } from "expo-linear-gradient";
 import { AVPlaybackStatus, ResizeMode, Video } from "expo-av";
 import { router, useLocalSearchParams } from "expo-router";
@@ -333,7 +334,7 @@ export default function PostExpanded() {
                   white type straight onto whatever the lift was filmed on,
                   which for a platform shot is a near-white floor. */}
               <LinearGradient
-                colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.28)", "rgba(0,0,0,0.72)"]}
+                colors={olyColors.media.scrim}
                 locations={[0, 0.45, 1]}
                 style={styles.scrim}
                 pointerEvents="none"
@@ -365,7 +366,7 @@ export default function PostExpanded() {
                   <Ionicons
                     name={isPlaying ? "pause" : "play"}
                     size={20}
-                    color="#FFFFFF"
+                    color={olyColors.media.ink}
                   />
                 </Pressable>
 
@@ -407,7 +408,7 @@ export default function PostExpanded() {
                   accessibilityRole="button"
                   accessibilityLabel="Full screen"
                 >
-                  <Ionicons name="scan-outline" size={20} color="#FFFFFF" />
+                  <Ionicons name="scan-outline" size={20} color={olyColors.media.ink} />
                 </Pressable>
               </View>
             </View>
@@ -455,9 +456,10 @@ export default function PostExpanded() {
                 accessibilityLabel={isLiked ? "Unlike" : "Like"}
                 style={styles.action}
               >
-                <Ionicons
-                  name={isLiked ? "heart" : "heart-outline"}
+                <OlyIcon
+                  name="heart"
                   size={26}
+                  filled={isLiked}
                   color={isLiked ? olyColors.accent : olyColors.text.primary}
                 />
                 <Text style={styles.actionCount}>{likeCount}</Text>
@@ -470,11 +472,7 @@ export default function PostExpanded() {
                 accessibilityLabel="Comments"
                 style={styles.action}
               >
-                <Ionicons
-                  name="chatbubble-outline"
-                  size={24}
-                  color={olyColors.text.primary}
-                />
+                <OlyIcon name="messages" size={24} color={olyColors.text.primary} />
                 <Text style={styles.actionCount}>{post.commentCount ?? 0}</Text>
               </Pressable>
 
@@ -572,7 +570,7 @@ const styles = StyleSheet.create({
   player: {
     width: "100%",
     height: PLAYER_HEIGHT,
-    backgroundColor: "#000000",
+    backgroundColor: olyColors.media.black,
     justifyContent: "flex-end",
   },
   share: { marginLeft: "auto" },
@@ -589,7 +587,7 @@ const styles = StyleSheet.create({
   time: {
     ...olyTypography.caption,
     fontFamily: olyFonts.medium,
-    color: "rgba(255,255,255,0.80)",
+    color: olyColors.media.inkSoft,
     minWidth: 34,
   },
   /* The touch target is the full height of the bar; the line inside it is
@@ -599,20 +597,20 @@ const styles = StyleSheet.create({
   trackFill: {
     height: 3,
     borderRadius: 2,
-    backgroundColor: "rgba(255,255,255,0.28)",
+    backgroundColor: olyColors.media.track,
     justifyContent: "center",
   },
   trackPlayed: {
     height: 3,
     borderRadius: 2,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: olyColors.media.ink,
   },
   thumb: {
     position: "absolute",
     width: 11,
     height: 11,
     borderRadius: olyRadius.full,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: olyColors.media.ink,
     marginLeft: -5.5,
   },
   rate: {
@@ -620,7 +618,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: olyRadius.full,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.40)",
+    borderColor: olyColors.media.outline,
     /* Fixed width. "1x" and "0.25x" are different lengths, and without this
        the scrub bar beside it would resize on every tap. */
     minWidth: 52,
@@ -630,7 +628,7 @@ const styles = StyleSheet.create({
   rateText: {
     ...olyTypography.caption,
     fontFamily: olyFonts.bold,
-    color: "#FFFFFF",
+    color: olyColors.media.ink,
     letterSpacing: olyLetterSpacing.uppercase,
   },
   rateTextOn: { color: olyColors.text.onAccent },
@@ -664,7 +662,7 @@ const styles = StyleSheet.create({
   kgUnit: {
     ...olyTypography.caption,
     fontFamily: olyFonts.bold,
-    color: "rgba(255, 255, 255, 0.82)",
+    color: olyColors.media.inkSoft,
     letterSpacing: olyLetterSpacing.uppercase,
   },
   liftName: {
@@ -672,7 +670,7 @@ const styles = StyleSheet.create({
     marginLeft: "auto",
     ...olyTypography.caption,
     fontFamily: olyFonts.medium,
-    color: "rgba(255, 255, 255, 0.82)",
+    color: olyColors.media.inkSoft,
     letterSpacing: olyLetterSpacing.uppercase,
     textTransform: "uppercase",
     flexShrink: 1,

@@ -11,7 +11,6 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 
-import { olyColors } from "@/src/oly-theme/oly-colors";
 import { olyPalette } from "@/src/oly-theme/oly-colors";
 import { olySpacing } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";

@@ -15,6 +15,7 @@
  * skipped when building the payload, so it can never be typed upward.
  */
 
+import { olyAlert } from "@/src/oly-components/feedback/OlyAlert";
 import OnboardingScreen2 from "@/app/auth/onboarding/onboarding-screen2";
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
 import { OlyScreenWrapper } from "@/src/oly-components/organisms/OlyScreenWrapper";
@@ -22,7 +23,6 @@ import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
 import {
-  olyFonts,
   olyLetterSpacing,
   olyTypography,
 } from "@/src/oly-theme/oly-typography";
@@ -40,7 +40,6 @@ import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   StyleSheet,
   Text,
@@ -135,9 +134,9 @@ export default function SettingsPersonalBests() {
 
     try {
       await submitProfile(payload as any).unwrap();
-      Alert.alert("Saved", "Your records are up to date.");
+      olyAlert("Saved", "Your records are up to date.");
     } catch (e: any) {
-      Alert.alert(
+      olyAlert(
         "Could not save",
         e?.data?.message ?? "Something went wrong. Try again.",
       );

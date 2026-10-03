@@ -41,7 +41,21 @@
           }
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Oly uses your photos and videos so you can send them to friends.",
+          "savePhotosPermission": "Oly saves lift videos to your photos when you ask it to.",
+          "isAccessMediaLocationEnabled": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Oly uses your photos and videos so you can send them to friends."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

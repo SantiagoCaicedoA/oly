@@ -1,7 +1,6 @@
 import PostCard from "@/components/post-card";
 import { OlyIcon } from "@/components/icons/OlyIcon";
 import { useMyStanding } from "@/src/oly-hooks/useMyStanding";
-import { OLY_LOGO_PATH, OLY_LOGO_VIEWBOX } from "@/constants/oly-logo";
 import { olyTypography, olyFonts, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
 import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
@@ -13,12 +12,12 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   FlatList,
+  Image,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import Svg, { Path } from "react-native-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
 
@@ -53,13 +52,6 @@ import { useSelector } from "react-redux";
 
 const LIMIT = 10;
 
-function Wordmark() {
-  return (
-    <Svg width={40} height={40} viewBox={OLY_LOGO_VIEWBOX}>
-      <Path d={OLY_LOGO_PATH} fill={olyColors.text.primary} />
-    </Svg>
-  );
-}
 
 /* A dim block in the shape of what is coming, with a slow pulse. */
 function Skeleton({ height, width = "100%", radius = olyRadius.sm }: any) {
@@ -105,6 +97,8 @@ function SkeletonCard() {
 
 export default function Home() {
   const token = useSelector((s: RootState) => s.auth.token);
+  const user = useSelector((s: RootState) => (s.auth as any).user);
+  const meInitials = ((user?.name ?? "").trim().split(/\s+/).map((w: string) => w[0]).join("").slice(0, 2) || "ME").toUpperCase();
   const [page, setPage] = useState(1);
   const [allPosts, setAllPosts] = useState<any[]>([]);
   const [hasMore, setHasMore] = useState(true);
@@ -160,10 +154,11 @@ export default function Home() {
      No skeleton and no placeholder. An athlete with no rank yet gets the
      wordmark alone, rather than a box apologising. */
   const me = standing.me;
+  const leader = !!me && !me.provisional && me.rank === 1;
   const standingBlock =
     me && !standing.isLoading ? (
       <Pressable
-        style={styles.standing}
+        style={[styles.standing, leader && styles.standingLeader]}
         onPress={me.provisional ? compose : () => router.push("/(tabs)/rank")}
         accessibilityRole="button"
         accessibilityLabel={
@@ -172,27 +167,39 @@ export default function Home() {
             : `Your rank, ${me.rank}, ${standing.sex === "M" ? "Men" : "Women"} ${me.weightClass} kg.`
         }
       >
-        <Text style={styles.standingKicker}>
-          {me.provisional ? "UNCLAIMED" : me.rank === 1 ? "SEASON LEADER" : "YOUR RANK"}
-        </Text>
+        <OlyIcon
+          name="rank"
+          size={16}
+          filled
+          color={leader ? olyColors.text.leader : olyColors.text.secondary}
+        />
         {me.provisional ? (
-          <Text style={styles.standingBoard}>Post a lift to rank</Text>
+          <Text style={styles.chipLabel}>Post a lift to rank</Text>
         ) : (
-          <Text style={styles.standingRank} numberOfLines={1}>
-            <Text style={styles.standingHash}>#</Text>
-            {me.rank}
-            <Text style={styles.standingBoard}>
-              {"  "}
+          <>
+            <Text style={styles.chipRank}>#{me.rank}</Text>
+            <Text style={[styles.chipLabel, leader && styles.chipLabelLeader]} numberOfLines={1}>
               {standing.sex === "M" ? "Men" : "Women"} {me.weightClass} kg
             </Text>
-          </Text>
+          </>
         )}
       </Pressable>
     ) : null;
 
   const header = (
     <View style={styles.header}>
-      <Wordmark />
+      <Pressable
+        onPress={() => router.push("/(tabs)/profile")}
+        style={styles.me}
+        accessibilityRole="button"
+        accessibilityLabel="Your profile"
+      >
+        {user?.photo_url ? (
+          <Image source={{ uri: user.photo_url }} style={styles.meImg} />
+        ) : (
+          <Text style={styles.meInitials}>{meInitials}</Text>
+        )}
+      </Pressable>
       {standingBlock}
       <View style={styles.actions}>
         <Pressable
@@ -317,6 +324,22 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: olyColors.border.hairline,
   },
+  /* Profile lives here now: your face, top left, where the wordmark was. */
+  me: {
+    width: 40,
+    height: 40,
+    borderRadius: olyRadius.full,
+    backgroundColor: olyPalette.cardElevated,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  meImg: { width: 40, height: 40 },
+  meInitials: {
+    ...olyTypography.bodySmall,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.primary,
+  },
   actions: {
     marginLeft: "auto",
     flexDirection: "row",
@@ -346,37 +369,39 @@ const styles = StyleSheet.create({
 
   /* Sits between the wordmark and the actions. `flexShrink` so a long
      board label gives way to the buttons rather than pushing them off. */
+  /* Your standing as one chip that opens the board. The season leader
+     gets the leader palette (navy fill, leader hairline, leader ink). */
   standing: {
-    marginLeft: olySpacing[12],
+    marginLeft: olySpacing[8] + 2,
     flexShrink: 1,
     minWidth: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: olySpacing[8],
+    minHeight: 38,
+    paddingLeft: olySpacing[8] + 2,
+    paddingRight: 14,
+    borderRadius: olyRadius.full,
+    backgroundColor: olyPalette.card,
+    borderWidth: 1,
+    borderColor: "transparent",
   },
-  standingKicker: {
-    ...olyTypography.caption,
-    fontSize: 11,
-    lineHeight: 14,
-    fontFamily: olyFonts.bold,
-    fontWeight: "700",
-    color: olyColors.text.disabled,
-    letterSpacing: olyLetterSpacing.uppercase,
+  standingLeader: {
+    backgroundColor: olyColors.bg.leader,
+    borderColor: olyColors.border.leader,
   },
-  standingRank: {
-    ...olyTypography.bodySmall,
-    fontSize: 17,
-    lineHeight: 20,
+  chipRank: {
+    ...olyTypography.body,
     fontFamily: olyFonts.bold,
-    fontWeight: "700",
     color: olyColors.text.primary,
-    marginTop: 1,
   },
-  standingHash: { fontSize: 13, color: olyColors.text.secondary },
-  standingBoard: {
+  chipLabel: {
     ...olyTypography.caption,
     fontSize: 13,
-    fontFamily: olyFonts.regular,
-    fontWeight: "400",
     color: olyColors.text.secondary,
+    flexShrink: 1,
   },
+  chipLabelLeader: { color: olyColors.text.leader },
 
   skelWrap: {
     paddingHorizontal: olyLayout.screenPadding,

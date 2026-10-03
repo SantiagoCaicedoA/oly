@@ -15,6 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import Svg, { Circle } from "react-native-svg";
 import CommentBottomSheet from "./comment-bottom-sheet";
 
 /**
@@ -37,8 +38,7 @@ import CommentBottomSheet from "./comment-bottom-sheet";
  *    Not a bright accent label beside the name; that competed with the
  *    name and read like a handle.
  *  - Media, 4:5, with the weight and lift stamped on the frame.
- *  - The stat strip. Up to three cells in a fixed order, taking the first
- *    three that carry data, plus a disclosure chevron. See STRIP below.
+ *  - The stat chips. Up to three, auto stats first, then what the athlete entered.
  *  - Actions, then the note.
  *
  * Deliberately NOT here: a "Details" label. The chevron says it, and the
@@ -51,6 +51,10 @@ const AVATAR = 32;
 const ACTION_ICON = 22;
 /** Note length past which it truncates and offers "more". */
 const NOTE_CLAMP = 2;
+/** Progress ring on the "% of best" chip. */
+const RING = 16;
+const RING_R = 6.5;
+const RING_C = 2 * Math.PI * RING_R;
 
 function getInitials(name?: string): string {
   if (!name) return "?";
@@ -59,38 +63,51 @@ function getInitials(name?: string): string {
   return parts[0].substring(0, 2).toUpperCase();
 }
 
-type Cell = { value: string; label: string };
+type Chip = {
+  value: string;
+  label: string;
+  /** "best" draws a progress ring, "rank" the leaderboard bars. */
+  icon?: "best" | "rank";
+  /** 0 to 1, for the ring. */
+  pct?: number;
+};
 
 /**
- * STRIP — one design, whatever the post happens to carry.
+ * CHIPS — the stat row under the video.
  *
- * Fixed order, first three that have data. Cells shift left to fill but
- * never reorder, which is why each one carries a label under its value:
- * a column that moves is only readable if it says what it is.
+ * Auto chips first, then what the athlete entered, up to three in all.
+ * Never padded: a missing fact is absent, and zero chips means no row.
  *
- * Never padded. A missing fact is absent, not shown as missing. Zero
- * cells means no strip at all.
- *
- * `bodyweight_kg`, `bar_speed`, `effort` and `top_set` are collected by
- * the composer today and dropped before the request is sent. Until the
- * payload and the backend carry them, this returns [] for every post and
- * no strip renders. That is the correct empty state, not a bug.
+ * Auto chips read `athlete_best_kg`, `athlete_rank` and `athlete_board`
+ * from the post payload. The backend does not send them yet; until it
+ * does those chips simply do not render.
  */
-function buildCells(post: any): Cell[] {
+function buildChips(post: any): Chip[] {
   const d = post?.session_detail ?? {};
   const kg = Number(d.lifted_kg);
   const bw = Number(d.bodyweight_kg);
-  const out: Cell[] = [];
+  const best = Number(post?.athlete_best_kg);
+  const rank = Number(post?.athlete_rank);
+  const effort = d.effort ?? post?.effort;
+  const out: Chip[] = [];
 
-  /* The fan stat. 142 kg means nothing to someone outside the sport;
-     2.3x their own bodyweight lands for everyone, and it is the number
-     weightlifting is uniquely built for. */
+  if (Number.isFinite(kg) && kg > 0 && Number.isFinite(best) && best > 0) {
+    if (kg > best) {
+      out.push({ value: `+${Math.round((kg - best) * 10) / 10} kg`, label: "new best", icon: "best", pct: 1 });
+    } else {
+      const pct = kg / best;
+      out.push({ value: `${Math.round(pct * 100)}%`, label: "of best", icon: "best", pct });
+    }
+  }
+  if (Number.isFinite(rank) && rank > 0) {
+    out.push({ value: `#${rank}`, label: post?.athlete_board || "rank", icon: "rank" });
+  }
   if (Number.isFinite(kg) && Number.isFinite(bw) && bw > 0) {
     out.push({ value: `${(kg / bw).toFixed(1)}×`, label: "bodyweight" });
   }
+  if (effort) out.push({ value: String(effort), label: "effort" });
   if (d.bar_speed) out.push({ value: String(d.bar_speed), label: "bar speed" });
-  if (d.effort) out.push({ value: String(d.effort), label: "effort" });
-  if (d.top_set === true) out.push({ value: "Yes", label: "top set" });
+  if (d.top_set === true) out.push({ value: "Top", label: "set" });
 
   return out.slice(0, 3);
 }
@@ -168,13 +185,13 @@ export default function PostCard({
 
   const liftedKg = post.session_detail?.lifted_kg;
   const isPR = (post as any).isPR === true;
-  const cells = buildCells(post);
+  const chips = buildChips(post);
   /* Both can be absent on a post. getInitials guards for that; the note
      byline calls .split() on it, which would throw and take the feed down. */
   const author = post.name || post.username || "Athlete";
   /* Whatever context exists. Today that is the country; weight class and
      club slot in here when the post payload carries them. */
-  const subtitle = [post.country].filter(Boolean).join(" · ");
+  const subtitle = [(post as any).athlete_board, post.country].filter(Boolean).join(" · ");
   const note = (post.opinion || "").trim();
   const comments = post.commentCount ?? 0;
 
@@ -219,7 +236,7 @@ export default function PostCard({
         {/* Bottom only. A top scrim darkens every frame to fix a problem
             the author row above the video does not have. */}
         <LinearGradient
-          colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.28)", "rgba(0,0,0,0.72)"]}
+          colors={olyColors.media.scrim}
           locations={[0, 0.45, 1]}
           style={styles.scrim}
           pointerEvents="none"
@@ -242,23 +259,57 @@ export default function PostCard({
         </View>
       </Pressable>
 
-      {/* Stat strip. The whole row is the tap target. */}
-      {cells.length > 0 && (
+      {/* Stat chips. The whole row is the tap target. */}
+      {chips.length > 0 && (
         <Pressable
           onPress={open}
-          style={styles.strip}
+          style={styles.chips}
           accessibilityRole="button"
-          accessibilityLabel={`Open lift. ${cells
+          accessibilityLabel={`Open lift. ${chips
             .map((c) => `${c.value} ${c.label}`)
             .join(", ")}`}
         >
-          {cells.map((c) => (
-            <View key={c.label} style={styles.cell}>
-              <Text style={styles.cellLabel} numberOfLines={1}>
-                {c.label}
-              </Text>
-              <Text style={styles.cellValue} numberOfLines={1}>
+          {chips.map((c) => (
+            <View
+              key={c.label}
+              style={[styles.chip, c.icon && styles.chipWithIcon]}
+            >
+              {c.icon === "best" && (
+                <Svg width={RING} height={RING} viewBox="0 0 16 16">
+                  <Circle
+                    cx={8}
+                    cy={8}
+                    r={RING_R}
+                    fill="none"
+                    stroke={olyPalette.cardElevated}
+                    strokeWidth={2.5}
+                  />
+                  <Circle
+                    cx={8}
+                    cy={8}
+                    r={RING_R}
+                    fill="none"
+                    stroke={olyColors.accent}
+                    strokeWidth={2.5}
+                    strokeLinecap="round"
+                    strokeDasharray={`${RING_C * Math.min(1, c.pct ?? 0)} ${RING_C}`}
+                    transform="rotate(-90 8 8)"
+                  />
+                </Svg>
+              )}
+              {c.icon === "rank" && (
+                <OlyIcon
+                  name="rank"
+                  size={RING}
+                  filled
+                  color={olyColors.text.secondary}
+                />
+              )}
+              <Text style={styles.chipValue} numberOfLines={1}>
                 {c.value}
+              </Text>
+              <Text style={styles.chipLabel} numberOfLines={1}>
+                {c.label}
               </Text>
             </View>
           ))}
@@ -391,7 +442,7 @@ const styles = StyleSheet.create({
   kgUnit: {
     ...olyTypography.caption,
     fontFamily: olyFonts.bold,
-    color: "rgba(255, 255, 255, 0.82)",
+    color: olyColors.media.inkSoft,
     letterSpacing: olyLetterSpacing.uppercase,
   },
   liftName: {
@@ -401,7 +452,7 @@ const styles = StyleSheet.create({
     marginLeft: "auto",
     ...olyTypography.caption,
     fontFamily: olyFonts.medium,
-    color: "rgba(255, 255, 255, 0.82)",
+    color: olyColors.media.inkSoft,
     letterSpacing: olyLetterSpacing.uppercase,
     textTransform: "uppercase",
     flexShrink: 1,
@@ -425,58 +476,33 @@ const styles = StyleSheet.create({
     letterSpacing: olyLetterSpacing.uppercase,
   },
 
-  /* Tiles, not a ruled row. Each fact is its own object with its own edge,
-     so the block needs no rules around or between it — the gaps do that
-     work. Label above value, because at a glance you scan for the thing
-     you want (BAR SPEED) before you read what it says. */
-  strip: {
+  /* Chips, not tiles. Boxed tiles read as an old dashboard; a row of
+     pills sits lighter under full-bleed media and wraps when it must. */
+  chips: {
     flexDirection: "row",
-    alignItems: "stretch",
-    gap: olySpacing[8],
+    flexWrap: "wrap",
+    gap: 6,
     paddingHorizontal: olyLayout.screenPadding,
-    paddingTop: olySpacing[12],
-    paddingBottom: olySpacing[4],
+    paddingTop: olySpacing[12] + 2,
   },
-  /* Each cell takes an equal share of the row rather than packing left.
-     With three cells both read the same; with two, packing left leaves a
-     void between the last cell and the chevron, which reads as content
-     that failed to load. Spread, the same empty space sits BETWEEN two
-     labelled columns, where it reads as a table. Same pixels, opposite
-     impression. */
-  /* Centred, like the expanded post's grid. Left aligned, each value
-     started at a different distance from the rule beside it and the row
-     read as one block of text with a stray line through it. The rule
-     itself was always on the midline; it was the type that was not. */
-  cell: {
-    flex: 1,
-    minWidth: 0,
-    backgroundColor: olyColors.bg.card,
-    borderRadius: olyRadius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: olyColors.border.hairline,
-    paddingVertical: olySpacing[12],
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 6,
     paddingHorizontal: olySpacing[12],
+    borderRadius: olyRadius.full,
+    backgroundColor: olyColors.bg.card,
   },
-  /* A hairline between cells instead of an accent rule above each one.
-     The ticks gave every cell its own blue mark, which made three quiet
-     facts look like three buttons. A rule between them says the same
-     thing a table says: these are separate columns of one readout. */
-  /* `number`, 20/26, not `bodySmall`. These cells are readouts and that
-     is the token the scale defines for readouts. At 14 against an 11
-     label there was no contrast and the row read as one grey block. */
-  cellValue: {
-    ...olyTypography.number,
+  chipWithIcon: { paddingLeft: olySpacing[8] },
+  chipValue: {
+    ...olyTypography.bodySmall,
     fontFamily: olyFonts.bold,
     color: olyColors.text.primary,
-    letterSpacing: -0.3,
   },
-  /* 12 is the scale's floor. The mock used 10, which is off the scale. */
-  cellLabel: {
+  chipLabel: {
     ...olyTypography.caption,
-    color: olyColors.text.disabled,
-    letterSpacing: olyLetterSpacing.uppercase,
-    textTransform: "uppercase",
-    marginBottom: 2,
+    color: olyColors.text.secondary,
   },
 
   body: {

@@ -9,6 +9,7 @@
  * video upload via useUploadAthleteVideoMutation.
  */
 
+import { olyAlert } from "@/src/oly-components/feedback/OlyAlert";
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
 import {
   olyTypography,
@@ -32,7 +33,6 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   ActionSheetIOS,
   ActivityIndicator,
-  Alert,
   Platform,
   ScrollView,
   StyleSheet,
@@ -195,7 +195,7 @@ export default function OnboardingScreen2({
   const pickVideo = async (lift: LiftIdentifier) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert(
+      olyAlert(
         "Permission needed",
         "Please allow access to your media library",
       );
@@ -270,7 +270,7 @@ export default function OnboardingScreen2({
             { text: "Cancel", style: "cancel" as const },
             { text: "Add Video", onPress: () => pickVideo(lift) },
           ];
-      Alert.alert("Video Options", "Choose an action", actions);
+      olyAlert("Video Options", "Choose an action", actions);
     }
   };
 

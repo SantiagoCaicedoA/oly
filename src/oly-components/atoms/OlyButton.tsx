@@ -21,9 +21,8 @@ import * as Haptics from "expo-haptics";
 
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
 import { olyTypography, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
-import { olySpacing } from "@/src/oly-theme/oly-spacing";
+import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
-import { olyLayout } from "@/src/oly-theme/oly-spacing";
 
 // ─── Types ───────────────────────────────────────────────────────────
 type OlyButtonVariant = "primary" | "secondary" | "destructive" | "ghost";

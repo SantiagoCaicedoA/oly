@@ -247,6 +247,36 @@ export const olyColors = {
     sharp: olyPalette.redInk,
   },
 
+  // — Over media —
+  /**
+   * Ink and chrome drawn ON a photo or video, where the ground is unknown.
+   * Pure white plus black scrims, not the chalk ink, because the frame can
+   * be anything from a white gym wall to a black stage.
+   */
+  media: {
+    ink: "#FFFFFF",
+    /** Labels beside a big number on the frame: "KG", the lift name. */
+    inkSoft: "rgba(255, 255, 255, 0.82)",
+    /** Secondary text on a tile: units, dates. */
+    inkMuted: "rgba(255, 255, 255, 0.75)",
+    /** Unplayed part of a scrub track. */
+    track: "rgba(255, 255, 255, 0.28)",
+    /** Outlined pill on video (speed). */
+    outline: "rgba(255, 255, 255, 0.4)",
+    /** Empty selection ring on a tile. */
+    ring: "rgba(255, 255, 255, 0.8)",
+    /** Small dark well behind a badge or play button. */
+    chip: "rgba(0, 0, 0, 0.45)",
+    chipFaint: "rgba(0, 0, 0, 0.2)",
+    /** Behind the player itself. */
+    black: "#000000",
+    /** Bottom scrim under a weight stamp (three stops). */
+    scrim: ["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0.28)", "rgba(0, 0, 0, 0.72)"] as readonly [string, string, ...string[]],
+    scrimLocations: [0, 0.45, 1] as readonly [number, number, ...number[]],
+    /** Simple two-stop fade at the bottom of a thumbnail. */
+    fade: ["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0.7)"] as readonly [string, string, ...string[]],
+  },
+
   // — Charts —
   // One series, drawn in ink. Never in brand blue.
   chart: {

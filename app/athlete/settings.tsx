@@ -8,6 +8,7 @@
  * navigate, so nothing dead-links while we build them out.
  */
 
+import { olyAlert } from "@/src/oly-components/feedback/OlyAlert";
 import { OlyScreenWrapper } from "@/src/oly-components/organisms/OlyScreenWrapper";
 import { OlySettingsRow } from "@/src/oly-components/molecules/OlySettingsRow";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
@@ -23,7 +24,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
 import {
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -67,7 +67,7 @@ export default function Settings() {
   const [deleteAccount, deleteState] = useDeleteAccountMutation();
 
   const onLogout = () => {
-    Alert.alert("Log out", "You'll need to sign in again.", [
+    olyAlert("Log out", "You'll need to sign in again.", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Log out",
@@ -90,7 +90,7 @@ export default function Settings() {
   // Two steps on purpose. The first explains what survives, the second is
   // the point of no return.
   const onDeleteAccount = () => {
-    Alert.alert(
+    olyAlert(
       "Delete account",
       "Your name, username, photo and email are removed. Your lifts stay on " +
         "the board as \u201cFormer athlete\u201d so results other lifters " +
@@ -101,7 +101,7 @@ export default function Settings() {
           text: "Continue",
           style: "destructive",
           onPress: () =>
-            Alert.alert(
+            olyAlert(
               "This cannot be undone",
               "Delete your account permanently?",
               [
@@ -114,7 +114,7 @@ export default function Settings() {
                       await deleteAccount().unwrap();
                       signOutLocally();
                     } catch (e: any) {
-                      Alert.alert(
+                      olyAlert(
                         "Could not delete",
                         e?.data?.message ?? "Something went wrong. Try again.",
                       );

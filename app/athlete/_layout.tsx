@@ -13,6 +13,9 @@ export default function AthleteLayout() {
       }}
     >
       <Stack.Screen name="post-expanded" />
+      <Stack.Screen name="chat" />
+      <Stack.Screen name="message-requests" />
+      <Stack.Screen name="new-message" options={{ animation: "slide_from_bottom" }} />
       <Stack.Screen name="create-new-post" />
       <Stack.Screen name="add-exercise" />
       <Stack.Screen name="archive" />

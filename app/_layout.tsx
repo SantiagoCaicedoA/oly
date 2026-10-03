@@ -1,3 +1,4 @@
+import { OlyAlertHost } from "@/src/oly-components/feedback/OlyAlert";
 import { ThemeProvider } from "@/context/theme-context";
 import { ToastProvider } from "@/context/toast-context";
 import { useColorScheme } from "@/hooks/useColorScheme";
@@ -10,7 +11,7 @@ import {
 } from "@react-navigation/native";
 import { olyGradient } from "@/src/oly-theme/oly-colors";
 import { useFonts } from "expo-font";
-import { Stack, useRouter } from "expo-router";
+import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -20,7 +21,6 @@ import { PersistGate } from "redux-persist/integration/react";
 
 function AppContent() {
   const colorScheme = useColorScheme();
-  const router = useRouter();
 
   const [loaded, fontError] = useFonts({
     "Ubuntu-Regular": require("../assets/fonts/Ubuntu-Regular.ttf"),
@@ -58,6 +58,7 @@ function AppContent() {
           <Stack.Screen name="athlete" options={{ headerShown: false }} />
         </Stack>
         <StatusBar style="auto" />
+        <OlyAlertHost />
       </NavigationThemeProvider>
     </ToastProvider>
   );

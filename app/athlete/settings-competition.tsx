@@ -10,6 +10,7 @@
  * wrong board until a verified lift sets it from real bodyweight.
  */
 
+import { olyAlert } from "@/src/oly-components/feedback/OlyAlert";
 import OnboardingScreen6 from "@/app/auth/onboarding/onboarding-screen6";
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
 import { OlyScreenWrapper } from "@/src/oly-components/organisms/OlyScreenWrapper";
@@ -30,7 +31,6 @@ import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   StyleSheet,
   Text,
@@ -100,9 +100,9 @@ export default function SettingsCompetition() {
 
     try {
       await submitProfile({ competition } as any).unwrap();
-      Alert.alert("Saved", "Competition details updated.");
+      olyAlert("Saved", "Competition details updated.");
     } catch (e: any) {
-      Alert.alert(
+      olyAlert(
         "Could not save",
         e?.data?.message ?? "Something went wrong. Try again.",
       );

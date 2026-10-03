@@ -10,6 +10,7 @@
  * year. In settings mode screen1 therefore asks for the year only.
  */
 
+import { olyAlert } from "@/src/oly-components/feedback/OlyAlert";
 import OnboardingScreen1 from "@/app/auth/onboarding/onboarding-screen1";
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
 import { OlyScreenWrapper } from "@/src/oly-components/organisms/OlyScreenWrapper";
@@ -30,7 +31,6 @@ import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   StyleSheet,
   Text,
@@ -115,9 +115,9 @@ export default function SettingsUserInfo() {
 
     try {
       await submitProfile(payload as any).unwrap();
-      Alert.alert("Saved", "Your profile is up to date.");
+      olyAlert("Saved", "Your profile is up to date.");
     } catch (e: any) {
-      Alert.alert(
+      olyAlert(
         "Could not save",
         e?.data?.message ?? "Something went wrong. Try again.",
       );

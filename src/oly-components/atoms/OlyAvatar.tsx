@@ -9,13 +9,12 @@
  */
 
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 
 import { olyColors } from "@/src/oly-theme/oly-colors";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyTypography } from "@/src/oly-theme/oly-typography";
-import { Text } from "react-native";
 
 // ─── Types ───────────────────────────────────────────────────────
 type AvatarSize = "small" | "medium" | "large";

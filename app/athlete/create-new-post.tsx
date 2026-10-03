@@ -12,6 +12,7 @@
  *   available; neutral dim = off.
  * - ✕ confirms before discarding entered work. Post explains what's missing.
  */
+import { olyAlert } from "@/src/oly-components/feedback/OlyAlert";
 import { useToast } from "@/context/toast-context";
 import {
   useCreateNewPostMutation,
@@ -27,13 +28,14 @@ import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
+import { OlyIcon } from "@/components/icons/OlyIcon";
+import { VideoPickerSheet } from "@/src/oly-components/media/VideoPickerSheet";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import * as VideoThumbnails from "expo-video-thumbnails";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -79,11 +81,47 @@ const RANKABLE_LIFTS: Record<string, "snatch" | "cleanjerk"> = {
   "clean & jerk": "cleanjerk",
 };
 
-const OTHER_LIFTS = [
-  "Power Snatch", "Clean", "Power Clean", "Back Squat",
-  "Front Squat", "Overhead Squat", "Strict Press", "Push Press",
-  "Power Jerk", "Jerk",
+/* Grouped so thirteen chips read as a menu, not a pile. A "Complex" chip
+   belongs to its family; its stored value names the family. Complexes are
+   never ranked. */
+const LIFT_GROUPS: {
+  label: string;
+  lifts: { value: string; chip: string; ranked?: boolean }[];
+  hint?: string;
+}[] = [
+  {
+    label: "SNATCH",
+    hint: "Snatch Pull + Snatch",
+    lifts: [
+      { value: "Snatch", chip: "Snatch", ranked: true },
+      { value: "Power Snatch", chip: "Power Snatch" },
+      { value: "Overhead Squat", chip: "Overhead Squat" },
+      { value: "Snatch Complex", chip: "Complex" },
+    ],
+  },
+  {
+    label: "CLEAN & JERK",
+    hint: "Clean + Front Squat + Jerk",
+    lifts: [
+      { value: "Clean & Jerk", chip: "Clean & Jerk", ranked: true },
+      { value: "Clean", chip: "Clean" },
+      { value: "Power Clean", chip: "Power Clean" },
+      { value: "Jerk", chip: "Jerk" },
+      { value: "Power Jerk", chip: "Power Jerk" },
+      { value: "Clean & Jerk Complex", chip: "Complex" },
+    ],
+  },
+  {
+    label: "STRENGTH",
+    lifts: [
+      { value: "Back Squat", chip: "Back Squat" },
+      { value: "Front Squat", chip: "Front Squat" },
+      { value: "Strict Press", chip: "Strict Press" },
+      { value: "Push Press", chip: "Push Press" },
+    ],
+  },
 ];
+const isComplex = (l: string | null) => !!l && l.endsWith("Complex");
 
 const SPEED_OPTIONS = ["Slow", "Medium", "Fast"];
 const EFFORT_OPTIONS = ["Easy", "Moderate", "Hard", "Max"];
@@ -118,7 +156,7 @@ function TicketSheen() {
   return (
     <Animated.View pointerEvents="none" style={[st.sheen, style]}>
       <LinearGradient
-        colors={["transparent", "rgba(226,232,240,0.16)", "transparent"]}
+        colors={["transparent", olyColors.chart.area, "transparent"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={StyleSheet.absoluteFill}
@@ -142,7 +180,7 @@ export default function CreateNewPost() {
   const setsWithVideo: SetVideo[] = useMemo(() => {
     if (!setsWithVideoParam) return [];
     try { return JSON.parse(setsWithVideoParam); }
-    catch (e) { return []; }
+    catch { return []; }
   }, [setsWithVideoParam]);
   const isStandalone = !exerciseName && setsWithVideo.length === 0;
 
@@ -154,6 +192,9 @@ export default function CreateNewPost() {
   const selectedVideo = setsWithVideo[selectedSetIndex] ?? null;
 
   const [lift, setLift] = useState<string | null>(exerciseName ?? null);
+  /* Optional name for a complex, e.g. "Clean + Front Squat + Jerk". */
+  const [complexName, setComplexName] = useState("");
+  const liftLabel = isComplex(lift) && complexName.trim() ? complexName.trim() : lift;
   const [weight, setWeight] = useState<number | null>(null);
   const [reps, setReps] = useState(1);
   const [caption, setCaption] = useState("");
@@ -187,7 +228,17 @@ export default function CreateNewPost() {
 
   /* ── Standalone: the picker IS the empty state ── */
   const pickedOnce = useRef(false);
-  const pickVideo = useCallback(async (firstOpen: boolean) => {
+  const [videoSheet, setVideoSheet] = useState(false);
+  const sheetFirstOpen = useRef(false);
+
+  /* Oly's own video grid first; the system picker stays as the fallback for
+     older videos, no access, and trimming anything over 30 seconds. */
+  const pickVideo = useCallback((firstOpen: boolean) => {
+    sheetFirstOpen.current = firstOpen;
+    setVideoSheet(true);
+  }, []);
+
+  const pickFromSystem = useCallback(async (firstOpen: boolean) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
       showError("Please allow access to your media library");
@@ -210,8 +261,18 @@ export default function CreateNewPost() {
     try {
       const { uri } = await VideoThumbnails.getThumbnailAsync(asset.uri, { time: 1000 });
       setThumbnailUri(uri);
-    } catch (e) { /* thumbnail is decorative */ }
+    } catch { /* thumbnail is decorative */ }
   }, [showError]);
+
+  const onSheetPick = useCallback(async (v: { uri: string; durationSec: number }) => {
+    setVideoSheet(false);
+    setVideoUri(v.uri);
+    setDurationSec(v.durationSec || null);
+    try {
+      const { uri } = await VideoThumbnails.getThumbnailAsync(v.uri, { time: 1000 });
+      setThumbnailUri(uri);
+    } catch { /* thumbnail is decorative */ }
+  }, []);
 
   useEffect(() => {
     if (isStandalone && !pickedOnce.current) {
@@ -282,7 +343,7 @@ export default function CreateNewPost() {
   const dirty = !!(lift || weight || caption.trim() || (isStandalone && videoUri));
   const tryClose = () => {
     if (!dirty) { router.back(); return; }
-    Alert.alert("Discard this post?", "Your video and details won’t be saved.", [
+    olyAlert("Discard this post?", "Your video and details won’t be saved.", [
       { text: "Keep editing", style: "cancel" },
       { text: "Discard", style: "destructive", onPress: () => router.back() },
     ]);
@@ -312,7 +373,7 @@ export default function CreateNewPost() {
       name: "post-video.mp4",
     } as any);
     formData.append("data", JSON.stringify({
-      lift_name: lift,
+      lift_name: liftLabel,
       opinion: caption,
       /* Bar speed, effort, top set and bodyweight were all being
          collected by the pills above and then dropped here: the payload
@@ -414,7 +475,7 @@ export default function CreateNewPost() {
               </View>
             )}
             <LinearGradient
-              colors={["transparent", "rgba(4,8,13,0.8)"]}
+              colors={olyColors.media.fade}
               style={st.heroFade}
             />
             <View style={st.playBtn}>
@@ -427,7 +488,7 @@ export default function CreateNewPost() {
             )}
             {!!lift && !!weight && (
               <View style={st.stamp}>
-                <Text style={st.stampLift}>{lift}</Text>
+                <Text style={st.stampLift}>{liftLabel}</Text>
                 <Text style={st.stampKg}>
                   {weight} <Text style={st.stampUnit}>kg</Text>
                 </Text>
@@ -466,7 +527,7 @@ export default function CreateNewPost() {
               <Text style={st.statK}>LIFT</Text>
               <View style={st.statVRow}>
                 <Text style={[st.statVal, !lift && st.statPlaceholder]} numberOfLines={1}>
-                  {lift ?? "Select"}
+                  {liftLabel ?? "Select"}
                 </Text>
                 <Ionicons name="chevron-down" size={13} color={olyColors.text.disabled} style={st.chev} />
               </View>
@@ -640,29 +701,81 @@ export default function CreateNewPost() {
 
       {/* LIFT PICKER SHEET */}
       <Modal visible={liftSheet} transparent animationType="fade" onRequestClose={() => setLiftSheet(false)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <Pressable style={st.sheetBackdrop} onPress={() => setLiftSheet(false)}>
           <Pressable style={st.sheet} onPress={() => {}}>
             <View style={st.handle} />
-            <Text style={st.sheetLabel}>RANKED LIFTS</Text>
-            {["Snatch", "Clean & Jerk"].map((l) => (
-              <TouchableOpacity key={l} style={st.sheetOpt}
-                onPress={() => { setLift(l); setLiftSheet(false); Haptics.selectionAsync(); }}>
-                <Text style={st.sheetOptText}>{l}</Text>
-                <View style={st.lbTag}><Text style={st.lbTagText}>LEADERBOARD</Text></View>
-              </TouchableOpacity>
-            ))}
-            <Text style={st.sheetLabel}>EVERYTHING ELSE</Text>
-            <View style={st.sheetChips}>
-              {OTHER_LIFTS.map((l) => (
-                <TouchableOpacity key={l}
-                  style={[st.chip, lift === l && st.chipOn]}
-                  onPress={() => { setLift(l); setLiftSheet(false); Haptics.selectionAsync(); }}>
-                  <Text style={[st.chipText, lift === l && st.chipTextOn]}>{l}</Text>
-                </TouchableOpacity>
-              ))}
+            {/* One pill language. The ranked lift leads its own family, bolder
+                and marked with the leaderboard icon; the note explains it. */}
+            <Text style={st.sheetTitle}>Choose the lift</Text>
+            <View style={st.sheetNote}>
+              <OlyIcon name="rank" size={12} filled color={olyColors.text.secondary} />
+              <Text style={st.sheetNoteText}>counts on the leaderboard</Text>
             </View>
+            {LIFT_GROUPS.map((g) => {
+              const complexOn = isComplex(lift) && g.lifts.some((x) => x.value === lift);
+              return (
+                <View key={g.label}>
+                  <Text style={st.sheetLabel}>{g.label}</Text>
+                  <View style={st.sheetChips}>
+                    {g.lifts.map((l) => {
+                      const on = lift === l.value;
+                      return (
+                        <TouchableOpacity
+                          key={l.value}
+                          style={[st.chip, l.ranked && st.chipRanked, on && st.chipOn]}
+                          onPress={() => {
+                            Haptics.selectionAsync();
+                            if (isComplex(l.value)) {
+                              if (lift !== l.value) setComplexName("");
+                              setLift(l.value);
+                              return; // stay open for the optional name
+                            }
+                            setLift(l.value);
+                            setComplexName("");
+                            setLiftSheet(false);
+                          }}
+                        >
+                          {l.ranked && (
+                            <OlyIcon
+                              name="rank"
+                              size={12}
+                              filled
+                              color={on ? olyPalette.white : olyColors.text.primary}
+                            />
+                          )}
+                          <Text
+                            style={[st.chipText, l.ranked && st.chipTextRanked, on && st.chipTextOn]}
+                          >
+                            {l.chip}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                  {complexOn && (
+                    <View style={st.complexRow}>
+                      <TextInput
+                        value={complexName}
+                        onChangeText={setComplexName}
+                        placeholder={`What's the complex? ${g.hint ?? ""}`.trim()}
+                        placeholderTextColor={olyColors.text.disabled}
+                        style={st.complexInput}
+                        returnKeyType="done"
+                        autoFocus
+                        onSubmitEditing={() => setLiftSheet(false)}
+                      />
+                      <TouchableOpacity style={st.complexDone} onPress={() => setLiftSheet(false)}>
+                        <Text style={st.complexDoneText}>Done</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
           </Pressable>
         </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* VALUE CHOOSER SHEET (bar speed / effort) */}
@@ -734,6 +847,20 @@ export default function CreateNewPost() {
           </Pressable>
         </KeyboardAvoidingView>
       </Modal>
+
+      <VideoPickerSheet
+        visible={videoSheet}
+        onCancel={() => {
+          setVideoSheet(false);
+          if (sheetFirstOpen.current && !videoUri) router.back();
+        }}
+        onPick={onSheetPick}
+        onUseSystemPicker={() => {
+          setVideoSheet(false);
+          /* Let the sheet finish closing before iOS presents its picker. */
+          setTimeout(() => pickFromSystem(sheetFirstOpen.current && !videoUri), 450);
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -753,8 +880,10 @@ function Pill({ on, onPress, children }: { on: boolean; onPress: () => void; chi
 
 /* ── Styles ─────────────────────────── */
 
-const TINT = "rgba(0, 74, 173, 0.12)";
-const TINT_BORDER = "rgba(0, 74, 173, 0.55)";
+/* Brand tints. These were hardcoded from the OLD primary (#004AAD);
+   they now come from the theme. */
+const TINT = olyColors.bg.subtleHighlight;
+const TINT_BORDER = olyColors.border.brandUnselected;
 
 const st = {
   ...StyleSheet.create({
@@ -792,13 +921,13 @@ const st = {
     playBtn: {
       position: "absolute", top: "50%", left: "50%", marginLeft: -29, marginTop: -32,
       width: 58, height: 58, borderRadius: olyRadius.full,
-      backgroundColor: "rgba(9,14,21,0.55)",
+      backgroundColor: olyColors.media.chip,
       alignItems: "center", justifyContent: "center",
     },
     replaceBtn: {
       position: "absolute", right: 14, top: 14,
       width: 36, height: 36, borderRadius: olyRadius.full,
-      backgroundColor: "rgba(9,14,21,0.55)",
+      backgroundColor: olyColors.media.chip,
       alignItems: "center", justifyContent: "center",
     },
     stamp: { position: "absolute", left: 20, bottom: 18 },
@@ -896,7 +1025,7 @@ const st = {
     bwField: {
       flexDirection: "row", alignItems: "baseline", gap: 4,
       // brand white at the Design Bible's "subtle" opacity — a light well on the blue card
-      backgroundColor: "rgba(226, 232, 240, 0.12)", borderRadius: olyRadius.sm,
+      backgroundColor: olyColors.bg.avatar, borderRadius: olyRadius.sm,
       paddingHorizontal: olySpacing[12], paddingVertical: olySpacing[8],
     },
     bwInput: {
@@ -967,7 +1096,7 @@ const st = {
 
     /* sheets */
     sheetBackdrop: {
-      flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end",
+      flex: 1, backgroundColor: olyColors.bg.overlay, justifyContent: "flex-end",
     },
     sheet: {
       backgroundColor: olyPalette.card,
@@ -983,28 +1112,40 @@ const st = {
     sheetLabel: {
       ...olyTypography.caption, color: olyColors.text.disabled,
       letterSpacing: olyLetterSpacing.uppercase,
-      marginTop: olySpacing[12], marginBottom: olySpacing[4],
+      marginTop: olySpacing[16], marginBottom: olySpacing[4],
     },
+    sheetTitle: { ...olyTypography.body, fontFamily: olyFonts.medium, color: olyColors.text.primary },
+    sheetNote: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: olySpacing[4] },
+    sheetNoteText: { ...olyTypography.caption, color: olyColors.text.secondary },
+    chipRanked: { flexDirection: "row", alignItems: "center", gap: 6, borderColor: olyColors.text.primary },
+    chipTextRanked: { fontFamily: olyFonts.bold, color: olyColors.text.primary },
     sheetOpt: {
       flexDirection: "row", alignItems: "center", justifyContent: "space-between",
       paddingVertical: olySpacing[16],
       borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: olyColors.border.default,
     },
     sheetOptText: { ...olyTypography.body, fontFamily: olyFonts.medium, color: olyColors.text.primary },
-    lbTag: {
-      backgroundColor: TINT, borderRadius: olyRadius.full,
-      paddingHorizontal: olySpacing[12], paddingVertical: 4,
-    },
-    lbTagText: {
-      fontSize: 10, fontFamily: olyFonts.medium, color: olyColors.text.primary,
-      letterSpacing: 1.2,
-    },
     sheetChips: { flexDirection: "row", flexWrap: "wrap", gap: olySpacing[8], paddingTop: olySpacing[8] },
+    /* Quiet until picked: no tint, a thin outline. Blue means selected. */
     chip: {
-      backgroundColor: olyColors.bg.activeHighlight, borderRadius: olyRadius.full,
-      borderWidth: 1, borderColor: olyColors.border.brandUnselected,
-      paddingHorizontal: olySpacing[12], paddingVertical: olySpacing[8],
+      minHeight: 36, justifyContent: "center",
+      borderRadius: olyRadius.full,
+      borderWidth: 1, borderColor: olyColors.border.default,
+      paddingHorizontal: 14,
     },
+    complexRow: {
+      flexDirection: "row", alignItems: "center", gap: olySpacing[8], marginTop: olySpacing[12],
+    },
+    complexInput: {
+      flex: 1, ...olyTypography.bodySmall, color: olyColors.text.primary,
+      minHeight: 40, paddingHorizontal: olySpacing[16],
+      borderRadius: olyRadius.full, borderWidth: 1, borderColor: olyColors.border.default,
+    },
+    complexDone: {
+      minHeight: 40, paddingHorizontal: olySpacing[16], borderRadius: olyRadius.full,
+      backgroundColor: olyPalette.primary, alignItems: "center", justifyContent: "center",
+    },
+    complexDoneText: { ...olyTypography.label, color: olyPalette.white },
     chipOn: { backgroundColor: olyPalette.primary, borderColor: olyPalette.primary },
     chipText: { ...olyTypography.bodySmall, fontFamily: olyFonts.medium, color: olyColors.text.secondary },
     chipTextOn: { color: olyPalette.white },
@@ -1029,11 +1170,11 @@ const st = {
   /* dynamic text styles for pills */
   pillText: (on: boolean) => ({
     fontSize: 13.5,
-    color: on ? "#B9C6DC" : "rgba(226,232,240,0.4)",
+    color: on ? olyColors.text.secondary : olyColors.text.disabled,
   }),
   pillBold: (on: boolean) => ({
     fontSize: 13.5,
     fontFamily: olyFonts.medium,
-    color: on ? olyColors.text.primary : "rgba(226,232,240,0.4)",
+    color: on ? olyColors.text.primary : olyColors.text.disabled,
   }),
 };

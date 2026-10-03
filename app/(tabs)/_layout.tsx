@@ -178,11 +178,11 @@ function TabsWithLoader() {
 
         <Tabs.Screen name="search" options={tab("search", "Search")} />
 
-        <Tabs.Screen
-          name="profile"
-          listeners={loaderListeners}
-          options={tab("profile", "Profile")}
-        />
+        <Tabs.Screen name="marketplace" options={tab("shop", "Marketplace")} />
+
+        {/* Profile moved to the avatar in the Home header. Still a tab route,
+            just not in the bar. */}
+        <Tabs.Screen name="profile" listeners={loaderListeners} options={{ href: null }} />
 
         {/* The old centre FAB. Posting lives in the Home header now. */}
         <Tabs.Screen name="upload" options={{ href: null }} />

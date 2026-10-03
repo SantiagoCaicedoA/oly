@@ -7,7 +7,7 @@ import Svg, { Circle, Path, Rect } from "react-native-svg";
  *
  * Design system: Core / Icon, and the Iconography rules.
  *
- * Fourteen glyphs and no more. Five navigation, nine structural.
+ * Fifteen glyphs and no more. Six navigation, nine structural.
  * Anything not on this list is a word. Adding one is a decision,
  * not a convenience, and it gets recorded in the design system first.
  *
@@ -30,6 +30,7 @@ export type OlyIconName =
   | "messages"
   | "search"
   | "profile"
+  | "shop"
   // structural
   | "chevron"
   | "back"
@@ -84,6 +85,8 @@ const OUTLINE: Record<OlyIconName, Shape[]> = {
   messages: [p("M5.4 4.6h13.2a2.9 2.9 0 0 1 2.9 2.9v6.2a2.9 2.9 0 0 1-2.9 2.9h-7.3l-4.4 3.5v-3.5H5.4a2.9 2.9 0 0 1-2.9-2.9V7.5a2.9 2.9 0 0 1 2.9-2.9Z")],
   search: [c(10.5, 10.5, 6.5), p("M15.5 15.5 21 21")],
   profile: [c(12, 8, 3.75), p("M4.5 20.5a7.5 7.5 0 0 1 15 0")],
+  /* Marketplace. A bag: body plus handle. */
+  shop: [p("M5.5 8.25h13l-1.05 11.6a1.6 1.6 0 0 1-1.6 1.45H8.15a1.6 1.6 0 0 1-1.6-1.45Z"), p("M9 8.25V7a3 3 0 0 1 6 0v1.25")],
 
   chevron: [p("M9 5l7 7-7 7")],
   back: [p("M15 19l-7-7 7-7")],
@@ -108,6 +111,11 @@ const FILLED: Partial<Record<OlyIconName, Shape[]>> = {
     r(16.09, 11.52, 5.0, 9.08, 1.15),],
   messages: [p("M5.4 4.6h13.2a2.9 2.9 0 0 1 2.9 2.9v6.2a2.9 2.9 0 0 1-2.9 2.9h-7.3l-4.4 3.5v-3.5H5.4a2.9 2.9 0 0 1-2.9-2.9V7.5a2.9 2.9 0 0 1 2.9-2.9Z")],
   profile: [c(12, 8, 4.1), p("M4.2 21.3a7.8 7.8 0 0 1 15.6 0Z")],
+  /* Filled bag; the handle is drawn as its own solid band. */
+  shop: [
+    p("M4.7 7.5h14.6l-1.1 12.4a2.3 2.3 0 0 1-2.3 2.1H8.1a2.3 2.3 0 0 1-2.3-2.1Z"),
+    p("M8.25 7.5V7a3.75 3.75 0 0 1 7.5 0v.5h-1.6V7a2.15 2.15 0 0 0-4.3 0v.5Z"),
+  ],
   heart: [
     p(
       "M12 20.5S3.5 15.1 3.5 9.4A4.4 4.4 0 0 1 12 7.3a4.4 4.4 0 0 1 8.5 2.1c0 5.7-8.5 11.1-8.5 11.1Z",

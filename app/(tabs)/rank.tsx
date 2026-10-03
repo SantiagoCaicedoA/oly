@@ -271,7 +271,6 @@ export default function Rank() {
   useEffect(() => {
     setExtra([]);
     setNextCursor(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paramsKey]);
   useEffect(() => {
     if (!friendsOnly && boardQ.data) setNextCursor(boardQ.data.nextCursor);

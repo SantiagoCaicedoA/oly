@@ -277,7 +277,7 @@ function SinclairCard({
           </View>
           <View style={styles.verdict}>
             <Text style={styles.verdictText}>
-              The sport's pound-for-pound score — it lets you compare yourself
+              The sport&apos;s pound-for-pound score — it lets you compare yourself
               across every weight class.
             </Text>
           </View>
@@ -332,7 +332,7 @@ function RankCardMini({
         </>
       ) : (
         <Text style={styles.emptyText}>
-          You're not on a board yet. Post one verified lift and your rank
+          You&apos;re not on a board yet. Post one verified lift and your rank
           appears here.
         </Text>
       )}

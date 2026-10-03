@@ -20,9 +20,8 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
 import { olyTypography, olyMaxFontScale } from "@/src/oly-theme/oly-typography";
-import { olySpacing } from "@/src/oly-theme/oly-spacing";
+import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
-import { olyLayout } from "@/src/oly-theme/oly-spacing";
 
 interface OlyTextInputProps extends Omit<TextInputProps, "style"> {
   error?: string;
