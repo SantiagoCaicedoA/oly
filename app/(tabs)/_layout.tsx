@@ -184,6 +184,9 @@ function TabsWithLoader() {
             just not in the bar. */}
         <Tabs.Screen name="profile" listeners={loaderListeners} options={{ href: null }} />
 
+        {/* Training is hidden for the MVP and returns in v2. Route stays, tab is hidden. */}
+        <Tabs.Screen name="workout" options={{ href: null }} />
+
         {/* The old centre FAB. Posting lives in the Home header now. */}
         <Tabs.Screen name="upload" options={{ href: null }} />
 
