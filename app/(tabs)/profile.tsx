@@ -1,26 +1,37 @@
 /**
- * My Profile — the athlete's competitive resume (redesign v2).
+ * My Profile, redesign v3 (Lifts and Progress tabs on glass).
  *
- * Order tells the story: who I am → where I rank → my verified bests →
- * what I've earned → what only I can see → the full record.
- * All data is live: profile, /leaderboard/me, athlete card (proof videos),
+ * Header: olys balance and share, then who I am, tier and streak, counts,
+ * edit and share, and the Lifts | Progress switch. Lifts is the post grid;
+ * Progress is rank, rival, challenge, milestones, badges, verified lifts
+ * and insights (ProfileProgress).
+ * Live data: profile, /leaderboard/me, athlete card (proof videos),
  * /lifts/me (history), /posts?feed=mine (grid), /follow/status (counts).
+ * Mock data: wallet and tiers, streak, rival, badges (src/oly-mock).
  */
 
 import { OlyAvatar } from "@/src/oly-components/atoms/OlyAvatar";
 import { OlyScreenWrapper } from "@/src/oly-components/organisms/OlyScreenWrapper";
-import { CompetitionLiftCards } from "@/src/oly-components/profile/CompetitionLiftCards";
-import { InsightsCarousel } from "@/src/oly-components/profile/InsightsCarousel";
-import { ProfileArchive } from "@/src/oly-components/profile/ProfileArchive";
-import { ProfileRankCard } from "@/src/oly-components/profile/ProfileRankCard";
-import { SeasonBadgesShelf } from "@/src/oly-components/profile/SeasonBadges";
-import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { OlyFloatingHeader, useFloatingHeader } from "@/src/oly-components/organisms/OlyFloatingHeader";
+import { LiftsGrid } from "@/src/oly-components/profile/LiftGrid";
+import { ProfileProgress, type LiftBests } from "@/src/oly-components/profile/ProfileProgress";
+import { HexVerifiedMark } from "@/src/oly-components/profile/SeasonBadges";
+import { boardLabel as labelFor, classFor } from "@/src/oly-components/records/ladder";
+import { Glass, GlassButton, GlassTabs, GlowBar, kit } from "@/src/oly-components/shop/ShopKit";
+import {
+  MOCK_COUNTS,
+  MOCK_LIFTS,
+  MOCK_ME,
+  MOCK_POSTS,
+  MOCK_SQUATS,
+  MOCK_STREAK,
+} from "@/src/oly-mock/profile";
+import { fmt, tierFor, useWallet } from "@/src/oly-mock/wallet";
+import { olyColors } from "@/src/oly-theme/oly-colors";
+import { olyGlow } from "@/src/oly-theme/oly-elevation";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
-import {
-  olyLetterSpacing,
-  olyTypography,
-} from "@/src/oly-theme/oly-typography";
+import { olyFonts } from "@/src/oly-theme/oly-typography";
 import {
   useGetAthleteCardQuery,
   useGetCurrentSeasonQuery,
@@ -31,33 +42,33 @@ import {
   useGetProfileQuery,
 } from "@/store/api";
 import type { BoardParams } from "@/types/api/leaderboard";
+import type { MyLift } from "@/types/api/profile";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useMemo } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import React, { useMemo, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 
-/* ── IWF 2025-06 class labels from bodyweight — mirrors backend classTable ── */
-const MEN_BOUNDS: [number, string][] = [
-  [60, "60"], [65, "65"], [71, "71"], [79, "79"], [88, "88"], [94, "94"], [110, "110"],
-];
-const WOMEN_BOUNDS: [number, string][] = [
-  [48, "48"], [53, "53"], [58, "58"], [63, "63"], [69, "69"], [77, "77"], [86, "86"],
-];
-function classFor(sex: "M" | "F", bw: number): string {
-  const bounds = sex === "M" ? MEN_BOUNDS : WOMEN_BOUNDS;
-  for (const [limit, label] of bounds) if (bw <= limit) return label;
-  return sex === "M" ? "+110" : "+86";
-}
+type Tab = "lifts" | "progress";
+const TABS = [
+  { value: "lifts", label: "Lifts" },
+  { value: "progress", label: "Progress" },
+] as const;
+
+/** Best live, reviewed lift of one type, 0 when there is none. */
+const verifiedBest = (lifts: MyLift[], type: MyLift["liftType"]) =>
+  Math.max(
+    0,
+    ...lifts
+      .filter((l) => l.liftType === type && l.status === "live" && !l.pendingReview)
+      .map((l) => l.weightKg),
+  );
 
 export default function MyProfile() {
+  const [tab, setTab] = useState<Tab>("lifts");
+  const { headerH, onLayout: onHeaderLayout } = useFloatingHeader(52);
+  const wallet = useWallet();
+  const tier = tierFor(wallet.lifetime);
+
   const profileQ = useGetProfileQuery();
   const user = profileQ.data?.data;
   const profile = user?.profile;
@@ -65,10 +76,9 @@ export default function MyProfile() {
   const myId: string | undefined = user?._id;
   const displayName = user?.name || profile?.display_name || "Athlete";
   const username = user?.username || "";
-  const avatarUrl =
-    profile?.profile_image_url || user?.photo_url || undefined;
+  const avatarUrl = profile?.profile_image_url || user?.photo_url || undefined;
   const countryCode: string | null = profile?.countryCode ?? null;
-  const club: string | null = profile?.club ?? null;
+  const club: string | null = profile?.club ?? (countryCode ? "Independent" : null);
 
   const sex: "M" | "F" = profile?.sex === "Female" ? "F" : "M";
   const bwKg = useMemo(() => {
@@ -80,7 +90,7 @@ export default function MyProfile() {
 
   const seasonQ = useGetCurrentSeasonQuery();
   // Card first, class-less: the server returns my best verified entry
-  // wherever it actually lives — never a guess from profile bodyweight.
+  // wherever it actually lives, never a guess from profile bodyweight.
   const cardQ = useGetAthleteCardQuery(
     {
       userId: myId as string,
@@ -105,25 +115,39 @@ export default function MyProfile() {
   const followQ = useGetFollowStatusQuery(myId as string, { skip: !myId });
 
   const season = rankQ.data?.season ?? seasonQ.data?.season ?? null;
-  const me = rankQ.data?.me ?? null;
+  /* Real data first. The mocks only fill an empty profile so the
+     redesign can be tested; SHOW_MOCK_PROFILE turns them off. */
+  const me = rankQ.data?.me ?? MOCK_ME;
   const card = cardQ.data ?? null;
-  const lifts = liftsQ.data?.lifts ?? [];
-  const posts = postsQ.data?.data ?? [];
-  const counts = followQ.data?.data;
+  const realLifts = liftsQ.data?.lifts ?? [];
+  const lifts: MyLift[] = realLifts.length ? realLifts : MOCK_LIFTS;
+  const realPosts = postsQ.data?.data ?? [];
+  const posts = realPosts.length ? realPosts : (MOCK_POSTS as unknown as typeof realPosts);
+  const realCounts = followQ.data?.data;
+  const counts =
+    realCounts && (realCounts.followers || realCounts.following) ? realCounts : (MOCK_COUNTS ?? realCounts);
 
-  const hasVerified =
-    !!card?.videos.snatch || !!card?.videos.cleanjerk || lifts.length > 0;
-  const hasArchive = lifts.length > 0 || posts.length > 0;
+  const hasVerified = !!card?.videos.snatch || !!card?.videos.cleanjerk || lifts.length > 0;
+  const verifiedMark =
+    (!!card?.videos.snatch && !card.videos.snatch.pendingReview) ||
+    (!!card?.videos.cleanjerk && !card.videos.cleanjerk.pendingReview) ||
+    lifts.some((l) => l.status === "live" && !l.pendingReview);
 
-  const shownClass = card?.athlete.weightClass ?? weightClass;
-  const boardLabel = shownClass
-    ? `${sex === "M" ? "Men" : "Women"} ${shownClass} kg`
-    : null;
+  const board = rankClass ? labelFor(sex, rankClass) : null;
+  const metaLine = [club, board].filter(Boolean).join(", ");
+
+  const stats = profile?.strength_stats;
+  const bests: LiftBests = {
+    snatch: Math.max(Number(stats?.classic?.snatch?.value) || 0, verifiedBest(lifts, "snatch")),
+    cj: Math.max(Number(stats?.classic?.clean_jerk?.value) || 0, verifiedBest(lifts, "cleanjerk")),
+    back: Number(stats?.squat?.back_squat?.value) || MOCK_SQUATS?.back || 0,
+    front: Number(stats?.squat?.front_squat?.value) || MOCK_SQUATS?.front || 0,
+  };
 
   const onShare = () => {
     Share.share({
       message: username
-        ? `Check my verified lifts on Oly — @${username}`
+        ? `Check my verified lifts on Oly, @${username}`
         : "Check my verified lifts on Oly",
     });
   };
@@ -141,198 +165,138 @@ export default function MyProfile() {
 
   return (
     <OlyScreenWrapper padded={false}>
-      {/* nav */}
+      {/* top row: back, olys, share. Floats over the scroll with a fade. */}
+      <OlyFloatingHeader safeTop={false} onLayout={onHeaderLayout}>
       <View style={styles.nav}>
-        {router.canGoBack() ? (
+        <View style={styles.navLeft}>
+          {router.canGoBack() && (
+            <Pressable
+              onPress={() => router.back()}
+              accessibilityRole="button"
+              accessibilityLabel="Back"
+              style={({ pressed }) => pressed && kit.pressed}
+            >
+              <Glass radius={olyRadius.full} style={styles.roundBtn}>
+                <Ionicons name="chevron-back" size={20} color={olyColors.text.primary} />
+              </Glass>
+            </Pressable>
+          )}
           <Pressable
-            onPress={() => router.back()}
-            hitSlop={olySpacing[8]}
-            style={styles.navBtn}
+            onPress={() => router.push("/athlete/wallet")}
+            hitSlop={{ top: 2, bottom: 2 }}
+            accessibilityRole="button"
+            accessibilityLabel={`${fmt(wallet.balance)} olys. Open wallet`}
+            style={({ pressed }) => pressed && kit.pressed}
           >
-            <Ionicons
-              name="chevron-back"
-              size={22}
-              color={olyColors.text.secondary}
-            />
-          </Pressable>
-        ) : (
-          <View style={styles.navBtn} />
-        )}
-        <View style={styles.navRight}>
-          <Pressable onPress={onShare} hitSlop={olySpacing[8]} style={styles.navBtn}>
-            <Ionicons
-              name="share-outline"
-              size={20}
-              color={olyColors.text.secondary}
-            />
-          </Pressable>
-          <Pressable
-            onPress={() => router.push("/athlete/settings")}
-            hitSlop={olySpacing[8]}
-            style={styles.navBtn}
-          >
-            <Ionicons
-              name="settings-outline"
-              size={20}
-              color={olyColors.text.secondary}
-            />
+            <Glass radius={olyRadius.full} style={styles.olys}>
+              <View style={styles.olysDot} />
+              <Text style={styles.olysNum}>{fmt(wallet.balance)}</Text>
+              <Text style={styles.olysUnit}>olys</Text>
+            </Glass>
           </Pressable>
         </View>
+        <Pressable
+          onPress={onShare}
+          accessibilityRole="button"
+          accessibilityLabel="Share profile"
+          style={({ pressed }) => pressed && kit.pressed}
+        >
+          <Glass radius={olyRadius.full} style={styles.roundBtn}>
+            <Ionicons name="qr-code-outline" size={18} color={olyColors.text.primary} />
+          </Glass>
+        </Pressable>
       </View>
+      </OlyFloatingHeader>
 
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, { paddingTop: headerH }]}
+        scrollIndicatorInsets={{ top: headerH }}
         showsVerticalScrollIndicator={false}
       >
         {/* identity */}
-        <View style={styles.idRow}>
-          <OlyAvatar source={avatarUrl} name={displayName} size="large" />
-          <View style={styles.idMain}>
+        <View style={styles.identity}>
+          <View style={styles.avatarRing}>
+            <OlyAvatar source={avatarUrl} name={displayName} size="xl" />
+          </View>
+          <View style={styles.nameRow}>
             <Text style={styles.name} numberOfLines={1}>
               {displayName}
             </Text>
-            {!!username && (
-              <Text style={styles.handle} numberOfLines={1}>
-                @{username}
-              </Text>
+            {verifiedMark && <HexVerifiedMark size={18} />}
+          </View>
+          {!!username && <Text style={styles.meta}>@{username}</Text>}
+          {(!!countryCode || !!metaLine) && (
+            <Text style={styles.metaLine} numberOfLines={1}>
+              {!!countryCode && <Text style={styles.cc}>{countryCode} </Text>}
+              {metaLine}
+            </Text>
+          )}
+          <View style={styles.tierPill}>
+            <Text style={styles.pillText}>
+              Tier <Text style={styles.strong}>{tier.index + 1}</Text>
+            </Text>
+            <View style={styles.tierBar}>
+              <GlowBar pct={tier.pct} height={3} />
+            </View>
+            {MOCK_STREAK != null && (
+              <>
+                <View style={styles.pillRule} />
+                <Text style={styles.pillText}>
+                  Streak <Text style={styles.strong}>{MOCK_STREAK}</Text>
+                </Text>
+              </>
             )}
           </View>
         </View>
 
-        {/* chips — quiet identity, nothing screaming */}
-        <View style={styles.chipRow}>
-          {(countryCode || club) && (
-            <View style={styles.chip}>
-              {!!countryCode && <Text style={styles.chipCc}>{countryCode}</Text>}
-              <Text style={styles.chipText}>{club ?? "Independent"}</Text>
-            </View>
-          )}
-          {!!boardLabel && (
-            <View style={styles.chip}>
-              <Text style={styles.chipText}>{boardLabel}</Text>
-            </View>
-          )}
-        </View>
-
         {/* counts */}
-        <View style={styles.countsRow}>
-          <Text style={styles.count}>
-            <Text style={styles.countNum}>{counts?.followers ?? 0}</Text>{" "}
-            followers
-          </Text>
-          <Text style={styles.count}>
-            <Text style={styles.countNum}>{counts?.following ?? 0}</Text>{" "}
-            following
-          </Text>
+        <Glass radius={olyRadius.tile} style={styles.stats}>
+          {[
+            { n: postsQ.data?.total || posts.length, label: "Lifts" },
+            { n: counts?.followers ?? 0, label: "Followers" },
+            { n: counts?.following ?? 0, label: "Following" },
+          ].map((c, i) => (
+            <View key={c.label} style={[styles.stat, i > 0 && styles.statRule]}>
+              <Text style={styles.statNum}>{fmt(c.n)}</Text>
+              <Text style={styles.statLabel}>{c.label}</Text>
+            </View>
+          ))}
+        </Glass>
+
+        <View style={styles.actions}>
+          <GlassButton label="Edit profile" onPress={() => router.push("/athlete/settings")} style={styles.flex} />
+          <GlassButton label="Share profile" onPress={onShare} style={styles.flex} />
         </View>
 
-        {/* edit */}
-        <Pressable
-          onPress={() => router.push("/athlete/settings")}
-          style={({ pressed }) => [
-            styles.editBtn,
-            pressed && { backgroundColor: olyPalette.cardElevated },
-          ]}
-        >
-          <Text style={styles.editBtnText}>Edit profile</Text>
-        </Pressable>
+        <GlassTabs options={TABS} value={tab} onChange={setTab} style={styles.tabs} />
 
-        {/* rank */}
-        {me ? (
-          <View style={styles.section}>
-            <ProfileRankCard
-              me={me}
-              season={season}
-              sex={sex}
-              onClaim={onClaim}
-              onPress={() => router.push("/(tabs)/rank")}
+        {tab === "lifts" ? (
+          <View style={styles.tabBody}>
+            <LiftsGrid
+              posts={posts}
+              onOpenPost={(postId) =>
+                router.push({
+                  pathname: "/athlete/post-expanded",
+                  params: { post_id: postId },
+                })
+              }
             />
           </View>
         ) : (
-          !rankQ.isLoading && (
-            <View style={styles.section}>
-              <View style={styles.emptyRank}>
-                <Text style={styles.emptyRankTitle}>
-                  Your rank starts with one lift
-                </Text>
-                <Text style={styles.emptyRankText}>
-                  Post a video of a single snatch or clean & jerk and take your
-                  spot on {season?.label ?? "the season board"}.
-                </Text>
-                <Pressable
-                  onPress={onClaim}
-                  style={({ pressed }) => [
-                    styles.claimBtn,
-                    pressed && { backgroundColor: olyPalette.primaryPressed },
-                  ]}
-                >
-                  <Text style={styles.claimBtnText}>POST YOUR FIRST LIFT</Text>
-                </Pressable>
-              </View>
-            </View>
-          )
-        )}
-
-        {/* competition lifts — only once there's something verified */}
-        {hasVerified && (
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>COMPETITION LIFTS</Text>
-            <CompetitionLiftCards
-              snatch={card?.videos.snatch ?? null}
-              cleanjerk={card?.videos.cleanjerk ?? null}
-            />
-          </View>
-        )}
-
-        {/* season badges */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>SEASON BADGES</Text>
-          <SeasonBadgesShelf
-            badges={[
-              { state: "progress", caption: season?.label ?? "This season" },
-            ]}
-          />
-        </View>
-
-        {/* insights — own profile only, and only with data to read */}
-        {hasVerified && (
-        <View style={styles.section}>
-          <View style={styles.sectionHead}>
-            <Text style={styles.sectionLabel}>INSIGHTS</Text>
-            <Text style={styles.sectionNote}>Only you see this</Text>
-          </View>
-          <InsightsCarousel
-            snatchKg={card?.stats.snatchKg ?? me?.snatchKg ?? null}
-            cleanKg={card?.stats.cleanKg ?? me?.cleanKg ?? null}
-            sinclair={card?.stats.sinclair ?? me?.sinclair ?? null}
-            totalKg={card?.stats.totalKg ?? null}
-            bodyweightKg={
-              card?.stats.bodyweightKg ??
-              (bwKg ? Math.round(bwKg * 10) / 10 : null)
-            }
-            lifts={lifts}
+          <ProfileProgress
             me={me}
+            rankLoading={rankQ.isLoading}
             season={season}
             sex={sex}
-          />
-        </View>
-        )}
-
-        {/* archive */}
-        {hasArchive && (
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>ARCHIVE</Text>
-          <ProfileArchive
+            cls={rankClass}
+            boardLabel={board}
+            card={card}
             lifts={lifts}
-            posts={posts}
-            onOpenPost={(postId) =>
-              router.push({
-                pathname: "/athlete/post-expanded",
-                params: { post_id: postId },
-              })
-            }
+            bests={bests}
+            bodyweightKg={bwKg ?? card?.stats.bodyweightKg ?? null}
+            hasVerified={hasVerified}
+            onClaim={onClaim}
           />
-        </View>
         )}
       </ScrollView>
     </OlyScreenWrapper>
@@ -341,143 +305,94 @@ export default function MyProfile() {
 
 const styles = StyleSheet.create({
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
+  flex: { flex: 1 },
+  strong: { fontFamily: olyFonts.bold, color: olyColors.text.primary },
   nav: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: olyLayout.screenPadding,
-    minHeight: olyLayout.navBarHeight,
+    paddingTop: 6,
   },
-  navRight: { flexDirection: "row", gap: olySpacing[8] },
-  navBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.card,
+  navLeft: { flexDirection: "row", alignItems: "center", gap: olySpacing[8] },
+  roundBtn: {
+    width: olyLayout.minTouchTarget,
+    height: olyLayout.minTouchTarget,
     alignItems: "center",
     justifyContent: "center",
   },
+  olys: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    height: 40,
+    paddingHorizontal: 14,
+  },
+  olysDot: {
+    width: 7,
+    height: 7,
+    borderRadius: olyRadius.full,
+    backgroundColor: olyColors.accent,
+    ...olyGlow.sm,
+  },
+  olysNum: { fontFamily: olyFonts.bold, fontSize: 14, color: olyColors.text.primary },
+  olysUnit: { fontFamily: olyFonts.regular, fontSize: 12, color: olyColors.text.secondary },
   scroll: {
     paddingHorizontal: olyLayout.screenPadding,
-    paddingBottom: olySpacing[40],
+    paddingBottom: 120,
   },
-  idRow: {
+  identity: { alignItems: "center", paddingTop: olySpacing[4] },
+  avatarRing: {
+    padding: 3,
+    borderRadius: olyRadius.full,
+    borderWidth: 2,
+    borderColor: olyColors.accent,
+    ...olyGlow.md,
+  },
+  nameRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: olySpacing[16],
-    marginTop: olySpacing[8],
+    gap: 6,
+    marginTop: 14,
+    paddingHorizontal: olySpacing[20],
   },
-  idMain: { flex: 1, minWidth: 0 },
   name: {
-    ...olyTypography.title2,
+    flexShrink: 1,
+    fontFamily: olyFonts.bold,
+    fontSize: 24,
+    lineHeight: 28,
+    letterSpacing: -0.4,
     color: olyColors.text.primary,
   },
-  handle: {
-    ...olyTypography.bodySmall,
-    color: olyColors.text.disabled,
-    marginTop: olySpacing[4] / 2,
-  },
-  chipRow: {
-    flexDirection: "row",
-    gap: olySpacing[8],
-    marginTop: olySpacing[16],
-  },
-  chip: {
+  meta: { marginTop: olySpacing[4], fontFamily: olyFonts.regular, fontSize: 13, color: olyColors.text.secondary },
+  metaLine: { marginTop: 3, fontFamily: olyFonts.regular, fontSize: 13, color: olyColors.text.secondary },
+  cc: { fontFamily: olyFonts.bold, color: olyColors.text.primary },
+  tierPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: olySpacing[8] - 1,
-    backgroundColor: olyPalette.card,
+    height: 32,
+    marginTop: 14,
+    paddingHorizontal: 14,
     borderRadius: olyRadius.full,
-    paddingHorizontal: olySpacing[12] + 2,
-    paddingVertical: olySpacing[8] + 1,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
   },
-  chipCc: {
-    ...olyTypography.caption,
-    fontSize: 12,
-    fontFamily: olyTypography.label.fontFamily,
-    color: olyColors.text.disabled,
-    letterSpacing: olyLetterSpacing.uppercase,
-  },
-  chipText: {
-    ...olyTypography.bodySmall,
-    fontFamily: olyTypography.label.fontFamily,
+  pillText: { fontFamily: olyFonts.regular, fontSize: 12, color: olyColors.text.secondary },
+  tierBar: { width: 44, marginLeft: olySpacing[8] },
+  pillRule: { width: 1, height: 14, marginHorizontal: olySpacing[12], backgroundColor: olyColors.glass.bar },
+  stats: { flexDirection: "row", marginTop: 18, paddingVertical: 14 },
+  stat: { flex: 1, alignItems: "center" },
+  statRule: { borderLeftWidth: 1, borderLeftColor: olyColors.glass.rule },
+  statNum: {
+    fontFamily: olyFonts.bold,
+    fontSize: 20,
+    lineHeight: 24,
+    letterSpacing: -0.4,
     color: olyColors.text.primary,
   },
-  countsRow: {
-    flexDirection: "row",
-    gap: olySpacing[20],
-    marginTop: olySpacing[16],
-    paddingHorizontal: olySpacing[4] / 2,
-  },
-  count: {
-    ...olyTypography.bodySmall,
-    color: olyColors.text.disabled,
-  },
-  countNum: {
-    fontFamily: olyTypography.label.fontFamily,
-    color: olyColors.text.primary,
-  },
-  editBtn: {
-    marginTop: olySpacing[16],
-    backgroundColor: olyPalette.card,
-    borderRadius: olyRadius.full,
-    minHeight: olyLayout.minTouchTarget,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  editBtnText: {
-    ...olyTypography.label,
-    color: olyColors.text.primary,
-  },
-  section: {
-    marginTop: olySpacing[24],
-  },
-  sectionHead: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  sectionLabel: {
-    ...olyTypography.label,
-    fontSize: 12,
-    lineHeight: 16,
-    color: olyColors.text.secondary,
-    letterSpacing: olyLetterSpacing.uppercase,
-    marginBottom: olySpacing[8] + 2,
-  },
-  sectionNote: {
-    ...olyTypography.caption,
-    color: olyColors.text.disabled,
-    marginBottom: olySpacing[8] + 2,
-  },
-  emptyRank: {
-    backgroundColor: olyPalette.card,
-    borderRadius: olyRadius.lg,
-    padding: olySpacing[16],
-  },
-  emptyRankTitle: {
-    ...olyTypography.label,
-    fontSize: 16,
-    lineHeight: 20,
-    color: olyColors.text.primary,
-  },
-  emptyRankText: {
-    ...olyTypography.bodySmall,
-    color: olyColors.text.secondary,
-    lineHeight: 20,
-    marginTop: olySpacing[4],
-  },
-  claimBtn: {
-    marginTop: olySpacing[16],
-    backgroundColor: olyPalette.primary,
-    borderRadius: olyRadius.full,
-    minHeight: olyLayout.minTouchTarget,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  claimBtnText: {
-    ...olyTypography.label,
-    color: olyColors.text.onBrand,
-    letterSpacing: olyLetterSpacing.uppercase,
-  },
+  statLabel: { marginTop: 2, fontFamily: olyFonts.regular, fontSize: 12, color: olyColors.text.secondary },
+  actions: { flexDirection: "row", gap: olySpacing[8], marginTop: 10 },
+  tabs: { marginTop: 18 },
+  tabBody: { marginTop: olySpacing[16] },
 });

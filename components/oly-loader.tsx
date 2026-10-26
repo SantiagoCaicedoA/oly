@@ -18,20 +18,21 @@ import Svg, {
   Stop,
 } from "react-native-svg";
 
-const AnimatedG = Animated.createAnimatedComponent(G);
+const AnimatedRect = Animated.createAnimatedComponent(Rect);
 
 /**
- * Tuned in the design prototype (values are in the logo's 512x512 space):
- * the light bar enters at the bottom-left corner immediately, crosses the
- * wordmark in ~1s, exits fully (no residue in the bottom-right), then
- * rests ~1s before the next sweep.
+ * The light bar crosses the wordmark in ~1.6s, exits fully, then rests ~1s
+ * before the next sweep.
+ *
+ * Why the bar's own x is animated: react-native-svg ignores animated x/y on
+ * a <G>. The bar sits inside a group rotated 38deg, so moving its x slides it diagonally across the
+ * logo. X_FROM and X_TO put it fully off the 512x512 logo on both ends
+ * (the logo spans -269..450 along the rotated axis, the bar is 282 wide).
  */
-const SWEEP_MS = 1000;
-const HOLD_MS = 1000;
-const X_FROM = -296;
-const X_TO = 620;
-const Y_FROM = 90;
-const Y_TO = -158;
+export const SWEEP_MS = 1600;
+export const HOLD_MS = 1000;
+const X_FROM = -420;
+const X_TO = 600;
 
 type Props = {
   size?: number;
@@ -58,7 +59,6 @@ export default function OlyLoader({ size = 110 }: Props) {
 
   const animatedProps = useAnimatedProps(() => ({
     x: X_FROM + (X_TO - X_FROM) * t.value,
-    y: Y_FROM + (Y_TO - Y_FROM) * t.value,
   }));
 
   return (
@@ -80,11 +80,15 @@ export default function OlyLoader({ size = 110 }: Props) {
         {/* resting logo, dim */}
         <Rect width="512" height="512" fill="rgba(226,232,240,0.16)" />
         {/* the glint: a band of light travelling bottom-left -> top-right */}
-        <AnimatedG animatedProps={animatedProps}>
-          <G transform="rotate(38 141 256)">
-            <Rect x="0" y="-307" width="282" height="1126" fill="url(#olyGlint)" />
-          </G>
-        </AnimatedG>
+        <G transform="rotate(38 141 256)">
+          <AnimatedRect
+            animatedProps={animatedProps}
+            y={-307}
+            width={282}
+            height={1126}
+            fill="url(#olyGlint)"
+          />
+        </G>
       </G>
     </Svg>
   );

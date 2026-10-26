@@ -11,11 +11,13 @@
  * Mount <OlyAlertHost /> once at the app root. One dialog at a time; a new
  * call replaces whatever is showing.
  *
- * Look: level 1 card, radius 12, title + message, pill buttons. Cancel is
- * the quiet level 2 pill, destructive is the red fill, anything else is the
- * brand fill. Two buttons sit side by side, three or more stack.
+ * Look: the sheet glass (radius xl) over the blurred sheet scrim, title,
+ * message and pill buttons. Cancel is the quiet glass pill, destructive is
+ * the red fill, anything else is the brand fill. Two buttons sit side by side, three or more stack.
  */
-import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { Glass, SheetBackdrop } from "@/src/oly-components/shop/ShopKit";
+import { olyGlow } from "@/src/oly-theme/oly-elevation";
+import { olyColors } from "@/src/oly-theme/oly-colors";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
 import { olyFonts, olyTypography } from "@/src/oly-theme/oly-typography";
@@ -77,48 +79,46 @@ export function OlyAlertHost() {
       onRequestClose={() => close(cancelBtn)}
       statusBarTranslucent
     >
-      <Pressable
-        style={styles.backdrop}
-        onPress={() => cancelBtn && close(cancelBtn)}
-        accessibilityLabel="Dismiss"
-      >
-        <Pressable style={styles.card} onPress={() => {}} accessibilityRole="alert">
-          <Text style={styles.title}>{state?.title}</Text>
-          {!!state?.message && <Text style={styles.message}>{state.message}</Text>}
-          <View style={[styles.buttons, row ? styles.buttonsRow : styles.buttonsCol]}>
-            {ordered.map((b) => {
-              const kind = b.style ?? "default";
-              return (
-                <Pressable
-                  key={b.text}
-                  onPress={() => close(b)}
-                  accessibilityRole="button"
-                  style={({ pressed }) => [
-                    styles.btn,
-                    row && styles.btnFlex,
-                    kind === "cancel" && styles.btnCancel,
-                    kind === "destructive" && styles.btnDestructive,
-                    kind === "default" && styles.btnDefault,
-                    pressed && { opacity: 0.8 },
-                  ]}
-                >
-                  <Text style={[styles.btnText, kind === "cancel" && styles.btnTextCancel]}>
-                    {b.text}
-                  </Text>
-                </Pressable>
-              );
-            })}
+      <SheetBackdrop onPress={() => cancelBtn && close(cancelBtn)} />
+      <View style={styles.center} pointerEvents="box-none">
+        <Glass radius={olyRadius.xl} colors={olyColors.glass.sheet} style={styles.card}>
+          <View accessibilityRole="alert">
+            <Text style={styles.title}>{state?.title}</Text>
+            {!!state?.message && <Text style={styles.message}>{state.message}</Text>}
+            <View style={[styles.buttons, row ? styles.buttonsRow : styles.buttonsCol]}>
+              {ordered.map((b) => {
+                const kind = b.style ?? "default";
+                return (
+                  <Pressable
+                    key={b.text}
+                    onPress={() => close(b)}
+                    accessibilityRole="button"
+                    style={({ pressed }) => [
+                      styles.btn,
+                      row && styles.btnFlex,
+                      kind === "cancel" && styles.btnCancel,
+                      kind === "destructive" && styles.btnDestructive,
+                      kind === "default" && styles.btnDefault,
+                      pressed && { opacity: 0.8 },
+                    ]}
+                  >
+                    <Text style={[styles.btnText, kind === "cancel" && styles.btnTextCancel]}>
+                      {b.text}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
-        </Pressable>
-      </Pressable>
+        </Glass>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
+  center: {
     flex: 1,
-    backgroundColor: olyColors.bg.overlay,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: olySpacing[32],
@@ -126,10 +126,6 @@ const styles = StyleSheet.create({
   card: {
     width: "100%",
     maxWidth: 340,
-    backgroundColor: olyPalette.card,
-    borderRadius: olyRadius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: olyColors.border.hairline,
     padding: olySpacing[20],
   },
   title: {
@@ -156,9 +152,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   btnFlex: { flex: 1 },
-  btnCancel: { backgroundColor: olyPalette.cardElevated },
+  btnCancel: { backgroundColor: olyColors.glass.control, borderWidth: 1, borderColor: olyColors.glass.border },
   btnDestructive: { backgroundColor: olyColors.button.destructive.bg },
-  btnDefault: { backgroundColor: olyColors.button.primary.bg },
+  btnDefault: { backgroundColor: olyColors.button.primary.bg, ...olyGlow.md },
   btnText: { ...olyTypography.label, color: olyColors.text.onAccent },
   btnTextCancel: { color: olyColors.text.primary },
 });

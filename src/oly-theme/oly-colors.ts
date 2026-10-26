@@ -49,11 +49,6 @@ export const olyPalette = {
   redInk: "#F2918B",
   orange: "#F97316",
   black: "#000000",
-
-  /** The season-leader card only. */
-  leader: "#12203A",
-  /** The SEASON LEADER pill label. 8.9:1 on leader. */
-  leaderInk: "#AFC2FF",
 } as const;
 
 // ─── Gradient Background ─────────────────────────────────────────
@@ -103,8 +98,6 @@ export const olyColors = {
       start: { x: 0, y: 0 },
       end: { x: 1, y: 1 },
     },
-    /** Season-leader card fill */
-    leader: olyPalette.leader,
     /**
      * The disc behind an avatar with no image. Quiet by design: this is a
      * placeholder, not a brand moment, and a column of them in a comment
@@ -149,7 +142,8 @@ export const olyColors = {
     success: olyPalette.green,
     error: olyPalette.redInk,
     warning: olyPalette.yellow,
-    leader: olyPalette.leaderInk,
+    /** Timestamps, hints, placeholders on glass. Between secondary and disabled. */
+    hint: "rgba(239, 241, 244, 0.4)",
   },
 
   // — Borders —
@@ -186,23 +180,12 @@ export const olyColors = {
      * the first thing you notice.
      */
     hairline: `rgba(239, 241, 244, ${olyOpacity.subtle})`,
-    /** Selected and active states. NOT focus — it is 1.60:1 and cannot be seen. */
+    /** Selected and active states. */
     brand: olyPalette.primary,
     brandUnselected: `rgba(16, 123, 219, ${olyOpacity.muted})`,
     error: olyPalette.redInk,
     /** Focus rings and the focused state of an input. Same blue as accent. */
     focus: olyPalette.primary,
-    /** @deprecated read olyColors.accent instead. Same value. */
-    /**
-     * The season-leader card's hairline. 3.35:1 on card.
-     *
-     * Was rgba(16, 123, 219, 0.9), which composites to #1B4398 and measures
-     * 1.43:1 on card and 1.93:1 on the page. A border that carries meaning
-     * needs 3:1, so it could not be seen. Solid rather than alpha, because
-     * an alpha border composites differently on every surface it lands on
-     * and stops being a number you can check.
-     */
-    leader: "#4482D5",
   },
 
   // — Buttons —
@@ -213,10 +196,7 @@ export const olyColors = {
       pressed: olyPalette.primaryPressed,
     },
     secondary: {
-      bg: olyPalette.card,
-      border: `rgba(239, 241, 244, ${olyOpacity.faint})`,
       text: olyPalette.white,
-      pressed: olyPalette.cardElevated,
     },
     disabled: {
       bg: `rgba(239, 241, 244, ${olyOpacity.subtle})`,
@@ -268,13 +248,70 @@ export const olyColors = {
     /** Small dark well behind a badge or play button. */
     chip: "rgba(0, 0, 0, 0.45)",
     chipFaint: "rgba(0, 0, 0, 0.2)",
-    /** Behind the player itself. */
-    black: "#000000",
-    /** Bottom scrim under a weight stamp (three stops). */
-    scrim: ["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0.28)", "rgba(0, 0, 0, 0.72)"] as readonly [string, string, ...string[]],
-    scrimLocations: [0, 0.45, 1] as readonly [number, number, ...number[]],
     /** Simple two-stop fade at the bottom of a thumbnail. */
     fade: ["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0.7)"] as readonly [string, string, ...string[]],
+  },
+
+  // — Glass —
+  /**
+   * The app-wide surface language: frosted panels over the soft blue Glows.
+   * Every value is the ink, the primary or the page at a set opacity, so
+   * nothing new enters the palette. Cards here DO carry a hairline
+   * (`border`), because a 6% fill alone cannot hold an edge over the glow.
+   *
+   * Surfaces, light to dark: card 6%, control 8%, raised 10%, selected 14%.
+   * `fill` is the blurred variant, paired with expo-blur (see <Glass>).
+   */
+  glass: {
+    fill: ["rgba(239, 241, 244, 0.10)", "rgba(239, 241, 244, 0.03)"] as readonly [string, string, ...string[]],
+    /** Cards, lists, chips, groups. Always with `border`. */
+    card: "rgba(239, 241, 244, 0.06)",
+    /** Secondary buttons: Cancel, Delete, a dim Post. */
+    control: "rgba(239, 241, 244, 0.08)",
+    /** Icon circles, steppers, toggles, meter tracks. */
+    raised: "rgba(239, 241, 244, 0.10)",
+    /** The active segment or tab. */
+    selected: "rgba(239, 241, 244, 0.14)",
+    /** Wells inside a card: inputs, bubbles, nested panels. */
+    inset: "rgba(0, 0, 0, 0.22)",
+    /** Inactive story segments, sheet grabbers, empty dots. */
+    idle: "rgba(239, 241, 244, 0.22)",
+    border: "rgba(239, 241, 244, 0.14)",
+    rule: "rgba(239, 241, 244, 0.08)",
+    bar: "rgba(239, 241, 244, 0.16)",
+    accentFill: "rgba(16, 123, 219, 0.16)",
+    accentBorder: "rgba(16, 123, 219, 0.55)",
+    glow: olyPalette.primary,
+    glowDeep: olyPalette.primaryPressed,
+    progress: [olyPalette.primaryPressed, olyPalette.primary] as readonly [string, string, ...string[]],
+    /** Hero cards: challenge, tier, ticket. Pair with `accentBorder`. */
+    ticket: ["rgba(16, 123, 219, 0.22)", "rgba(239, 241, 244, 0.04)"] as readonly [string, string, ...string[]],
+    ticketBorder: "rgba(16, 123, 219, 0.30)",
+    /** The sticky "you" bar on Rank. Solid enough to read over any row. */
+    accentBar: "rgba(20, 42, 70, 0.96)",
+    drop: ["rgba(16, 123, 219, 0.28)", "rgba(18, 32, 58, 0.35)", "rgba(239, 241, 244, 0.04)"] as readonly [string, string, ...string[]],
+    dropBorder: "rgba(16, 123, 219, 0.35)",
+    dropTag: "rgba(16, 123, 219, 0.55)",
+    dash: "rgba(239, 241, 244, 0.20)",
+    /** Sheets, dialogs, menus. Solid, so nothing shows through. */
+    sheet: ["#262B35", olyPalette.card] as readonly [string, string, ...string[]],
+    /** Behind sheets and dialogs. */
+    scrim: "rgba(0, 0, 0, 0.55)",
+    /** A video before it loads. */
+    media: "#1A1E25",
+    /** Glass chips and bars drawn on a video. */
+    onMedia: "rgba(18, 21, 26, 0.35)",
+    /** Floating header: content fades out under it. */
+    fadeHeader: ["rgba(18, 21, 26, 0.9)", "rgba(18, 21, 26, 0.75)", "rgba(18, 21, 26, 0)"] as readonly [string, string, ...string[]],
+    fadeHeaderLocations: [0, 0.65, 1] as readonly [number, number, ...number[]],
+    /** Sticky footer bar: content fades out above it. */
+    fadeFooter: ["rgba(18, 21, 26, 0)", "rgba(18, 21, 26, 0.7)", "rgba(18, 21, 26, 0.85)"] as readonly [string, string, ...string[]],
+    fadeFooterLocations: [0, 0.45, 1] as readonly [number, number, ...number[]],
+    friend: "rgba(16, 123, 219, 0.16)",
+    friendBorder: "rgba(16, 123, 219, 0.45)",
+    readyFill: "rgba(16, 123, 219, 0.25)",
+    photo: ["rgba(16, 123, 219, 0.10)", "rgba(239, 241, 244, 0.02)"] as readonly [string, string, ...string[]],
+    photoReady: ["rgba(16, 123, 219, 0.22)", "rgba(239, 241, 244, 0.02)"] as readonly [string, string, ...string[]],
   },
 
   // — Charts —
@@ -291,10 +328,8 @@ export const olyColors = {
   },
 } as const;
 
-// ─── Medal tiers (SeasonBadges) ──────────────────────────────────
-// Six bevel facets lit from the top-left. One light facet, one dark.
+// ─── Medal facets (meet picker) ──────────────────────────────────
+// Bevel facets lit from the top-left.
 export const olyMedal = {
-  gold:     { light: "#EBD293", mid: "#D9B96A", deep: "#B08B3C", shadow: "#8E6F26", ink: "#F0DCA4" },
-  silver:   { light: "#DFE5EE", mid: "#C2CAD6", deep: "#99A1AD", shadow: "#7A828E", ink: "#EEF2F7" },
-  graphite: { light: "#6E7681", mid: "#5A616B", deep: "#454B54", shadow: "#343A42", ink: "#9BA3AF" },
+  graphite: { light: "#6E7681", mid: "#5A616B", deep: "#454B54" },
 } as const;

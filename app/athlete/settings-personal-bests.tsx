@@ -1,28 +1,33 @@
 /**
- * Personal records (settings) — a thin wrapper around the onboarding
- * strength screen, so the design stays identical to onboarding.
- *
- * OnboardingScreen2 already supports mode="settings": it hides its own
- * title block, the per-lift video pickers and the BACK/NEXT buttons, and
- * it writes edits into the onboarding slice. What it does NOT do is talk
- * to the API, so this wrapper does three things:
+ * Personal records (settings) — the record book. A thin wrapper around
+ * the onboarding strength screen in mode="settings", which draws the
+ * verified total, the rank and milestone rows and the edit sheet, and
+ * writes every edit into the onboarding slice. It does NOT talk to the
+ * API, so this wrapper does four things:
  *
  *   1. seeds the slice from the server profile on open
- *   2. supplies the nav, title and Save button
- *   3. pushes the edits back as a partial strength_stats update
+ *   2. tells the screen which lifts are verified or in review, and the
+ *      athlete's sex and bodyweight for the board and milestone ladder
+ *   3. supplies the nav, title and Save button
+ *   4. pushes the edits back as a partial strength_stats update
  *
  * The rank rule still holds. A lift that is already verified by video is
  * skipped when building the payload, so it can never be typed upward.
  */
 
 import { olyAlert } from "@/src/oly-components/feedback/OlyAlert";
-import OnboardingScreen2 from "@/app/auth/onboarding/onboarding-screen2";
+import OnboardingScreen2, {
+  type RecordBookData,
+} from "@/app/auth/onboarding/onboarding-screen2";
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
+import { Glass } from "@/src/oly-components/shop/ShopKit";
 import { OlyScreenWrapper } from "@/src/oly-components/organisms/OlyScreenWrapper";
+import { OlyFloatingHeader, useFloatingHeader } from "@/src/oly-components/organisms/OlyFloatingHeader";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
 import {
+  olyFonts,
   olyLetterSpacing,
   olyTypography,
 } from "@/src/oly-theme/oly-typography";
@@ -63,6 +68,8 @@ export default function SettingsPersonalBests() {
   const [submitProfile, submitState] = useSubmitProfileMutation();
   const onboardingData = useSelector(selectOnboardingData);
   const [ready, setReady] = useState(false);
+  const { headerH, onLayout: onHeaderLayout } = useFloatingHeader(160);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const stats = profileQ.data?.data?.profile?.strength_stats;
   const accuracy = profileQ.data?.data?.profile?.strength_accuracy;
@@ -74,7 +81,9 @@ export default function SettingsPersonalBests() {
     // never filled this in still needs an empty, editable form.
     if (ready || profileQ.isLoading) return;
     const read = (section: keyof typeof ORDER) =>
-      ORDER[section].map((key) => Number(stats?.[section]?.[key]?.value ?? 0) || 0);
+      ORDER[section].map(
+        (key) => Number(stats?.[section]?.[key]?.value ?? 0) || 0,
+      );
 
     dispatch(
       saveOnboardingData({
@@ -92,12 +101,22 @@ export default function SettingsPersonalBests() {
 
   // A lift counts as verified when it is live on the board and not in review.
   const verified: Record<string, number> = {};
+  const pending: Record<string, number> = {};
   for (const l of liftsQ.data?.lifts ?? []) {
-    if (l.status !== "live" || l.pendingReview) continue;
+    if (l.status !== "live") continue;
     const k = l.liftType === "cleanjerk" ? "clean_jerk" : "snatch";
-    verified[k] = Math.max(verified[k] ?? 0, l.weightKg);
+    const into = l.pendingReview ? pending : verified;
+    into[k] = Math.max(into[k] ?? 0, l.weightKg);
   }
-  const hasVerified = Object.keys(verified).length > 0;
+
+  const profile = profileQ.data?.data?.profile;
+  const bw = Number(profile?.bodyweight_value) || 0;
+  const records: RecordBookData = {
+    verified,
+    pending,
+    sex: /^f/i.test(profile?.sex ?? "") ? "F" : "M",
+    bodyweightKg: profile?.bodyweight_unit === "lbs" ? bw / 2.20462 : bw,
+  };
 
   const onSave = async () => {
     const lv = onboardingData?.liftValues;
@@ -147,6 +166,8 @@ export default function SettingsPersonalBests() {
 
   return (
     <OlyScreenWrapper padded={false}>
+      {/* Nav + title float over the form, with a fade behind. */}
+      <OlyFloatingHeader safeTop={false} onLayout={onHeaderLayout}>
       <View style={styles.nav}>
         <Pressable
           onPress={() => router.back()}
@@ -157,49 +178,51 @@ export default function SettingsPersonalBests() {
         >
           <Ionicons
             name="chevron-back"
-            size={22}
-            color={olyColors.text.secondary as string}
+            size={20}
+            color={olyColors.text.primary as string}
           />
         </Pressable>
         <Text style={styles.navTitle}>PERSONAL RECORDS</Text>
-        <View style={styles.navBtn} />
+        <View style={styles.navSpacer} />
       </View>
+      {!(loading || !ready) && (
+      <View style={styles.titleBlock}>
+        <View style={styles.titleRow}>
+          <Text style={styles.title} maxFontSizeMultiplier={1.2}>
+            Your record book
+          </Text>
+          <Pressable
+            hitSlop={4}
+            onPress={() => setHelpOpen(true)}
+            style={({ pressed }) => pressed && styles.pressed}
+            accessibilityRole="button"
+            accessibilityLabel="How milestones work"
+          >
+            <Glass radius={olyRadius.full} style={styles.helpBtn}>
+              <Text style={styles.helpText}>?</Text>
+            </Glass>
+          </Pressable>
+        </View>
+        <Text style={styles.subtitle} maxFontSizeMultiplier={1.5}>
+          Tap a number to update it. Verified lifts rank you.
+        </Text>
+      </View>
+      )}
+      </OlyFloatingHeader>
 
       {loading || !ready ? (
-        <View style={styles.loading}>
+        <View style={[styles.loading, { paddingTop: headerH }]}>
           <ActivityIndicator color={olyPalette.white} />
         </View>
       ) : (
         <View style={styles.body}>
-          <View style={styles.titleBlock}>
-            <Text style={styles.title} maxFontSizeMultiplier={1.2}>
-              Current strength
-            </Text>
-            <Text style={styles.subtitle} maxFontSizeMultiplier={1.5}>
-              Fix anything you mistyped during onboarding.
-            </Text>
-          </View>
-
-          {hasVerified ? (
-            <View style={styles.lockNote}>
-              <Ionicons
-                name="checkmark-circle"
-                size={16}
-                color={olyPalette.primary}
-              />
-              <Text style={styles.lockNoteText}>
-                {Object.entries(verified)
-                  .map(
-                    ([k, v]) =>
-                      `${k === "snatch" ? "Snatch" : "Clean & Jerk"} ${v}kg`,
-                  )
-                  .join(" · ")}{" "}
-                is verified and stays as it is. Post a new video to change it.
-              </Text>
-            </View>
-          ) : null}
-
-          <OnboardingScreen2 mode="settings" />
+          <OnboardingScreen2
+            mode="settings"
+            topInset={headerH}
+            records={records}
+            milestonesOpen={helpOpen}
+            onCloseMilestones={() => setHelpOpen(false)}
+          />
 
           <View style={styles.saveBar}>
             <OlyButton
@@ -223,18 +246,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: olyLayout.screenPadding,
+    paddingVertical: olySpacing[8],
     minHeight: olyLayout.navBarHeight,
   },
+  /* 40pt glass circle; hitSlop 8 takes the target to 56. */
   navBtn: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
     borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.card,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     alignItems: "center",
     justifyContent: "center",
   },
+  navSpacer: { width: 40, height: 40 },
   navTitle: {
     ...olyTypography.label,
+    fontFamily: olyFonts.bold,
     color: olyColors.text.primary,
     letterSpacing: olyLetterSpacing.uppercase,
     textTransform: "uppercase",
@@ -242,28 +271,32 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
     paddingHorizontal: olyLayout.screenPadding,
-    paddingTop: olySpacing[16],
   },
-  titleBlock: { marginBottom: olySpacing[16] },
-  title: { ...olyTypography.title1, color: olyColors.text.primary },
+  /* Lives in the floating header, so it pads itself. */
+  titleBlock: {
+    paddingHorizontal: olyLayout.screenPadding,
+    paddingTop: olySpacing[16],
+    paddingBottom: olySpacing[16],
+  },
+  titleRow: { flexDirection: "row", alignItems: "center", gap: olySpacing[12] },
+  pressed: { opacity: 0.7 },
+  helpBtn: { width: 38, height: 38, alignItems: "center", justifyContent: "center" },
+  helpText: {
+    ...olyTypography.body,
+    fontSize: 17,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.primary,
+  },
+  title: {
+    flex: 1,
+    ...olyTypography.title1,
+    fontFamily: olyFonts.bold,
+    color: olyColors.text.primary,
+  },
   subtitle: {
     ...olyTypography.body,
     color: olyColors.text.secondary,
     marginTop: olySpacing[4],
-  },
-  lockNote: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: olySpacing[8],
-    backgroundColor: olyColors.bg.subtleHighlight,
-    borderRadius: olyRadius.lg,
-    padding: olySpacing[12],
-    marginBottom: olySpacing[16],
-  },
-  lockNoteText: {
-    ...olyTypography.caption,
-    color: olyColors.text.secondary,
-    flex: 1,
   },
   saveBar: { paddingTop: olySpacing[12], paddingBottom: olySpacing[24] },
 });

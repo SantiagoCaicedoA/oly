@@ -1,16 +1,20 @@
 import CustomButton from "@/constants/custom-button";
-import { olyTypography, olyFonts, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
+import { olyTypography, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
 import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { useToast } from "@/context/toast-context";
+import {
+  GorhomSheetBackdrop,
+  GorhomSheetBackground,
+  gorhomSheet,
+} from "@/src/oly-components/shop/GorhomSheet";
 import { useUpdateTrainingDataMutation } from "@/store/api";
 import { Exercise, ExerciseSet } from "@/store/reducer/trainingSlice";
 import { RootState } from "@/store/store";
 import { UpdateTrainingPayload } from "@/types/api/dashboard";
 import { Ionicons } from "@expo/vector-icons";
 import {
-  BottomSheetBackdrop,
   BottomSheetModal,
   BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
@@ -170,7 +174,7 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
         (ref as React.RefObject<BottomSheetModal>)?.current?.dismiss();
         onSaved?.(set?.set_number ?? 1);
       } catch (_e) {
-        showError("Couldn't save — check your connection");
+        showError("Couldn't save. Check your connection");
       }
     };
 
@@ -213,16 +217,10 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
       <BottomSheetModal
         ref={ref}
         snapPoints={snapPoints}
-        backgroundStyle={{ backgroundColor: olyPalette.background }}
-        handleIndicatorStyle={{ backgroundColor: olyColors.text.secondary }}
-        backdropComponent={(props) => (
-          <BottomSheetBackdrop
-            {...props}
-            disappearsOnIndex={-1}
-            appearsOnIndex={0}
-            opacity={0.7}
-          />
-        )}
+        style={gorhomSheet.inset}
+        backgroundComponent={GorhomSheetBackground}
+        handleIndicatorStyle={gorhomSheet.handle}
+        backdropComponent={GorhomSheetBackdrop}
       >
         <BottomSheetScrollView
           style={styles.scrollContainer}
@@ -245,6 +243,8 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
               </Text>
             </View>
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Close"
               onPress={() =>
                 (ref as React.RefObject<BottomSheetModal>)?.current?.dismiss()
               }
@@ -326,6 +326,8 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
             </TouchableOpacity>
           ) : (
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Play video"
               style={styles.videoPreviewCard}
               onPress={() => setIsPlayerVisible(true)}
             >
@@ -349,6 +351,8 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
 
                 {/* Remove — top-right */}
                 <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Remove video"
                   style={styles.removeButton}
                   onPress={(e) => {
                     e.stopPropagation();
@@ -386,6 +390,8 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
             onRequestClose={() => setIsPlayerVisible(false)}
           >
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close video"
               style={styles.playerBackdrop}
               onPress={() => setIsPlayerVisible(false)}
             >
@@ -401,6 +407,8 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
                 />
               </View>
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close"
                 style={styles.playerClose}
                 onPress={() => setIsPlayerVisible(false)}
                 hitSlop={olySpacing[12]}
@@ -423,12 +431,12 @@ const ActionSheet = forwardRef<BottomSheetModal, ActionSheetProps>(
   },
 );
 
+ActionSheet.displayName = "ActionSheet";
 export default ActionSheet;
 
 const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,
-    backgroundColor: olyPalette.background,
   },
   scrollContent: {
     paddingHorizontal: olyLayout.screenPadding,
@@ -534,7 +542,7 @@ const styles = StyleSheet.create({
     marginLeft: -20,
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: olyRadius.tile,
     backgroundColor: "rgba(255,255,255,0.15)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.3)",
@@ -548,7 +556,7 @@ const styles = StyleSheet.create({
     right: olySpacing[8],
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: olyRadius.inner,
     backgroundColor: "rgba(0,0,0,0.5)",
     alignItems: "center",
     justifyContent: "center",
@@ -582,6 +590,5 @@ const styles = StyleSheet.create({
     paddingBottom: olySpacing[32],
     borderTopWidth: 1,
     borderTopColor: olyColors.border.default,
-    backgroundColor: olyPalette.background,
   },
 });

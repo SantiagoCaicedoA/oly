@@ -28,6 +28,8 @@ interface OlySettingsRowProps {
   onPress?: () => void;
   /** Show chevron arrow */
   showChevron?: boolean;
+  /** Red label and icon, for irreversible actions like deleting the account */
+  destructive?: boolean;
   style?: ViewStyle;
 }
 
@@ -38,6 +40,7 @@ export const OlySettingsRow: React.FC<OlySettingsRowProps> = ({
   value,
   onPress,
   showChevron = true,
+  destructive = false,
   style,
 }) => {
   return (
@@ -51,13 +54,13 @@ export const OlySettingsRow: React.FC<OlySettingsRowProps> = ({
         <Ionicons
           name={icon as any}
           size={24}
-          color={olyColors.text.secondary as string}
+          color={(destructive ? olyColors.text.error : olyColors.text.secondary) as string}
           style={styles.icon}
         />
       ) : null}
 
       <Text
-        style={styles.label}
+        style={[styles.label, destructive && styles.labelDestructive]}
         maxFontSizeMultiplier={olyMaxFontScale.body}
         numberOfLines={1}
       >
@@ -89,7 +92,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    height: olyLayout.minTouchTarget,
+    minHeight: olyLayout.inputHeight,
     paddingHorizontal: olySpacing[16],
   },
   icon: {
@@ -99,6 +102,9 @@ const styles = StyleSheet.create({
     ...olyTypography.body,
     color: olyColors.text.primary,
     flex: 1,
+  },
+  labelDestructive: {
+    color: olyColors.text.error,
   },
   value: {
     ...olyTypography.bodySmall,

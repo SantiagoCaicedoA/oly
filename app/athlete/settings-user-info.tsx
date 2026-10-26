@@ -14,10 +14,12 @@ import { olyAlert } from "@/src/oly-components/feedback/OlyAlert";
 import OnboardingScreen1 from "@/app/auth/onboarding/onboarding-screen1";
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
 import { OlyScreenWrapper } from "@/src/oly-components/organisms/OlyScreenWrapper";
+import { OlyFloatingHeader, useFloatingHeader } from "@/src/oly-components/organisms/OlyFloatingHeader";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
 import {
+  olyFonts,
   olyLetterSpacing,
   olyTypography,
 } from "@/src/oly-theme/oly-typography";
@@ -59,6 +61,7 @@ export default function SettingsUserInfo() {
   const [submitProfile, submitState] = useSubmitProfileMutation();
   const onboardingData = useSelector(selectOnboardingData);
   const [ready, setReady] = useState(false);
+  const { headerH, onLayout: onHeaderLayout } = useFloatingHeader(160);
 
   const user = profileQ.data?.data;
   const p = user?.profile;
@@ -126,6 +129,8 @@ export default function SettingsUserInfo() {
 
   return (
     <OlyScreenWrapper padded={false}>
+      {/* Nav + title float over the form, with a fade behind. */}
+      <OlyFloatingHeader safeTop={false} onLayout={onHeaderLayout}>
       <View style={styles.nav}>
         <Pressable
           onPress={() => router.back()}
@@ -136,30 +141,32 @@ export default function SettingsUserInfo() {
         >
           <Ionicons
             name="chevron-back"
-            size={22}
-            color={olyColors.text.secondary as string}
+            size={20}
+            color={olyColors.text.primary as string}
           />
         </Pressable>
         <Text style={styles.navTitle}>PROFILE</Text>
-        <View style={styles.navBtn} />
+        <View style={styles.navSpacer} />
       </View>
+      {!(profileQ.isLoading || !ready) && (
+      <View style={styles.titleBlock}>
+        <Text style={styles.title} maxFontSizeMultiplier={1.2}>
+          Your details
+        </Text>
+        <Text style={styles.subtitle} maxFontSizeMultiplier={1.5}>
+          Bodyweight and country decide where you sit on the board.
+        </Text>
+      </View>
+      )}
+      </OlyFloatingHeader>
 
       {profileQ.isLoading || !ready ? (
-        <View style={styles.loading}>
+        <View style={[styles.loading, { paddingTop: headerH }]}>
           <ActivityIndicator color={olyPalette.white} />
         </View>
       ) : (
         <View style={styles.body}>
-          <View style={styles.titleBlock}>
-            <Text style={styles.title} maxFontSizeMultiplier={1.2}>
-              Your details
-            </Text>
-            <Text style={styles.subtitle} maxFontSizeMultiplier={1.5}>
-              Bodyweight and country decide where you sit on the board.
-            </Text>
-          </View>
-
-          <OnboardingScreen1 mode="settings" />
+          <OnboardingScreen1 mode="settings" topInset={headerH} />
 
           <View style={styles.saveBar}>
             <OlyButton
@@ -183,18 +190,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: olyLayout.screenPadding,
+    paddingVertical: olySpacing[8],
     minHeight: olyLayout.navBarHeight,
   },
+  /* 40pt glass circle; hitSlop 8 takes the target to 56. */
   navBtn: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
     borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.card,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     alignItems: "center",
     justifyContent: "center",
   },
+  navSpacer: { width: 40, height: 40 },
   navTitle: {
     ...olyTypography.label,
+    fontFamily: olyFonts.bold,
     color: olyColors.text.primary,
     letterSpacing: olyLetterSpacing.uppercase,
     textTransform: "uppercase",
@@ -202,10 +215,18 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
     paddingHorizontal: olyLayout.screenPadding,
-    paddingTop: olySpacing[16],
   },
-  titleBlock: { marginBottom: olySpacing[16] },
-  title: { ...olyTypography.title1, color: olyColors.text.primary },
+  /* Lives in the floating header, so it pads itself. */
+  titleBlock: {
+    paddingHorizontal: olyLayout.screenPadding,
+    paddingTop: olySpacing[16],
+    paddingBottom: olySpacing[16],
+  },
+  title: {
+    ...olyTypography.title1,
+    fontFamily: olyFonts.bold,
+    color: olyColors.text.primary,
+  },
   subtitle: {
     ...olyTypography.body,
     color: olyColors.text.secondary,

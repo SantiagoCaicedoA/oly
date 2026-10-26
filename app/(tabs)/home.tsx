@@ -1,8 +1,11 @@
-import PostCard from "@/components/post-card";
+import ChallengeCard from "@/components/challenge-card";
+import FeedCard from "@/components/feed-card";
+import { Glass, Glows, kit } from "@/src/oly-components/shop/ShopKit";
+import { fmt, useWallet } from "@/src/oly-mock/wallet";
 import { OlyIcon } from "@/components/icons/OlyIcon";
-import { useMyStanding } from "@/src/oly-hooks/useMyStanding";
 import { olyTypography, olyFonts, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olyGlow } from "@/src/oly-theme/oly-elevation";
 import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { useGetPostsQuery } from "@/store/api";
@@ -18,36 +21,15 @@ import {
   Text,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { OlyFloatingHeader, useFloatingHeader } from "@/src/oly-components/organisms/OlyFloatingHeader";
 import { useSelector } from "react-redux";
 
 /**
- * Home feed.
+ * Home feed. Feed A on the canvas.
  *
- * Design system: Feed and rank / HomeFeed.
- *
- * Removed from the previous version:
- *  - The search and mail icons. Both are tabs now; a header icon that
- *    duplicates a tab teaches nothing.
- *  - Four of the six filters. Squats is not a competition lift, and the
- *    question a feed answers is whose lifts you are seeing.
- *  - The "COMMUNITY" title. It named nothing. The wordmark does the job.
- *  - The loading spinner, replaced by a skeleton in the feed's own shape.
- *
- * Added:
- *  - The two header actions, post and notifications, as a pair of circles
- *    on the right. The wordmark grows to 40 to hold the other end of the
- *    row, so the top no longer reads as empty.
- *
- * Removed after that:
- *  - The full width compose prompt. The plus in the header does the same
- *    job in a quarter of the space, and the empty state still offers it
- *    in words when there is nothing to read.
- *
- * Standing lives in the header beside the wordmark, not above the first
- * post. A rounded filled card was the only object of its kind on a screen
- * that is otherwise full bleed with hairlines, and a feed whose first row
- * is not a post teaches people to scroll past the top.
+ * The header floats over the feed: avatar, olys balance, post and
+ * notifications, with a fade so posts dissolve under it. The weekly
+ * challenge sits above the first post, and every post is a glass FeedCard.
  */
 
 const LIMIT = 10;
@@ -142,53 +124,26 @@ export default function Home() {
 
   const compose = () => router.push("/athlete/create-new-post");
 
-  const standing = useMyStanding();
-
-  /* Standing used to be a compact ProfileRankCard above the first post. It
-     was the only boxed, rounded, filled object on a screen that is
-     otherwise full bleed with hairlines, so it read as a leftover — and a
-     feed whose first row is not a post teaches people to scroll past the
-     top. It is chrome now: two lines beside the wordmark, in the header
-     that was already there.
-
-     No skeleton and no placeholder. An athlete with no rank yet gets the
-     wordmark alone, rather than a box apologising. */
-  const me = standing.me;
-  const leader = !!me && !me.provisional && me.rank === 1;
-  const standingBlock =
-    me && !standing.isLoading ? (
-      <Pressable
-        style={[styles.standing, leader && styles.standingLeader]}
-        onPress={me.provisional ? compose : () => router.push("/(tabs)/rank")}
-        accessibilityRole="button"
-        accessibilityLabel={
-          me.provisional
-            ? "Unclaimed. Post a lift to rank."
-            : `Your rank, ${me.rank}, ${standing.sex === "M" ? "Men" : "Women"} ${me.weightClass} kg.`
-        }
-      >
-        <OlyIcon
-          name="rank"
-          size={16}
-          filled
-          color={leader ? olyColors.text.leader : olyColors.text.secondary}
-        />
-        {me.provisional ? (
-          <Text style={styles.chipLabel}>Post a lift to rank</Text>
-        ) : (
-          <>
-            <Text style={styles.chipRank}>#{me.rank}</Text>
-            <Text style={[styles.chipLabel, leader && styles.chipLabelLeader]} numberOfLines={1}>
-              {standing.sex === "M" ? "Men" : "Women"} {me.weightClass} kg
-            </Text>
-          </>
-        )}
-      </Pressable>
-    ) : null;
+  /* Feed A: the olys balance replaces the rank chip. It opens the Shop. */
+  const wallet = useWallet();
+  const { headerH, onLayout: onHeaderLayout } = useFloatingHeader(110);
+  const olysChip = (
+    <Pressable hitSlop={4}
+      onPress={() => router.push("/(tabs)/marketplace")}
+      style={({ pressed }) => [styles.olysWrap, pressed && kit.pressed]}
+      accessibilityRole="button"
+      accessibilityLabel={`${fmt(wallet.balance)} olys. Open the shop.`}
+    >
+      <Glass radius={olyRadius.full} style={styles.olys}>
+        <View style={styles.olysDot} />
+        <Text style={styles.olysText}>{fmt(wallet.balance)} olys</Text>
+      </Glass>
+    </Pressable>
+  );
 
   const header = (
     <View style={styles.header}>
-      <Pressable
+      <Pressable hitSlop={4}
         onPress={() => router.push("/(tabs)/profile")}
         style={styles.me}
         accessibilityRole="button"
@@ -200,9 +155,9 @@ export default function Home() {
           <Text style={styles.meInitials}>{meInitials}</Text>
         )}
       </Pressable>
-      {standingBlock}
+      {olysChip}
       <View style={styles.actions}>
-        <Pressable
+        <Pressable hitSlop={4}
           style={[styles.act, styles.actBrand]}
           onPress={compose}
           accessibilityRole="button"
@@ -211,12 +166,14 @@ export default function Home() {
           {/* text-primary on the blue disc. The glyph is never blue. */}
           <OlyIcon name="plus" size={22} color={olyColors.text.primary} />
         </Pressable>
-        <Pressable
-          style={styles.act}
+        <Pressable hitSlop={4}
           accessibilityRole="button"
           accessibilityLabel="Notifications"
+          style={({ pressed }) => pressed && kit.pressed}
         >
-          <OlyIcon name="bell" size={22} color={olyColors.text.secondary} />
+          <Glass radius={olyRadius.full} style={styles.act}>
+            <OlyIcon name="bell" size={20} color={olyColors.text.primary} />
+          </Glass>
           <View style={styles.dot} />
         </Pressable>
       </View>
@@ -255,11 +212,12 @@ export default function Home() {
   return (
     <>
       <Stack.Screen options={{ gestureEnabled: false }} />
-      <SafeAreaView style={styles.screen} edges={["top"]}>
-        {header}
+      <View style={styles.root}>
+      <Glows variant="shop" />
+      <View style={styles.screen}>
 
         {isLoading ? (
-          <View style={styles.skelWrap}>
+          <View style={[styles.skelWrap, { paddingTop: headerH + 14 }]}>
             <SkeletonCard />
             <SkeletonCard />
           </View>
@@ -267,9 +225,8 @@ export default function Home() {
           <FlatList
             data={allPosts}
             keyExtractor={(i) => i._id}
-            renderItem={({ item, index }) => (
-              <PostCard
-                first={index === 0}
+            renderItem={({ item }) => (
+              <FeedCard
                 post={item}
                 onPress={(id) =>
                   router.push({
@@ -283,9 +240,11 @@ export default function Home() {
             onViewableItemsChanged={onViewable}
             viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
             contentContainerStyle={[
+              { paddingTop: headerH },
               styles.list,
               allPosts.length === 0 && styles.listEmpty,
             ]}
+            ListHeaderComponent={<ChallengeCard />}
             ListEmptyComponent={empty}
             ListFooterComponent={
               isFetching && allPosts.length ? (
@@ -297,34 +256,38 @@ export default function Home() {
             onEndReached={loadMore}
             onEndReachedThreshold={0.1}
             showsVerticalScrollIndicator={false}
+            scrollIndicatorInsets={{ top: headerH }}
             windowSize={5}
             initialNumToRender={6}
             removeClippedSubviews
           />
         )}
-      </SafeAreaView>
+        {/* Header floats over the feed. A fade from the page colour sits
+            behind it, so posts dissolve under it instead of being cut by
+            a hard line. */}
+        <OlyFloatingHeader onLayout={onHeaderLayout}>{header}</OlyFloatingHeader>
+      </View>
+      </View>
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: olyColors.bg.page },
   screen: { flex: 1, backgroundColor: "transparent" },
+  olysWrap: { marginLeft: olySpacing[8] + 2, flexShrink: 1 },
+  olys: { height: 40, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: olySpacing[8] },
+  olysDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: olyColors.glass.glow, ...olyGlow.md },
+  olysText: { fontFamily: olyFonts.medium, fontSize: 14, color: olyColors.text.primary },
 
   header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: olyLayout.screenPadding,
     paddingTop: olySpacing[12],
-    paddingBottom: olySpacing[12],
-    /* The first post carries no top rule (see `postFirst` in post-card),
-       because the standing card used to sit between them. With standing
-       moved into the header there was nothing separating chrome from
-       content, so the rule belongs here now. Here rather than on the post,
-       so the header is closed whether or not the feed has loaded. */
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: olyColors.border.hairline,
+    paddingBottom: olySpacing[8],
   },
-  /* Profile lives here now: your face, top left, where the wordmark was. */
+  /* Your profile: your face, top left. */
   me: {
     width: 40,
     height: 40,
@@ -347,14 +310,13 @@ const styles = StyleSheet.create({
   },
   /* A circular action sits one elevation step above the screen. */
   act: {
-    width: 38,
-    height: 38,
+    width: 40,
+    height: 40,
     borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.card,
     alignItems: "center",
     justifyContent: "center",
   },
-  actBrand: { backgroundColor: olyPalette.primary },
+  actBrand: { backgroundColor: olyPalette.primary, ...olyGlow.md },
   dot: {
     position: "absolute",
     top: 7,
@@ -363,45 +325,7 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: olyRadius.full,
     backgroundColor: olyPalette.primary,
-    borderWidth: 2,
-    borderColor: olyPalette.card,
   },
-
-  /* Sits between the wordmark and the actions. `flexShrink` so a long
-     board label gives way to the buttons rather than pushing them off. */
-  /* Your standing as one chip that opens the board. The season leader
-     gets the leader palette (navy fill, leader hairline, leader ink). */
-  standing: {
-    marginLeft: olySpacing[8] + 2,
-    flexShrink: 1,
-    minWidth: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: olySpacing[8],
-    minHeight: 38,
-    paddingLeft: olySpacing[8] + 2,
-    paddingRight: 14,
-    borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.card,
-    borderWidth: 1,
-    borderColor: "transparent",
-  },
-  standingLeader: {
-    backgroundColor: olyColors.bg.leader,
-    borderColor: olyColors.border.leader,
-  },
-  chipRank: {
-    ...olyTypography.body,
-    fontFamily: olyFonts.bold,
-    color: olyColors.text.primary,
-  },
-  chipLabel: {
-    ...olyTypography.caption,
-    fontSize: 13,
-    color: olyColors.text.secondary,
-    flexShrink: 1,
-  },
-  chipLabelLeader: { color: olyColors.text.leader },
 
   skelWrap: {
     paddingHorizontal: olyLayout.screenPadding,
@@ -411,7 +335,7 @@ const styles = StyleSheet.create({
   /* No horizontal padding. Posts run edge to edge and supply their own
      gutters for text; the media deliberately has none. */
   list: {
-    paddingBottom: olySpacing[16],
+    paddingBottom: 120,
   },
   listEmpty: { flexGrow: 1 },
   footer: { paddingVertical: olySpacing[16], alignItems: "center" },

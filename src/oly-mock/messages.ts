@@ -263,3 +263,24 @@ export function threadFor(p: Person): string {
   }
   return p.id;
 }
+
+/**
+ * Sample lifts for the chat Send sheet when the athlete has no posts yet,
+ * so the "Oly lifts" tab can still be tested. Turn off with
+ * SHOW_MOCK_SEND_LIFTS = false: the tab then shows only real posts.
+ *
+ * TODO(api): drop once every tester has posts.
+ */
+export const SHOW_MOCK_SEND_LIFTS = true;
+
+export const mockSendLifts = (): LiftRef[] =>
+  SHOW_MOCK_SEND_LIFTS
+    ? [
+        { kg: 150, lift: "Clean & Jerk", date: "Sep 27" },
+        { kg: 120, lift: "Snatch", date: "Sep 27" },
+        { kg: 190, lift: "Back Squat", date: "Sep 24" },
+        { kg: 147, lift: "Clean & Jerk", date: "Sep 13" },
+        { kg: 100, lift: "Power Snatch", date: "Sep 10" },
+        { kg: 140, lift: "Clean & Jerk", date: "May 10" },
+      ]
+    : [];

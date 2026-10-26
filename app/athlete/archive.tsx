@@ -1,11 +1,13 @@
-import { Images } from "@/assets";
 import SegmentedSelector from "@/components/segmented-selector";
-import { useTheme } from "@/context/theme-context";
-import { Typography } from "@/utils/custom-styles";
+import { Glows } from "@/src/oly-components/shop/ShopKit";
+import { olyColors } from "@/src/oly-theme/oly-colors";
+import { olyRadius } from "@/src/oly-theme/oly-radius";
+import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
+import { olyFonts, olyTypography } from "@/src/oly-theme/oly-typography";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,7 +15,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { scale } from "react-native-size-matters";
+import { OlyFloatingHeader, useFloatingHeader } from "@/src/oly-components/organisms/OlyFloatingHeader";
 const archiveOptions = [
   { label: "All", value: "all" },
   { label: "Private", value: "private" },
@@ -28,94 +30,48 @@ const liftTypeOptions = [
 ];
 
 export default function Archive() {
-  const { colors } = useTheme();
   const [selectedValue, setSelectedValue] = useState<string | string[]>("all");
   const [selectedOpt, setSelectedOpt] = useState<string>("");
+  const { headerH, onLayout: onHeaderLayout } = useFloatingHeader(140);
   const handleBackPress = () => {
     router.back();
   };
 
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    scrollContent: {
-      paddingVertical: scale(15),
-      paddingHorizontal: scale(14),
-      gap: scale(16),
-    },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: scale(10),
-      position: "relative",
-      backgroundColor: colors.headerBackground,
-    },
-    backButton: {
-      position: "absolute",
-      left: scale(15),
-      width: scale(12),
-      height: scale(12),
-    },
-    headerText: {
-      fontSize: Typography.fontSize.lg,
-      fontWeight: Typography.fontWeight.normal,
-      color: colors.text,
-      letterSpacing: Typography.letterSpacing.normal,
-      textAlign: "center",
-    },
-    chipsContainer: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: scale(5),
-    },
-    chip: {
-      paddingHorizontal: scale(10),
-      paddingVertical: scale(5),
-      borderRadius: scale(24),
-      borderWidth: scale(1),
-      borderColor: colors.primary,
-      backgroundColor: colors.lightBlue,
-    },
-    chipSelected: {
-      backgroundColor: colors.primary,
-      borderColor: colors.primary,
-    },
-    chipText: {
-      fontSize: Typography.fontSize.base,
-      fontWeight: "500",
-      color: colors.text,
-    },
-    chipTextSelected: {
-      color: colors.text,
-    },
-  });
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
-          <Image
-            source={Images.arrowBack}
-            style={{ width: "100%", height: "100%" }}
+    <View style={styles.root}>
+      <Glows variant="shop" />
+      <SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
+        <OlyFloatingHeader onLayout={onHeaderLayout}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+            style={styles.backButton}
+            onPress={handleBackPress}
+            hitSlop={olySpacing[8]}
+          >
+            <Ionicons
+              name="chevron-back"
+              size={20}
+              color={olyColors.text.primary as string}
+            />
+          </TouchableOpacity>
+
+          <Text style={styles.headerText}>Archive</Text>
+        </View>
+        </OlyFloatingHeader>
+
+        <ScrollView
+          contentContainerStyle={[styles.scrollContent, { paddingTop: headerH + olySpacing[8] }]}
+          scrollIndicatorInsets={{ top: headerH }}
+          showsVerticalScrollIndicator={false}
+        >
+          <SegmentedSelector
+            options={archiveOptions}
+            selectedValue={selectedValue}
+            onChange={setSelectedValue}
+            segments={3}
           />
-        </TouchableOpacity>
-
-        <Text style={styles.headerText}>Archive</Text>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <SegmentedSelector
-          options={archiveOptions}
-          selectedValue={selectedValue}
-          onChange={setSelectedValue}
-          segments={3}
-        />
-        <View style={{ gap: scale(5) }}>
           <View style={styles.chipsContainer}>
             {liftTypeOptions.map((opt) => (
               <TouchableOpacity
@@ -138,8 +94,73 @@ export default function Archive() {
               </TouchableOpacity>
             ))}
           </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: olyColors.bg.page,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+  scrollContent: {
+    paddingHorizontal: olyLayout.screenPadding,
+    paddingBottom: olySpacing[40],
+    gap: olySpacing[12],
+  },
+  header: {
+    paddingHorizontal: olyLayout.screenPadding,
+    paddingTop: olySpacing[8],
+    paddingBottom: olySpacing[12],
+    gap: olySpacing[12],
+  },
+  /* 40pt glass circle; hitSlop 8 takes the target to 56. */
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: olyRadius.full,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerText: {
+    ...olyTypography.title1,
+    fontFamily: olyFonts.bold,
+    color: olyColors.text.primary,
+  },
+  chipsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: olySpacing[8],
+  },
+  chip: {
+    minHeight: olyLayout.minTouchTarget,
+    paddingHorizontal: olySpacing[16],
+    borderRadius: olyRadius.full,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
+    backgroundColor: olyColors.glass.card,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chipSelected: {
+    backgroundColor: olyColors.glass.accentFill,
+    borderColor: olyColors.glass.accentBorder,
+  },
+  chipText: {
+    ...olyTypography.bodySmall,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.secondary,
+  },
+  chipTextSelected: {
+    color: olyColors.text.primary,
+  },
+});

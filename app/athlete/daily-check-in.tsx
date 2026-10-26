@@ -48,6 +48,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { OlyFloatingHeader, useFloatingHeader } from "@/src/oly-components/organisms/OlyFloatingHeader";
 import { useSelector } from "react-redux";
 
 /* ── Constants ─────────────────────────────────────────── */
@@ -229,7 +230,7 @@ const sliderStyles = StyleSheet.create({
     position: "absolute",
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: olyRadius.lg,
     backgroundColor: olyPalette.primary,
     top: "50%",
     marginTop: -12,
@@ -312,6 +313,7 @@ export default function DailyCheckIn() {
   const [bodyweight, setBodyweight] = useState(81.2);
   const [bodyweightDelta] = useState(-0.3);
   const [notes, setNotes] = useState("");
+  const { headerH, onLayout: onHeaderLayout } = useFloatingHeader(100);
 
   const [submitCheckIn, { isLoading }] = useDailyCheckInMutation();
 
@@ -388,10 +390,13 @@ export default function DailyCheckIn() {
       end={olyGradient.end}
       style={styles.gradient}
     >
-      <SafeAreaView style={styles.safe}>
-        {/* ── Header ── */}
+      <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
+        {/* ── Header: floats over the form, with a fade behind ── */}
+        <OlyFloatingHeader onLayout={onHeaderLayout}>
         <View style={styles.header}>
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Back"
             onPress={handleBack}
             style={styles.headerBackTouch}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
@@ -407,9 +412,11 @@ export default function DailyCheckIn() {
 
           <Text style={styles.headerDate}>{getFormattedDate()}</Text>
         </View>
+        </OlyFloatingHeader>
 
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingTop: headerH }]}
+          scrollIndicatorInsets={{ top: headerH }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
@@ -419,7 +426,7 @@ export default function DailyCheckIn() {
               {getGreeting()}, {athleteName}.
             </Text>
             <Text style={styles.greetingSubtitle}>
-              Let's see how you're feeling before today's session.
+              Let&apos;s see how you&apos;re feeling before today&apos;s session.
             </Text>
           </View>
 
@@ -443,7 +450,7 @@ export default function DailyCheckIn() {
 
           {/* ── Energy ── */}
           <View style={styles.sectionBlock}>
-            <Text style={styles.sectionLabel}>HOW'S YOUR ENERGY TODAY?</Text>
+            <Text style={styles.sectionLabel}>HOW&apos;S YOUR ENERGY TODAY?</Text>
             <View style={styles.chipsRow}>
               {READINESS_OPTIONS.map((option) => {
                 const isActive = readiness === option.value;

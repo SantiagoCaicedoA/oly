@@ -7,14 +7,16 @@ import {
   useThreads,
   type Thread,
 } from "@/src/oly-mock/messages";
-import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olyColors } from "@/src/oly-theme/oly-colors";
+import { olyGlow } from "@/src/oly-theme/oly-elevation";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
 import { olyFonts, olyTypography } from "@/src/oly-theme/oly-typography";
+import { Glass, Glows, kit } from "@/src/oly-components/shop/ShopKit";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { OlyFloatingHeader, useFloatingHeader } from "@/src/oly-components/organisms/OlyFloatingHeader";
 import Svg, { Path } from "react-native-svg";
 
 /**
@@ -31,20 +33,26 @@ export default function MessagesScreen() {
   const threads = useThreads();
   const requests = useRequests();
   const [tab, setTab] = useState<"chats" | "requests">("chats");
+  const { headerH, onLayout: onHeaderLayout } = useFloatingHeader(150);
 
   const open = (t: Thread) =>
     router.push({ pathname: "/athlete/chat", params: { id: t.id } });
 
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
+    <View style={styles.root}>
+    <Glows variant="shop" />
+    <View style={styles.screen}>
+      {/* Title + tabs float over the list, with a fade behind. */}
+      <OlyFloatingHeader onLayout={onHeaderLayout}>
       <View style={styles.header}>
         <Text style={styles.title}>Messages</Text>
-        <Pressable
+        <Pressable hitSlop={4}
           onPress={() => router.push("/athlete/new-message")}
-          style={styles.compose}
+          style={({ pressed }) => pressed && kit.pressed}
           accessibilityRole="button"
           accessibilityLabel="New message"
         >
+          <Glass radius={olyRadius.full} style={styles.compose}>
           <Svg width={20} height={20} viewBox="0 0 24 24">
             <Path
               d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"
@@ -55,6 +63,7 @@ export default function MessagesScreen() {
               strokeLinejoin="round"
             />
           </Svg>
+          </Glass>
         </Pressable>
       </View>
 
@@ -82,12 +91,14 @@ export default function MessagesScreen() {
           );
         })}
       </View>
+      </OlyFloatingHeader>
 
       {tab === "requests" ? (
         <FlatList
           data={requests}
           keyExtractor={(r) => r.id}
-          contentContainerStyle={styles.reqList}
+          contentContainerStyle={[styles.reqList, { paddingTop: headerH }]}
+          scrollIndicatorInsets={{ top: headerH }}
           ListHeaderComponent={
             requests.length ? (
               <Text style={styles.reqIntro}>
@@ -111,7 +122,8 @@ export default function MessagesScreen() {
       <FlatList
         data={threads}
         keyExtractor={(t) => t.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, { paddingTop: headerH }]}
+        scrollIndicatorInsets={{ top: headerH }}
         renderItem={({ item: t }) => {
           const p = previewOf(t);
           const tint = t.unread ? olyColors.text.primary : olyColors.text.secondary;
@@ -148,12 +160,14 @@ export default function MessagesScreen() {
         }}
       />
       )}
-    </SafeAreaView>
+    </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: olyColors.bg.page },
+  root: { flex: 1, backgroundColor: olyColors.bg.page },
+  screen: { flex: 1, backgroundColor: "transparent" },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -161,23 +175,21 @@ const styles = StyleSheet.create({
     paddingTop: olySpacing[8],
     paddingBottom: olySpacing[12],
   },
-  title: { ...olyTypography.title1, color: olyColors.text.primary, flex: 1 },
+  title: { ...olyTypography.title1, fontFamily: olyFonts.bold, color: olyColors.text.primary, flex: 1 },
   compose: {
-    width: 38,
-    height: 38,
-    borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.card,
+    width: 40,
+    height: 40,
     alignItems: "center",
     justifyContent: "center",
   },
-  list: { paddingBottom: olySpacing[24] },
+  list: { paddingBottom: 120 },
   tabs: {
     flexDirection: "row",
     gap: olySpacing[24],
     marginHorizontal: olyLayout.screenPadding,
     marginBottom: olySpacing[8],
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: olyColors.border.hairline,
+    borderBottomColor: olyColors.glass.rule,
   },
   tab: {
     flexDirection: "row",
@@ -187,7 +199,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: "transparent",
   },
-  tabOn: { borderBottomColor: olyColors.text.primary },
+  tabOn: { borderBottomColor: olyColors.glass.glow },
   tabText: { ...olyTypography.label, color: olyColors.text.secondary },
   tabTextOn: { color: olyColors.text.primary },
   reqList: { paddingHorizontal: olyLayout.screenPadding, paddingBottom: olySpacing[32] },
@@ -215,6 +227,7 @@ const styles = StyleSheet.create({
     backgroundColor: olyColors.accent,
     alignItems: "center",
     justifyContent: "center",
+    ...olyGlow.md,
   },
   badgeText: {
     ...olyTypography.caption,
@@ -232,14 +245,16 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.cardElevated,
+    backgroundColor: olyColors.glass.raised,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     alignItems: "center",
     justifyContent: "center",
   },
   avatarText: {
     ...olyTypography.body,
     fontFamily: olyFonts.medium,
-    color: olyColors.text.secondary,
+    color: olyColors.text.primary,
   },
   rowMain: { flex: 1, minWidth: 0 },
   rowTop: { flexDirection: "row", alignItems: "baseline", gap: olySpacing[8] },
@@ -263,5 +278,6 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: olyRadius.full,
     backgroundColor: olyColors.accent,
+    ...olyGlow.sm,
   },
 });

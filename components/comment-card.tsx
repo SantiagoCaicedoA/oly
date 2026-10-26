@@ -50,12 +50,9 @@ interface CommentCardProps {
   isReply?: boolean;
 }
 
-/* Derive a consistent surface from a string (username).
-   These used to be six shades of brand blue. Against the old #004AAD that
-   was quiet; against #107BDB a wall of them is the loudest thing on a screen
-   whose subject is a lift. The blue is spent once per screen, on the thing
-   you are meant to tap, and an avatar is not it. Neutral steps of the ink
-   give the same at-a-glance variety without competing. */
+/* A consistent avatar surface per name. Neutral steps of the ink give
+   at-a-glance variety without competing with the blue, which is saved for
+   the thing you are meant to tap. */
 const AVATAR_COLORS = olyColors.bg.avatarTints;
 
 function getAvatarColor(name?: string): string {
@@ -67,7 +64,7 @@ function getAvatarColor(name?: string): string {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-function getInitials(name?: string): string {
+export function getInitials(name?: string): string {
   if (!name) return "?";
   const parts = name.trim().split(/\s+/);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
@@ -184,6 +181,7 @@ export default function CommentCard({
           {!isReply && (
             <TouchableOpacity
               activeOpacity={0.7}
+              hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
               onPress={() => onReply?.(comment._id, comment.user.name)}
             >
               <Text style={styles.replyText}>Reply</Text>
@@ -193,12 +191,19 @@ export default function CommentCard({
       </View>
 
       {/* Like button */}
-      <TouchableOpacity style={styles.likeButton} onPress={handleLike} activeOpacity={0.7}>
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel={optimisticLiked ? "Unlike" : "Like"}
+        style={styles.likeButton}
+        onPress={handleLike}
+        activeOpacity={0.7}
+        hitSlop={{ top: 12, bottom: 12, left: 14, right: 14 }}
+      >
         <Ionicons
           name={optimisticLiked ? "heart" : "heart-outline"}
           size={isReply ? 14 : 16}
           color={
-            optimisticLiked ? olyPalette.white : olyColors.text.disabled
+            optimisticLiked ? olyColors.text.primary : olyColors.text.hint
           }
         />
       </TouchableOpacity>
@@ -259,13 +264,15 @@ const styles = StyleSheet.create({
   /* Avatar */
   avatar: {
     borderRadius: olyRadius.full,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     alignItems: "center",
     justifyContent: "center",
   },
   avatarText: {
     ...olyTypography.caption,
     fontFamily: olyFonts.medium,
-    color: olyPalette.white,
+    color: olyColors.text.primary,
   },
   replyAvatarText: {
     fontSize: olyTypography.caption.fontSize,
@@ -310,7 +317,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     ...olyTypography.caption,
-    color: olyColors.text.disabled,
+    color: olyColors.text.hint,
   },
   replyText: {
     ...olyTypography.caption,
@@ -320,14 +327,17 @@ const styles = StyleSheet.create({
 
   /* Like */
   likeButton: {
-    paddingTop: olySpacing[4],
+    minWidth: 20,
+    minHeight: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   /* Replies */
   repliesContainer: {
     marginLeft: AVATAR_SIZE + olySpacing[12],
     borderLeftWidth: 1,
-    borderLeftColor: olyColors.border.default,
+    borderLeftColor: olyColors.glass.rule,
     paddingLeft: olySpacing[12],
   },
 
@@ -337,11 +347,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     width: 80,
-    borderRadius: olyRadius.lg,
+    borderRadius: olyRadius.inner,
     marginLeft: olySpacing[8],
   },
   deleteText: {
     ...olyTypography.label,
-    color: olyPalette.white,
+    color: olyColors.text.onBrand,
   },
 });

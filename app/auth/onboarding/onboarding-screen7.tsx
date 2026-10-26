@@ -2,18 +2,15 @@
  * Onboarding Screen 7 — Performance Gaps (Redesigned v2)
  *
  * Multi-select gaps across 4 categories. Tap to toggle.
- * Active = activeHighlight bg + primary border (same as screens 3–5).
+ * Active = glass accent fill + accent border (same as screens 3–5).
  *
  * Abdul's data flow unchanged — dispatches to onboardingSlice.
  */
 
+import { onboardingStyles } from "@/src/oly-components/onboarding/onboarding-styles";
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
-import {
-  olyTypography,
-  olyFonts,
-  olyLetterSpacing,
-} from "@/src/oly-theme/oly-typography";
-import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olyTypography, olyFonts } from "@/src/oly-theme/oly-typography";
+import { olyColors } from "@/src/oly-theme/oly-colors";
 import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import {
@@ -247,6 +244,7 @@ export default function OnboardingScreen7({
                               style={[
                                 styles.gapPillText,
                                 isActive && styles.gapPillTextActive,
+                                isDisabled && styles.gapPillTextDisabled,
                               ]}
                               maxFontSizeMultiplier={1.3}
                             >
@@ -294,24 +292,14 @@ const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1 },
 
   /* Title — matches all other screens */
-  titleBlock: { marginBottom: olySpacing[20] },
-  title: { ...olyTypography.title1, color: olyColors.text.primary },
-  subtitle: {
-    ...olyTypography.body,
-    color: olyColors.text.secondary,
-    marginTop: olySpacing[4],
-  },
+  titleBlock: onboardingStyles.titleBlock,
+  title: onboardingStyles.title,
+  subtitle: onboardingStyles.subtitle,
 
   /* Form */
   formGroup: { gap: olySpacing[24] },
   categoryBlock: {},
-  sectionLabel: {
-    ...olyTypography.label,
-    color: olyColors.text.secondary,
-    letterSpacing: olyLetterSpacing.uppercase,
-    textTransform: "uppercase",
-    marginBottom: olySpacing[8],
-  },
+  sectionLabel: onboardingStyles.sectionLabel,
 
   /* Gap pills — horizontal wrap, tap to toggle */
   gapList: {
@@ -325,32 +313,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.card,
-  },
-  gapPillActive: {
-    backgroundColor: olyColors.bg.activeHighlight,
+    backgroundColor: olyColors.glass.card,
     borderWidth: 1,
-    borderColor: olyPalette.primary,
+    borderColor: olyColors.glass.border,
   },
+  gapPillActive: onboardingStyles.selected,
   gapPillDisabled: {
-    opacity: 0.35,
+    backgroundColor: olyColors.glass.control,
   },
   gapPillText: {
     ...olyTypography.bodySmall,
-    color: olyColors.text.primary,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.secondary,
   },
   gapPillTextActive: {
-    color: olyPalette.white,
-    fontFamily: olyFonts.medium,
+    color: olyColors.text.primary,
+  },
+  gapPillTextDisabled: {
+    color: olyColors.text.disabled,
   },
 
   /* Bottom buttons — matches all other screens */
-  bottomButtons: {
-    flexDirection: "row",
-    gap: olySpacing[12],
-    paddingTop: olySpacing[40],
-    marginTop: "auto" as const,
-  },
+  bottomButtons: onboardingStyles.bottomButtons,
   halfButton: {
     flex: 1,
   },

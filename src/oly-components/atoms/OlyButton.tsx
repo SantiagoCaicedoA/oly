@@ -19,10 +19,11 @@ import {
 } from "react-native";
 import * as Haptics from "expo-haptics";
 
-import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olyColors } from "@/src/oly-theme/oly-colors";
 import { olyTypography, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
 import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
+import { olyGlow } from "@/src/oly-theme/oly-elevation";
 
 // ─── Types ───────────────────────────────────────────────────────────
 type OlyButtonVariant = "primary" | "secondary" | "destructive" | "ghost";
@@ -126,8 +127,10 @@ const styles = StyleSheet.create({
     color: olyColors.text.primary,
   },
   disabled: {
-    backgroundColor: olyColors.bg.activeHighlight,
-    borderWidth: 0,
+    backgroundColor: olyColors.glass.control,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
+    shadowOpacity: 0,
   },
   disabledText: {
     color: olyColors.text.secondary,
@@ -154,11 +157,12 @@ const sizeStyles: Record<OlyButtonSize, ViewStyle> = {
 const variantStyles: Record<OlyButtonVariant, ViewStyle> = {
   primary: {
     backgroundColor: olyColors.button.primary.bg,
+    ...olyGlow.md,
   },
   secondary: {
-    backgroundColor: olyPalette.card,
+    backgroundColor: olyColors.glass.control,
     borderWidth: 1,
-    borderColor: olyColors.border.default,
+    borderColor: olyColors.glass.border,
   },
   destructive: {
     backgroundColor: olyColors.button.destructive.bg,
@@ -173,7 +177,7 @@ const pressedStyles: Record<OlyButtonVariant, ViewStyle> = {
     backgroundColor: olyColors.button.primary.pressed,
   },
   secondary: {
-    backgroundColor: olyColors.button.secondary.pressed,
+    backgroundColor: olyColors.glass.selected,
   },
   destructive: {
     backgroundColor: olyColors.button.destructive.bg,

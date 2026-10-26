@@ -3,7 +3,7 @@
  * Source: Design Bible v3.0, Section 8.1 Progress Dots
  *
  * Dot size: 8px, Gap: 8px
- * Active: oly-primary, Inactive: oly-text/disabled
+ * Active: glass.glow with olyGlow.sm, Inactive: glass.idle
  *
  * Figma: oly/progress-dots
  */
@@ -11,7 +11,8 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 
-import { olyPalette } from "@/src/oly-theme/oly-colors";
+import { olyColors } from "@/src/oly-theme/oly-colors";
+import { olyGlow } from "@/src/oly-theme/oly-elevation";
 import { olySpacing } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 
@@ -33,15 +34,7 @@ export const OlyProgressDots: React.FC<OlyProgressDotsProps> = ({
         return (
           <View
             key={index}
-            style={[
-              styles.dot,
-              isActive && styles.dotActive,
-              {
-                backgroundColor: isActive
-                  ? olyPalette.primary
-                  : `rgba(0, 74, 173, 0.4)`,
-              },
-            ]}
+            style={[styles.dot, isActive && styles.dotActive]}
           />
         );
       })}
@@ -61,11 +54,12 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: olyRadius.full,
+    backgroundColor: olyColors.glass.idle,
   },
   dotActive: {
     width: 24,
-    height: 8,
-    borderRadius: olyRadius.full,
+    backgroundColor: olyColors.glass.glow,
+    ...olyGlow.sm,
   },
 });
 

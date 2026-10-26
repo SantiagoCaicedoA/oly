@@ -1,20 +1,24 @@
 import { TabLoaderProvider, useTabLoader } from "@/components/tab-loader";
 import { OlyIcon, OlyIconName } from "@/components/icons/OlyIcon";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olyGlow, olyShadow } from "@/src/oly-theme/oly-elevation";
+import { olyRadius } from "@/src/oly-theme/oly-radius";
+import { olySpacing } from "@/src/oly-theme/oly-spacing";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import type { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
 import { Tabs } from "expo-router";
 import React, { createContext, useEffect, useState } from "react";
-import { Pressable, StyleSheet } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { Glass } from "@/src/oly-components/shop/ShopKit";
 
 /**
  * Tab bar.
  *
  * Design system: Iconography, and Layout / TabBar.
  *
- * Five tabs, in this order: Home, Rank, Messages, Search, Profile.
+ * Five tabs, in this order: Home, Rank, Messages, Search, Shop.
  *
  * Rules this file implements:
  *  - No labels. Position and persistence teach the tabs, so every
@@ -22,9 +26,8 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
  *  - Outline when inactive, filled when active. Search is the one
  *    exception; a filled magnifier reads as a lollipop, so it keeps
  *    its outline and thickens to 2.2.
- *  - Nothing sits behind an active icon. No disc, no pill, no
- *    background. The Design Bible's `bg-active-highlight` disc put a
- *    primary icon on a primary tint at 1.43:1, which could not be seen.
+ *  - Nothing sits behind an active icon. A glowing blue dot under it
+ *    marks the tab instead.
  *  - No centre FAB. Posting a lift moved to the header on Home, beside
  *    notifications. A floating button over the feed covered content and
  *    made the bar asymmetric for one action.
@@ -38,24 +41,8 @@ export const TabBarContext = createContext({
   showTabBar: () => {},
 });
 
-/* Iconography / Sizes. 28 is `icon-tab`, one step above `icon-md`. */
-const ICON_SIZE = 28;
-/* Layout / TabBar.
-   The bar used to float: a rounded, filled, bordered pill inset 14 from
-   each side and 28 up from the bottom. That reads as a control sitting ON
-   the app, which was fine when every screen was made of cards. The feed is
-   full bleed now, so the pill was the only rounded object on screen and it
-   left a strip of video showing underneath it.
-
-   Flush to the bottom edge, full width, no fill. The bar is the ground plus
-   one hairline, which is the same separator the feed uses between posts.
-
-   68 is the content height, above the safe-area inset react-navigation adds
-   underneath. 28 for the glyph and 20 of gutter either side. iOS ships 49,
-   which assumes a 24pt glyph and labels; with a 28 glyph and no labels the
-   row needs the air or the icons crowd the rule above them. */
-const TAB_BAR_HEIGHT = 68;
-
+/* Iconography / Sizes. 26 sits inside the 64 tall glass pill. */
+const ICON_SIZE = 26;
 export default function TabLayout() {
   return (
     <GestureHandlerRootView style={styles.root}>
@@ -109,6 +96,8 @@ function TabsWithLoader() {
             filled={focused}
             color={focused ? olyColors.text.primary : olyColors.text.secondary}
           />
+          {/* Glowing blue dot under the active tab, as on the canvas. */}
+          <View style={[styles.activeDot, !focused && styles.activeDotOff]} />
         </Pressable>
       );
     },
@@ -120,30 +109,22 @@ function TabsWithLoader() {
         screenOptions={{
           headerShown: false,
           sceneStyle: { backgroundColor: olyPalette.background },
-          /* `height` on a tab bar is the TOTAL, and react-navigation adds
-             the bottom safe-area inset INSIDE it. Setting height alone to
-             68 therefore left a content box of 68 minus the inset, about
-             34 on a notched phone, and the glyphs centred in that — high
-             up, with the whole home-indicator strip empty beneath them.
-             Which is exactly what raising the number from 58 failed to fix.
-
-             Both values are stated here instead. The content box is
-             TAB_BAR_HEIGHT whatever the device, and the inset sits below
-             it as its own reserved strip. */
+          /* Floating glass pill (Feed A and the Shop on the canvas).
+             Screens scroll under it; give lists ~120 of bottom padding. */
           tabBarStyle: isTabBarVisible
             ? {
-                height: TAB_BAR_HEIGHT + insets.bottom,
-                paddingBottom: insets.bottom,
-                backgroundColor: olyColors.bg.page,
-                borderTopWidth: StyleSheet.hairlineWidth,
-                borderTopColor: olyColors.border.hairline,
-                elevation: 0,
-                shadowOpacity: 0,
-                /* No radius, no side borders, no margins. A bar flush with
-                   the screen edge is the edge of the app, and an edge does
-                   not need an outline to say so. */
+                position: "absolute",
+                marginHorizontal: olySpacing[16],
+                bottom: Math.max(insets.bottom - 10, 12),
+                height: 64,
+                paddingBottom: 0,
                 paddingTop: 0,
-                paddingHorizontal: 0,
+                paddingHorizontal: 4,
+                borderRadius: olyRadius.full,
+                backgroundColor: "transparent",
+                borderTopWidth: 0,
+                elevation: 0,
+                ...olyShadow.float,
               }
             : { display: "none" },
           /* The outer wrapper only. The glyph is centred by the button
@@ -159,6 +140,9 @@ function TabsWithLoader() {
             padding: 0,
           },
           tabBarShowLabel: false,
+          tabBarBackground: () => (
+            <Glass radius={olyRadius.full} style={StyleSheet.absoluteFill} />
+          ),
           animation: "none",
         }}
       >
@@ -187,7 +171,7 @@ function TabsWithLoader() {
         {/* Training is hidden for the MVP and returns in v2. Route stays, tab is hidden. */}
         <Tabs.Screen name="workout" options={{ href: null }} />
 
-        {/* The old centre FAB. Posting lives in the Home header now. */}
+        {/* Upload route stays, tab is hidden. Posting lives in the Home header. */}
         <Tabs.Screen name="upload" options={{ href: null }} />
 
       </Tabs>
@@ -205,4 +189,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  activeDot: {
+    position: "absolute",
+    bottom: 9,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: olyPalette.primary,
+    ...olyGlow.sm,
+  },
+  activeDotOff: { opacity: 0 },
 });

@@ -1,3 +1,4 @@
+import { Glows } from "@/src/oly-components/shop/ShopKit";
 import {
   FOLLOWING,
   initials,
@@ -5,7 +6,7 @@ import {
   useThreads,
   type Person,
 } from "@/src/oly-mock/messages";
-import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olyColors } from "@/src/oly-theme/oly-colors";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
 import { olyFonts, olyLetterSpacing, olyTypography } from "@/src/oly-theme/oly-typography";
@@ -21,6 +22,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { OlyFloatingHeader, useFloatingHeader } from "@/src/oly-components/organisms/OlyFloatingHeader";
 import Svg, { Circle, Path } from "react-native-svg";
 
 /**
@@ -35,6 +37,7 @@ import Svg, { Circle, Path } from "react-native-svg";
 export default function NewMessage() {
   const threads = useThreads();
   const [q, setQ] = useState("");
+  const { headerH, onLayout: onHeaderLayout } = useFloatingHeader(140);
 
   const recent = useMemo(
     () =>
@@ -59,9 +62,18 @@ export default function NewMessage() {
   };
 
   return (
-    <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
+    <View style={styles.root}>
+    <Glows variant="shop" />
+    <SafeAreaView style={styles.screen} edges={["bottom"]}>
+      {/* Title + search float over the list, with a fade behind. */}
+      <OlyFloatingHeader onLayout={onHeaderLayout}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={12} accessibilityRole="button">
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={2}
+          style={({ pressed }) => [styles.cancelBtn, pressed && styles.pressed]}
+          accessibilityRole="button"
+        >
           <Text style={styles.cancel}>Cancel</Text>
         </Pressable>
         <Text style={styles.title}>New message</Text>
@@ -77,16 +89,19 @@ export default function NewMessage() {
           value={q}
           onChangeText={setQ}
           placeholder="Search athletes"
-          placeholderTextColor={olyColors.text.disabled}
+          placeholderTextColor={olyColors.text.hint}
           style={styles.searchInput}
           autoCorrect={false}
           autoCapitalize="none"
           returnKeyType="search"
         />
       </View>
+      </OlyFloatingHeader>
 
       <FlatList
         data={people}
+        contentContainerStyle={{ paddingTop: headerH }}
+        scrollIndicatorInsets={{ top: headerH }}
         keyExtractor={(p) => p.id}
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
@@ -123,7 +138,7 @@ export default function NewMessage() {
         renderItem={({ item: p }) => (
           <Pressable
             onPress={() => open(p)}
-            style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}
+            style={({ pressed }) => [styles.row, pressed && styles.pressed]}
             accessibilityRole="button"
           >
             <View style={styles.avatar}>
@@ -140,73 +155,97 @@ export default function NewMessage() {
         )}
       />
     </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: olyColors.bg.page },
+  root: { flex: 1, backgroundColor: olyColors.bg.page },
+  screen: { flex: 1, backgroundColor: "transparent" },
+  pressed: { opacity: 0.7 },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: olyLayout.screenPadding,
-    paddingVertical: olySpacing[12],
+    paddingVertical: olySpacing[8],
   },
-  cancel: { ...olyTypography.body, color: olyColors.text.secondary },
-  title: { ...olyTypography.body, fontFamily: olyFonts.medium, color: olyColors.text.primary },
-  spacer: { width: 52 },
+  cancelBtn: {
+    minWidth: 80,
+    height: 40,
+    paddingHorizontal: olySpacing[16],
+    borderRadius: olyRadius.full,
+    backgroundColor: olyColors.glass.control,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cancel: { ...olyTypography.label, color: olyColors.text.primary },
+  title: { ...olyTypography.body, fontFamily: olyFonts.bold, color: olyColors.text.primary },
+  spacer: { width: 80 },
   search: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: olySpacing[8],
     marginHorizontal: olyLayout.screenPadding,
     marginTop: olySpacing[4],
     marginBottom: olySpacing[20],
     minHeight: olyLayout.minTouchTarget,
-    paddingHorizontal: olySpacing[16],
+    paddingHorizontal: 18,
     borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.card,
+    backgroundColor: olyColors.glass.inset,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
   },
   searchInput: { ...olyTypography.body, flex: 1, color: olyColors.text.primary },
   section: {
     ...olyTypography.caption,
-    color: olyColors.text.disabled,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.hint,
     letterSpacing: olyLetterSpacing.uppercase,
     paddingHorizontal: olyLayout.screenPadding,
     marginBottom: olySpacing[8],
   },
   recentRow: { gap: olySpacing[16], paddingHorizontal: olyLayout.screenPadding, paddingBottom: olySpacing[20] },
-  recentItem: { width: 64, alignItems: "center", gap: 6 },
+  recentItem: { width: 64, alignItems: "center", gap: olySpacing[8] },
   recentAvatar: {
     width: 56,
     height: 56,
     borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.cardElevated,
+    backgroundColor: olyColors.bg.avatar,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  recentInitials: { ...olyTypography.body, fontFamily: olyFonts.medium, color: olyColors.text.secondary },
+  recentInitials: { ...olyTypography.body, fontFamily: olyFonts.medium, color: olyColors.text.primary },
   recentName: { ...olyTypography.caption, color: olyColors.text.secondary },
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: olySpacing[12],
+    minHeight: 56,
     paddingHorizontal: olyLayout.screenPadding,
-    paddingVertical: 10,
+    paddingVertical: olySpacing[12],
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: olyColors.glass.rule,
   },
   avatar: {
     width: 44,
     height: 44,
     borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.cardElevated,
+    backgroundColor: olyColors.bg.avatar,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarText: { ...olyTypography.label, color: olyColors.text.secondary },
+  avatarText: { ...olyTypography.label, color: olyColors.text.primary },
   rowText: { flex: 1, minWidth: 0 },
-  name: { ...olyTypography.body, fontFamily: olyFonts.medium, color: olyColors.text.primary },
+  name: { ...olyTypography.body, fontFamily: olyFonts.bold, color: olyColors.text.primary },
   sub: { ...olyTypography.caption, color: olyColors.text.secondary },
-  rank: { ...olyTypography.caption, fontFamily: olyFonts.medium, color: olyColors.text.secondary },
+  rank: { ...olyTypography.caption, fontFamily: olyFonts.medium, color: olyColors.text.hint },
   empty: {
     ...olyTypography.bodySmall,
     color: olyColors.text.secondary,

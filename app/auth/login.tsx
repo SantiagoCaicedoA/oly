@@ -9,6 +9,7 @@
  * All logic/API calls untouched from Abdul's implementation.
  */
 
+import { onboardingStyles } from "@/src/oly-components/onboarding/onboarding-styles";
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
 import { OlyFormField } from "@/src/oly-components/molecules/OlyFormField";
 import { OlyScreenWrapper } from "@/src/oly-components/organisms/OlyScreenWrapper";
@@ -17,9 +18,9 @@ import { useToast } from "@/context/toast-context";
 import { useLoginMutation } from "@/store/api";
 import { loginSuccess } from "@/store/reducer/authSlice";
 import { LoginPayload, LoginValues } from "@/types/api/auth";
-import { olyTypography } from "@/src/oly-theme/oly-typography";
+import { olyFonts, olyTypography } from "@/src/oly-theme/oly-typography";
 import { olyColors } from "@/src/oly-theme/oly-colors";
-import { olySpacing } from "@/src/oly-theme/oly-spacing";
+import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
 import { loginSchema } from "@/utils/validation-schemas";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { router } from "expo-router";
@@ -74,9 +75,8 @@ export default function Login() {
 
     try {
       const result = await login(payload).unwrap();
-      console.log("result", JSON.stringify(result, null, 2));
 
-      showSuccess("Login Successfull", "Welcome back!");
+      showSuccess("Login successful", "Welcome back!");
       dispatch(
         loginSuccess({
           user: result.data,
@@ -180,8 +180,8 @@ export default function Login() {
           />
 
           <View style={styles.rowContainer}>
-            <Text style={styles.footerText}>Don't have an account?</Text>
-            <TouchableOpacity onPress={handleSignUpPress}>
+            <Text style={styles.footerText}>Don&apos;t have an account?</Text>
+            <TouchableOpacity onPress={handleSignUpPress} style={styles.footerLinkHit}>
               <Text style={styles.footerLink}>Sign up</Text>
             </TouchableOpacity>
           </View>
@@ -205,23 +205,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   titleBlock: {
-    marginTop: 24,
+    marginTop: olySpacing[24],
     marginBottom: olySpacing[32],
   },
-  title: {
-    ...olyTypography.title1,
-    color: olyColors.text.primary,
-  },
-  subtitle: {
-    ...olyTypography.body,
-    color: olyColors.text.secondary,
-    marginTop: olySpacing[4],
-  },
+  title: onboardingStyles.title,
+  subtitle: onboardingStyles.subtitle,
   fieldContainer: {
     gap: olySpacing[16],
   },
   forgotContainer: {
     alignSelf: "flex-end",
+    minHeight: olyLayout.minTouchTarget,
+    justifyContent: "center",
+    paddingLeft: olySpacing[8],
   },
   forgotText: {
     ...olyTypography.bodySmall,
@@ -234,27 +230,22 @@ const styles = StyleSheet.create({
   rowContainer: {
     flexDirection: "row",
     gap: olySpacing[8],
-    marginTop: olySpacing[16],
+    marginTop: olySpacing[8],
     justifyContent: "center",
+    alignItems: "center",
   },
   footerText: {
     ...olyTypography.bodySmall,
     color: olyColors.text.secondary,
   },
+  footerLinkHit: {
+    minHeight: olyLayout.minTouchTarget,
+    justifyContent: "center",
+  },
   footerLink: {
     ...olyTypography.bodySmall,
-    fontFamily: "Ubuntu-Medium",
+    fontFamily: olyFonts.medium,
     color: olyColors.text.primary,
   },
-  loaderContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: olyColors.bg.overlay,
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 999,
-  },
+  loaderContainer: onboardingStyles.loaderOverlay,
 });

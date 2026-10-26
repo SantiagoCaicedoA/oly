@@ -8,22 +8,19 @@
  * Abdul's submission logic unchanged.
  */
 
+import { onboardingStyles } from "@/src/oly-components/onboarding/onboarding-styles";
 import { olyAlert } from "@/src/oly-components/feedback/OlyAlert";
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
 import { OlyScreenWrapper } from "@/src/oly-components/organisms/OlyScreenWrapper";
 import { useSubmitProfileMutation } from "@/store/api";
 import { setUser } from "@/store/reducer/authSlice";
 import { selectOnboardingData } from "@/store/reducer/onboardingSlice";
-import { RootState } from "@/store/store";
 import { OnboardingApiPayload } from "@/types/api/onboarding";
-import {
-  olyTypography,
-  olyFonts,
-  olyLetterSpacing,
-} from "@/src/oly-theme/oly-typography";
-import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olyTypography, olyFonts } from "@/src/oly-theme/oly-typography";
+import { olyColors } from "@/src/oly-theme/oly-colors";
 import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
+import { olyGlow } from "@/src/oly-theme/oly-elevation";
 import { getFilteredFacts } from "./loading-facts";
 import { router } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -43,14 +40,6 @@ const MONTHS_SHORT = [
   "", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
-
-const TRAINING_PHASE_LABELS: Record<string, string> = {
-  starting_fresh: "Starting fresh",
-  in_training_block: "In a training block",
-  post_competition: "Post-competition",
-  deload_recovery: "Deload / Recovery",
-  coming_back: "Coming back from injury",
-};
 
 const CURRENT_TRAINING_LABELS: Record<string, string> = {
   coming_back: "Coming back",
@@ -109,7 +98,6 @@ export default function OnboardingScreen8() {
   const allData = useSelector(selectOnboardingData);
   const [submitProfile, { isLoading }] = useSubmitProfileMutation();
   const dispatch = useDispatch();
-  const token = useSelector((state: RootState) => state.auth.token);
 
   /* ── Loading screen: fun facts + progress bar ── */
   const facts = useMemo(
@@ -184,19 +172,6 @@ export default function OnboardingScreen8() {
   );
 
   const isCompeting = allData?.preparing_for_competition === true;
-
-  const durationLabel = useMemo(() => {
-    const d = allData?.duration;
-    if (!d) return "";
-    return `${d} min sessions`;
-  }, [allData?.duration]);
-
-  const trainingSchedulePills = useMemo(() => {
-    const pills: string[] = [];
-    if (allData?.days_per_week) pills.push(`${allData.days_per_week} days/wk`);
-    if (allData?.duration) pills.push(`${allData.duration} min sessions`);
-    return pills;
-  }, [allData?.days_per_week, allData?.duration]);
 
   const restDayNames = useMemo(() => {
     const days = allData?.rest_days;
@@ -461,10 +436,10 @@ export default function OnboardingScreen8() {
             resizeMode="contain"
           />
           <Text style={styles.heroTitle} maxFontSizeMultiplier={1.2}>
-            {firstName}, you're all set
+            {firstName}, you&apos;re all set
           </Text>
           <Text style={styles.heroSubtitle} maxFontSizeMultiplier={1.5}>
-            Here's a summary of your training profile.{"\n"}You can update any of this in settings.
+            Here&apos;s a summary of your training profile.{"\n"}You can update any of this in settings.
           </Text>
         </View>
 
@@ -492,33 +467,37 @@ export default function OnboardingScreen8() {
         <View style={styles.sectionBlock}>
           <Text style={styles.sectionLabel}>YOUR PLAN</Text>
 
-          {/* Training schedule */}
-          {allData?.days_per_week && (
-            <View style={styles.dataRow}>
-              <Text style={styles.dataLabel}>Training</Text>
-              <Text style={styles.dataValue}>
-                {allData.days_per_week} days/wk · {allData.duration} min
-              </Text>
-            </View>
-          )}
+          <View style={styles.group}>
+            <View style={styles.groupInner}>
+              {/* Training schedule */}
+              {allData?.days_per_week && (
+                <View style={styles.dataRow}>
+                  <Text style={styles.dataLabel}>Training</Text>
+                  <Text style={styles.dataValue}>
+                    {allData.days_per_week} days/wk · {allData.duration} min
+                  </Text>
+                </View>
+              )}
 
-          {/* Rest days */}
-          {restDayNames.length > 0 && (
-            <View style={styles.dataRow}>
-              <Text style={styles.dataLabel}>Rest days</Text>
-              <Text style={styles.dataValue}>
-                {restDayNames.join(", ")}
-              </Text>
-            </View>
-          )}
+              {/* Rest days */}
+              {restDayNames.length > 0 && (
+                <View style={styles.dataRow}>
+                  <Text style={styles.dataLabel}>Rest days</Text>
+                  <Text style={styles.dataValue}>
+                    {restDayNames.join(", ")}
+                  </Text>
+                </View>
+              )}
 
-          {/* Starting point */}
-          {phaseLabel ? (
-            <View style={styles.dataRow}>
-              <Text style={styles.dataLabel}>Starting point</Text>
-              <Text style={styles.dataValue}>{phaseLabel}</Text>
+              {/* Starting point */}
+              {phaseLabel ? (
+                <View style={styles.dataRow}>
+                  <Text style={styles.dataLabel}>Starting point</Text>
+                  <Text style={styles.dataValue}>{phaseLabel}</Text>
+                </View>
+              ) : null}
             </View>
-          ) : null}
+          </View>
         </View>
 
         {/* ── Equipment pills ── */}
@@ -539,21 +518,23 @@ export default function OnboardingScreen8() {
         {gapsByCategory.length > 0 && (
           <View style={styles.sectionBlock}>
             <Text style={styles.sectionLabel}>FOCUS AREAS</Text>
-            {gapsByCategory.map((cat, idx) => (
-              <View key={cat.label}>
-                <Text style={styles.gapCategoryLabel}>{cat.label}</Text>
-                <View style={styles.pillRow}>
-                  {cat.gaps.map((gap) => (
-                    <View key={gap} style={styles.infoPill}>
-                      <Text style={styles.infoPillText}>{gap}</Text>
-                    </View>
-                  ))}
+            <View style={styles.card}>
+              {gapsByCategory.map((cat, idx) => (
+                <View key={cat.label}>
+                  <Text style={styles.gapCategoryLabel}>{cat.label}</Text>
+                  <View style={styles.pillRow}>
+                    {cat.gaps.map((gap) => (
+                      <View key={gap} style={styles.infoPill}>
+                        <Text style={styles.infoPillText}>{gap}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  {idx < gapsByCategory.length - 1 && (
+                    <View style={styles.divider} />
+                  )}
                 </View>
-                {idx < gapsByCategory.length - 1 && (
-                  <View style={styles.divider} />
-                )}
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
         )}
 
@@ -609,28 +590,22 @@ const styles = StyleSheet.create({
   progressBarTrack: {
     width: "100%",
     height: 3,
-    backgroundColor: olyPalette.card,
+    backgroundColor: olyColors.glass.idle,
     borderRadius: olyRadius.full,
     overflow: "hidden",
     marginBottom: olySpacing[40],
   },
   progressBarFill: {
     height: "100%",
-    backgroundColor: olyPalette.primary,
+    backgroundColor: olyColors.glass.glow,
     borderRadius: olyRadius.full,
+    ...olyGlow.sm,
   },
   factContainer: {
     alignItems: "center",
     paddingHorizontal: olySpacing[8],
   },
-  factLabel: {
-    ...olyTypography.caption,
-    fontFamily: olyFonts.medium,
-    color: olyColors.text.disabled,
-    letterSpacing: olyLetterSpacing.uppercase,
-    textTransform: "uppercase",
-    marginBottom: olySpacing[8],
-  },
+  factLabel: onboardingStyles.sectionLabel,
   factText: {
     ...olyTypography.bodySmall,
     color: olyColors.text.secondary,
@@ -651,6 +626,7 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     ...olyTypography.title1,
+    fontFamily: olyFonts.bold,
     color: olyColors.text.primary,
     textAlign: "center",
   },
@@ -666,20 +642,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: olyColors.bg.activeHighlight,
+    backgroundColor: olyColors.glass.accentFill,
     borderWidth: 1,
-    borderColor: olyPalette.primary,
-    borderRadius: olyRadius.lg,
-    paddingHorizontal: olySpacing[16],
-    paddingVertical: olySpacing[16],
-    marginBottom: olySpacing[24],
+    borderColor: olyColors.glass.accentBorder,
+    borderRadius: olyRadius.xl,
+    padding: olyLayout.cardPadding,
   },
   compCardLeft: {
     flex: 1,
   },
   compName: {
     ...olyTypography.body,
-    fontFamily: olyFonts.medium,
+    fontFamily: olyFonts.bold,
     color: olyColors.text.primary,
   },
   compDate: {
@@ -693,6 +667,7 @@ const styles = StyleSheet.create({
   },
   weeksNumber: {
     ...olyTypography.display,
+    fontFamily: olyFonts.bold,
     color: olyColors.text.primary,
   },
   weeksLabel: {
@@ -704,14 +679,27 @@ const styles = StyleSheet.create({
   /* Sections */
   sectionBlock: {
     marginTop: olySpacing[24],
-    gap: olySpacing[8],
   },
-  sectionLabel: {
-    ...olyTypography.label,
-    color: olyColors.text.secondary,
-    letterSpacing: olyLetterSpacing.uppercase,
-    textTransform: "uppercase",
-    marginBottom: olySpacing[8],
+  sectionLabel: onboardingStyles.sectionLabel,
+
+  /* Cards */
+  card: {
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
+    borderRadius: olyRadius.xl,
+    padding: olyLayout.cardPadding,
+  },
+  /* Grouped list — rows carry a top rule; the inner offset clips the first one */
+  group: {
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
+    borderRadius: olyRadius.tile,
+    overflow: "hidden",
+  },
+  groupInner: {
+    marginTop: -1,
   },
 
   /* Data rows — Apple Health style: label left, value right */
@@ -719,9 +707,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: olySpacing[12],
+    minHeight: olyLayout.minTouchTarget,
+    paddingHorizontal: olyLayout.cardPadding,
     paddingVertical: olySpacing[12],
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: olyColors.border.default,
+    borderTopWidth: 1,
+    borderTopColor: olyColors.glass.rule,
   },
   dataLabel: {
     ...olyTypography.bodySmall,
@@ -742,10 +733,10 @@ const styles = StyleSheet.create({
     gap: olySpacing[8],
   },
   infoPill: {
-    backgroundColor: olyPalette.card,
+    backgroundColor: olyColors.glass.card,
     borderRadius: olyRadius.full,
     borderWidth: 1,
-    borderColor: olyColors.border.default,
+    borderColor: olyColors.glass.border,
     paddingHorizontal: olySpacing[12],
     paddingVertical: olySpacing[4],
   },
@@ -762,18 +753,13 @@ const styles = StyleSheet.create({
     marginBottom: olySpacing[8],
   },
   divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: olyColors.border.default,
+    height: 1,
+    backgroundColor: olyColors.glass.rule,
     marginVertical: olySpacing[12],
   },
 
   /* Bottom buttons */
-  bottomButtons: {
-    flexDirection: "row",
-    gap: olySpacing[12],
-    paddingTop: olySpacing[40],
-    marginTop: "auto" as const,
-  },
+  bottomButtons: onboardingStyles.bottomButtons,
   backButton: {
     flex: 0,
     paddingHorizontal: olySpacing[24],

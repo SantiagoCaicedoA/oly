@@ -10,6 +10,8 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { olyColors, olyPalette } from '@/src/oly-theme/oly-colors';
+import { olyRadius } from '@/src/oly-theme/oly-radius';
+import { olyFonts } from '@/src/oly-theme/oly-typography';
 
 const NAV_BAR_HEIGHT = 56;
 const MIN_TOUCH = 44;
@@ -45,11 +47,9 @@ export const OlyNavBar: React.FC<OlyNavBarProps> = ({
             accessibilityLabel="Go back"
             hitSlop={{ top: 8, bottom: 8, right: 16 }}
           >
-            <Ionicons
-              name="chevron-back"
-              size={24}
-              color={tintColor}
-            />
+            <View style={styles.backDisc}>
+              <Ionicons name="chevron-back" size={20} color={tintColor} />
+            </View>
           </Pressable>
         ) : null}
       </View>
@@ -61,7 +61,7 @@ export const OlyNavBar: React.FC<OlyNavBarProps> = ({
         ) : title ? (
           <Text
             style={{
-              fontFamily: 'Ubuntu-Medium',
+              fontFamily: olyFonts.bold,
               fontSize: 18,
               lineHeight: 24,
               color: olyColors.text.primary,
@@ -93,7 +93,7 @@ export const OlyNavBar: React.FC<OlyNavBarProps> = ({
             ) : (
               <Text
                 style={{
-                  fontFamily: 'Ubuntu-Medium',
+                  fontFamily: olyFonts.medium,
                   fontSize: 14,
                   lineHeight: 20,
                   letterSpacing: 0.4,
@@ -136,7 +136,18 @@ const styles = StyleSheet.create({
     minWidth: MIN_TOUCH,
     minHeight: MIN_TOUCH,
     justifyContent: 'center',
-    alignItems: 'flex-start',   // chevron hugs the left edge
+    alignItems: 'flex-start',   // disc hugs the left edge
+  },
+  /* Same glass circle as every other back and close button. */
+  backDisc: {
+    width: 40,
+    height: 40,
+    borderRadius: olyRadius.full,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   rightButton: {
     minWidth: MIN_TOUCH,

@@ -4,6 +4,9 @@
  *
  * Seeds the onboarding slice from the server, renders OnboardingScreen6
  * in settings mode, and pushes the result back as a partial update.
+ * The picked meet arrives as competition_name plus the date fields, so
+ * the payload is unchanged. Sex and bodyweight are seeded only so the
+ * screen can show the weight class; they are not sent from here.
  *
  * weight_class matters beyond prep: it is the class shown against a
  * provisional board entry, so a wrong value here puts an athlete on the
@@ -14,10 +17,12 @@ import { olyAlert } from "@/src/oly-components/feedback/OlyAlert";
 import OnboardingScreen6 from "@/app/auth/onboarding/onboarding-screen6";
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
 import { OlyScreenWrapper } from "@/src/oly-components/organisms/OlyScreenWrapper";
+import { OlyFloatingHeader, useFloatingHeader } from "@/src/oly-components/organisms/OlyFloatingHeader";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
 import {
+  olyFonts,
   olyLetterSpacing,
   olyTypography,
 } from "@/src/oly-theme/oly-typography";
@@ -44,8 +49,10 @@ export default function SettingsCompetition() {
   const [submitProfile, submitState] = useSubmitProfileMutation();
   const onboardingData = useSelector(selectOnboardingData);
   const [ready, setReady] = useState(false);
+  const { headerH, onLayout: onHeaderLayout } = useFloatingHeader(160);
 
-  const comp = profileQ.data?.data?.profile?.competition;
+  const p = profileQ.data?.data?.profile;
+  const comp = p?.competition;
 
   // Seed once from the server. ISO 'YYYY-MM-DD' splits into the three
   // picker fields; months are stored unpadded in the slice ("1".."12").
@@ -73,10 +80,13 @@ export default function SettingsCompetition() {
         weight_class: comp?.weight_class ?? "",
         target_total:
           comp?.target_total != null ? String(comp.target_total) : "",
+        sex: p?.sex ?? "",
+        weight: p?.bodyweight_value != null ? String(p.bodyweight_value) : "",
+        weightUnit: p?.bodyweight_unit === "lbs" ? "LB" : "KG",
       }),
     );
     setReady(true);
-  }, [profileQ.data, comp, dispatch]);
+  }, [profileQ.data, p, comp, dispatch]);
 
   const onSave = async () => {
     const d = onboardingData ?? {};
@@ -92,9 +102,7 @@ export default function SettingsCompetition() {
                 ).padStart(2, "0")}`
               : undefined,
           weight_class: d.weight_class || undefined,
-          target_total: d.target_total
-            ? parseFloat(d.target_total)
-            : undefined,
+          target_total: d.target_total ? parseFloat(d.target_total) : undefined,
         }
       : { preparing: false };
 
@@ -111,6 +119,8 @@ export default function SettingsCompetition() {
 
   return (
     <OlyScreenWrapper padded={false}>
+      {/* Nav + title float over the form, with a fade behind. */}
+      <OlyFloatingHeader safeTop={false} onLayout={onHeaderLayout}>
       <View style={styles.nav}>
         <Pressable
           onPress={() => router.back()}
@@ -121,30 +131,32 @@ export default function SettingsCompetition() {
         >
           <Ionicons
             name="chevron-back"
-            size={22}
-            color={olyColors.text.secondary as string}
+            size={20}
+            color={olyColors.text.primary as string}
           />
         </Pressable>
         <Text style={styles.navTitle}>COMPETITION</Text>
-        <View style={styles.navBtn} />
+        <View style={styles.navSpacer} />
       </View>
+      {!(profileQ.isLoading || !ready) && (
+      <View style={styles.titleBlock}>
+        <Text style={styles.title} maxFontSizeMultiplier={1.2}>
+          Your next meet
+        </Text>
+        <Text style={styles.subtitle} maxFontSizeMultiplier={1.5}>
+          Countdown, weight class and what the day pays.
+        </Text>
+      </View>
+      )}
+      </OlyFloatingHeader>
 
       {profileQ.isLoading || !ready ? (
-        <View style={styles.loading}>
+        <View style={[styles.loading, { paddingTop: headerH }]}>
           <ActivityIndicator color={olyPalette.white} />
         </View>
       ) : (
         <View style={styles.body}>
-          <View style={styles.titleBlock}>
-            <Text style={styles.title} maxFontSizeMultiplier={1.2}>
-              Competition
-            </Text>
-            <Text style={styles.subtitle} maxFontSizeMultiplier={1.5}>
-              Your weight class decides which board you appear on.
-            </Text>
-          </View>
-
-          <OnboardingScreen6 mode="settings" />
+          <OnboardingScreen6 mode="settings" topInset={headerH} />
 
           <View style={styles.saveBar}>
             <OlyButton
@@ -168,18 +180,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: olyLayout.screenPadding,
+    paddingVertical: olySpacing[8],
     minHeight: olyLayout.navBarHeight,
   },
+  /* 40pt glass circle; hitSlop 8 takes the target to 56. */
   navBtn: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
     borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.card,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     alignItems: "center",
     justifyContent: "center",
   },
+  navSpacer: { width: 40, height: 40 },
   navTitle: {
     ...olyTypography.label,
+    fontFamily: olyFonts.bold,
     color: olyColors.text.primary,
     letterSpacing: olyLetterSpacing.uppercase,
     textTransform: "uppercase",
@@ -187,10 +205,18 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
     paddingHorizontal: olyLayout.screenPadding,
-    paddingTop: olySpacing[16],
   },
-  titleBlock: { marginBottom: olySpacing[16] },
-  title: { ...olyTypography.title1, color: olyColors.text.primary },
+  /* Lives in the floating header, so it pads itself. */
+  titleBlock: {
+    paddingHorizontal: olyLayout.screenPadding,
+    paddingTop: olySpacing[16],
+    paddingBottom: olySpacing[16],
+  },
+  title: {
+    ...olyTypography.title1,
+    fontFamily: olyFonts.bold,
+    color: olyColors.text.primary,
+  },
   subtitle: {
     ...olyTypography.body,
     color: olyColors.text.secondary,

@@ -7,13 +7,10 @@
  * Abdul's data flow is unchanged — dispatches to onboardingSlice.
  */
 
+import { onboardingStyles } from "@/src/oly-components/onboarding/onboarding-styles";
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
-import {
-  olyTypography,
-  olyFonts,
-  olyLetterSpacing,
-} from "@/src/oly-theme/oly-typography";
-import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olyTypography, olyFonts } from "@/src/oly-theme/oly-typography";
+import { olyColors } from "@/src/oly-theme/oly-colors";
 import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import {
@@ -399,23 +396,13 @@ const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1 },
 
   /* Title */
-  titleBlock: { marginBottom: olySpacing[20] },
-  title: { ...olyTypography.title1, color: olyColors.text.primary },
-  subtitle: {
-    ...olyTypography.body,
-    color: olyColors.text.secondary,
-    marginTop: olySpacing[4],
-  },
+  titleBlock: onboardingStyles.titleBlock,
+  title: onboardingStyles.title,
+  subtitle: onboardingStyles.subtitle,
 
   /* Form */
   formGroup: { gap: olySpacing[24] },
-  sectionLabel: {
-    ...olyTypography.label,
-    color: olyColors.text.secondary,
-    letterSpacing: olyLetterSpacing.uppercase,
-    textTransform: "uppercase",
-    marginBottom: olySpacing[8],
-  },
+  sectionLabel: onboardingStyles.sectionLabel,
 
   /* Training days circles */
   daysRow: {
@@ -426,25 +413,23 @@ const styles = StyleSheet.create({
     width: olyLayout.inputHeight,
     height: olyLayout.inputHeight,
     borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.card,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  dayCircleActive: {
-    backgroundColor: olyColors.bg.activeHighlight,
-    borderWidth: 1,
-    borderColor: olyPalette.primary,
-  },
+  dayCircleActive: onboardingStyles.selected,
   dayCircleText: {
     ...olyTypography.body,
     fontFamily: olyFonts.medium,
-    color: olyColors.text.primary,
+    color: olyColors.text.secondary,
   },
   dayCircleTextActive: {
-    color: olyPalette.white,
+    color: olyColors.text.primary,
   },
 
-  /* Session duration — 2x2 pill grid */
+  /* Option pill grid (duration, current training, recovery) */
   durationGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -454,22 +439,20 @@ const styles = StyleSheet.create({
     width: "48%",
     height: olyLayout.minTouchTarget,
     borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.card,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  durationPillActive: {
-    backgroundColor: olyColors.bg.activeHighlight,
-    borderWidth: 1,
-    borderColor: olyPalette.primary,
-  },
+  durationPillActive: onboardingStyles.selected,
   durationText: {
     ...olyTypography.body,
     fontFamily: olyFonts.medium,
-    color: olyColors.text.primary,
+    color: olyColors.text.secondary,
   },
   durationTextActive: {
-    color: olyPalette.white,
+    color: olyColors.text.primary,
   },
 
   /* Rest day pills */
@@ -482,37 +465,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: olySpacing[16],
     height: olyLayout.minTouchTarget,
     borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.card,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  restDayPillActive: {
-    backgroundColor: olyColors.bg.activeHighlight,
-    borderWidth: 1,
-    borderColor: olyPalette.primary,
-  },
+  restDayPillActive: onboardingStyles.selected,
   restDayPillDisabled: {
-    opacity: 0.3,
+    backgroundColor: olyColors.glass.control,
   },
   restDayText: {
     ...olyTypography.bodySmall,
     fontFamily: olyFonts.medium,
-    color: olyColors.text.primary,
+    color: olyColors.text.secondary,
   },
   restDayTextActive: {
-    color: olyPalette.white,
+    color: olyColors.text.primary,
   },
   restDayTextDisabled: {
     color: olyColors.text.disabled,
   },
 
   /* Bottom buttons */
-  bottomButtons: {
-    flexDirection: "row",
-    gap: olySpacing[12],
-    paddingTop: olySpacing[40],
-    marginTop: "auto" as const,
-  },
+  bottomButtons: onboardingStyles.bottomButtons,
   halfButton: {
     flex: 1,
   },

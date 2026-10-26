@@ -2,9 +2,10 @@ import { Images } from "@/assets";
 import CustomButton from "@/constants/custom-button";
 import ActionButtonsRow from "@/constants/custom-row-buttons";
 import { olyTypography, olyFonts, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
-import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olyColors } from "@/src/oly-theme/oly-colors";
 import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
+import { GorhomSheetBackground, gorhomSheet } from "@/src/oly-components/shop/GorhomSheet";
 import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
 import React, { forwardRef, useMemo, useRef, useState } from "react";
@@ -102,8 +103,9 @@ const TimerBottomSheet = forwardRef<BottomSheetModal, Props>(
       <BottomSheetModal
         ref={ref}
         snapPoints={snapPoints}
-        backgroundStyle={{ backgroundColor: olyPalette.card }}
-        handleIndicatorStyle={{ backgroundColor: olyColors.text.disabled }}
+        style={gorhomSheet.inset}
+        backgroundComponent={GorhomSheetBackground}
+        handleIndicatorStyle={gorhomSheet.handle}
       >
         <BottomSheetView style={styles.contentContainer}>
           <TouchableWithoutFeedback
@@ -289,4 +291,5 @@ const styles = StyleSheet.create({
   },
 });
 
+TimerBottomSheet.displayName = "TimerBottomSheet";
 export default TimerBottomSheet;

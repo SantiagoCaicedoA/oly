@@ -2,7 +2,7 @@
  * OlyFormField — Label + input + error wrapper
  * Source: Design Bible v3.0, Section 8.2 Form Field
  *
- * Label: oly-label (14px Medium, ALL-CAPS)
+ * Label: glass kicker (caption, ALL-CAPS, tracked 1.5)
  * Label → input gap: 8px
  * Input → error gap: 4px
  *
@@ -13,7 +13,7 @@ import React from "react";
 import { StyleSheet, Text, TextInputProps, View, ViewStyle } from "react-native";
 
 import { olyColors } from "@/src/oly-theme/oly-colors";
-import { olyTypography, olyLetterSpacing, olyMaxFontScale } from "@/src/oly-theme/oly-typography";
+import { olyTypography, olyMaxFontScale } from "@/src/oly-theme/oly-typography";
 import { olySpacing } from "@/src/oly-theme/oly-spacing";
 import { OlyTextInput } from "@/src/oly-components/atoms/OlyTextInput";
 
@@ -60,9 +60,9 @@ export const OlyFormField: React.FC<OlyFormFieldProps> = ({
 // ─── Styles ──────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   label: {
-    ...olyTypography.label,
+    ...olyTypography.caption,
     color: olyColors.text.secondary,
-    letterSpacing: olyLetterSpacing.uppercase,
+    letterSpacing: 1.5,
     textTransform: "uppercase",
   },
   inputContainer: {

@@ -1,4 +1,4 @@
-import OlyLoader from "@/components/oly-loader";
+import OlyLoader, { HOLD_MS, SWEEP_MS } from "@/components/oly-loader";
 import { olyPalette } from "@/src/oly-theme/oly-colors";
 import React, {
   createContext,
@@ -16,8 +16,10 @@ import Animated, { FadeOut } from "react-native-reanimated";
  * (Home / Workout / Rank / Analytics).
  *
  * Rules:
- * - always visible for at least MIN_MS (so one full flash is seen)
- * - never longer than CAP_MS...
+ * - always visible for at least one full sweep of the shine
+ * - it only ever fades out between sweeps, never with the shine halfway
+ *   across the logo
+ * - never longer than CAP_MS (snapped to the end of a sweep)...
  * - ...unless a screen reports real in-flight loading via begin()/end(),
  *   in which case it stays until the data actually arrives.
  *
@@ -25,8 +27,15 @@ import Animated, { FadeOut } from "react-native-reanimated";
  *   const { begin, end } = useTabLoader();
  *   useEffect(() => { begin(); fetch().finally(end); }, []);
  */
-const MIN_MS = 900;
-const CAP_MS = 2000;
+const MIN_MS = SWEEP_MS;
+const CAP_MS = 2400;
+const CYCLE_MS = SWEEP_MS + HOLD_MS;
+
+/** How long until the shine currently crossing the logo has left it. */
+const untilSweepEnds = (elapsed: number) => {
+  const p = elapsed % CYCLE_MS;
+  return p < SWEEP_MS ? SWEEP_MS - p : 0;
+};
 
 type TabLoaderApi = {
   /** Show the loader (called on tab press / initial open). */
@@ -64,10 +73,11 @@ export function TabLoaderProvider({ children }: { children: React.ReactNode }) {
   const tryHide = useCallback(() => {
     const elapsed = Date.now() - shownAt.current;
     if (pending.current > 0) return; // real work still in flight
-    if (elapsed >= MIN_MS) {
+    const wait = elapsed < MIN_MS ? MIN_MS - elapsed : untilSweepEnds(elapsed);
+    if (wait <= 0) {
       hide();
     } else {
-      timers.current.push(setTimeout(tryHide, MIN_MS - elapsed));
+      timers.current.push(setTimeout(tryHide, wait));
     }
   }, [hide]);
 
@@ -80,10 +90,10 @@ export function TabLoaderProvider({ children }: { children: React.ReactNode }) {
     // hard cap: never longer than CAP_MS unless real work is pending
     timers.current.push(
       setTimeout(() => {
-        if (pending.current === 0) hide();
+        if (pending.current === 0) tryHide();
       }, CAP_MS)
     );
-  }, [hide, tryHide]);
+  }, [tryHide]);
 
   const begin = useCallback(() => {
     pending.current += 1;

@@ -9,8 +9,16 @@
  *
  * Design: canvas "Messages / Send sheet".
  */
-import type { LiftRef } from "@/src/oly-mock/messages";
+import {
+  SHEET_SIDE,
+  SheetBackdrop,
+  SheetGrabber,
+  SheetSurface,
+} from "@/src/oly-components/shop/ShopKit";
+import { fmtDuration, tileMarks } from "@/src/oly-components/media/MediaPickerSheet";
+import { mockSendLifts, type LiftRef } from "@/src/oly-mock/messages";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olyGlow } from "@/src/oly-theme/oly-elevation";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
 import {
@@ -40,22 +48,11 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const GAP = 6;
-const TILE_W = (Dimensions.get("window").width - olyLayout.screenPadding * 2 - GAP * 2) / 3;
+const INNER_W = Dimensions.get("window").width - SHEET_SIDE * 2 - olyLayout.screenPadding * 2;
+const TILE_W = (INNER_W - GAP * 2) / 3;
 const TILE_H = TILE_W * 1.25;
 const ROLL_GAP = 4;
-const ROLL_W = (Dimensions.get("window").width - olyLayout.screenPadding * 2 - ROLL_GAP * 2) / 3;
-
-const dur = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
-
-/** Shown when the athlete has no posts yet, so the tab can still be tested. */
-const SAMPLE_LIFTS: LiftRef[] = [
-  { kg: 150, lift: "Clean & Jerk", date: "Sep 27" },
-  { kg: 120, lift: "Snatch", date: "Sep 27" },
-  { kg: 190, lift: "Back Squat", date: "Sep 24" },
-  { kg: 147, lift: "Clean & Jerk", date: "Sep 13" },
-  { kg: 100, lift: "Power Snatch", date: "Sep 10" },
-  { kg: 140, lift: "Clean & Jerk", date: "May 10" },
-];
+const ROLL_W = (INNER_W - ROLL_GAP * 2) / 3;
 
 const fmt = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -115,7 +112,7 @@ export function SendSheet({ visible, onClose, onSendLift, onSendMedia }: Props) 
         videoUrl: p.video_url,
         thumbnailUrl: (p as any).thumbnail_url,
       }));
-    return real.length ? real : SAMPLE_LIFTS;
+    return real.length ? real : mockSendLifts();
   }, [postsQ.data]);
 
   const reset = () => {
@@ -188,14 +185,15 @@ export function SendSheet({ visible, onClose, onSendLift, onSendMedia }: Props) 
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={close}>
-      <Pressable style={styles.backdrop} onPress={close} accessibilityLabel="Close" />
-      <View style={[styles.sheet, { paddingBottom: insets.bottom + olySpacing[8] }]}>
-        <View style={styles.handle} />
+      <SheetBackdrop onPress={close} />
+      <SheetSurface style={[styles.sheet, { paddingBottom: insets.bottom + olySpacing[8] }]}>
+        <SheetGrabber />
         <View style={styles.head}>
           <Text style={styles.title}>Send</Text>
           <Pressable
             onPress={close}
             style={styles.close}
+            hitSlop={4}
             accessibilityRole="button"
             accessibilityLabel="Close"
           >
@@ -209,6 +207,7 @@ export function SendSheet({ visible, onClose, onSendLift, onSendMedia }: Props) 
               key={t}
               onPress={() => setTab(t)}
               style={[styles.tab, tab === t && styles.tabOn]}
+              hitSlop={{ top: 3, bottom: 3 }}
             >
               <Text style={[styles.tabText, tab === t && styles.tabTextOn]}>
                 {t === "lifts" ? "Oly lifts" : "Camera roll"}
@@ -239,7 +238,7 @@ export function SendSheet({ visible, onClose, onSendLift, onSendMedia }: Props) 
                     pointerEvents="none"
                   />
                   {on && (
-                    <View style={styles.check}>
+                    <View style={tileMarks.check}>
                       <OlyIcon name="check" size={14} color={olyColors.text.onAccent} />
                     </View>
                   )}
@@ -265,12 +264,12 @@ export function SendSheet({ visible, onClose, onSendLift, onSendMedia }: Props) 
                   {perm.accessPrivileges === "limited" && (
                     <Pressable
                       onPress={() => MediaLibrary.presentPermissionsPickerAsync()}
-                      hitSlop={8}
+                      hitSlop={14}
                     >
                       <Text style={styles.rollLink}>Add more</Text>
                     </Pressable>
                   )}
-                  <Pressable onPress={openRoll} hitSlop={8}>
+                  <Pressable onPress={openRoll} hitSlop={14}>
                     <Text style={styles.rollLink}>All photos</Text>
                   </Pressable>
                 </View>
@@ -296,15 +295,15 @@ export function SendSheet({ visible, onClose, onSendLift, onSendMedia }: Props) 
                         {a.mediaType === "video" && (
                           <View style={styles.dur}>
                             <OlyIcon name="play" size={10} color={olyColors.media.ink} />
-                            <Text style={styles.durText}>{dur(a.duration)}</Text>
+                            <Text style={styles.durText}>{fmtDuration(a.duration)}</Text>
                           </View>
                         )}
                         {on ? (
-                          <View style={styles.num}>
+                          <View style={tileMarks.check}>
                             <Text style={styles.numText}>{n + 1}</Text>
                           </View>
                         ) : (
-                          <View style={styles.ring} />
+                          <View style={tileMarks.ring} />
                         )}
                       </Pressable>
                     );
@@ -326,7 +325,7 @@ export function SendSheet({ visible, onClose, onSendLift, onSendMedia }: Props) 
                     {perm.canAskAgain ? "Allow access" : "Open Settings"}
                   </Text>
                 </Pressable>
-                <Pressable onPress={openRoll} hitSlop={8}>
+                <Pressable onPress={openRoll} hitSlop={14}>
                   <Text style={styles.rollLink}>All photos</Text>
                 </Pressable>
               </View>
@@ -338,7 +337,7 @@ export function SendSheet({ visible, onClose, onSendLift, onSendMedia }: Props) 
           value={note}
           onChangeText={setNote}
           placeholder="Add a message"
-          placeholderTextColor={olyColors.text.disabled}
+          placeholderTextColor={olyColors.text.hint}
           style={styles.input}
         />
         {tab === "roll" && perm?.granted && (
@@ -365,81 +364,68 @@ export function SendSheet({ visible, onClose, onSendLift, onSendMedia }: Props) 
             </Text>
           </Pressable>
         )}
-      </View>
+      </SheetSurface>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: olyColors.bg.overlay },
   sheet: {
-    backgroundColor: olyPalette.card,
-    borderTopLeftRadius: olyRadius.lg,
-    borderTopRightRadius: olyRadius.lg,
+    position: "absolute",
+    left: SHEET_SIDE,
+    right: SHEET_SIDE,
+    bottom: 0,
     paddingTop: olySpacing[12],
     paddingHorizontal: olyLayout.screenPadding,
   },
-  handle: {
-    alignSelf: "center",
-    width: 36,
-    height: 4,
-    borderRadius: olyRadius.sm,
-    backgroundColor: olyColors.text.disabled,
-    marginBottom: olySpacing[16],
-  },
   head: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  title: { ...olyTypography.body, fontFamily: olyFonts.medium, color: olyColors.text.primary },
+  title: { fontFamily: olyFonts.bold, fontSize: 20, lineHeight: 26, color: olyColors.text.primary },
   close: {
-    width: 32,
-    height: 32,
+    width: 36,
+    height: 36,
     borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.cardElevated,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     alignItems: "center",
     justifyContent: "center",
   },
   tabs: {
     flexDirection: "row",
-    padding: olySpacing[4],
+    padding: 3,
     marginTop: olySpacing[12],
     marginBottom: olySpacing[16],
     borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.background,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
   },
   tab: {
     flex: 1,
-    minHeight: 36,
+    minHeight: 38,
     borderRadius: olyRadius.full,
     alignItems: "center",
     justifyContent: "center",
   },
-  tabOn: { backgroundColor: olyPalette.primary },
+  tabOn: { backgroundColor: olyColors.glass.selected },
   tabText: { ...olyTypography.label, color: olyColors.text.secondary },
-  tabTextOn: { color: olyColors.text.onAccent },
+  tabTextOn: { color: olyColors.text.primary },
   gridScroll: { maxHeight: TILE_H * 2 + GAP + 2 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: GAP },
   tile: {
     width: TILE_W,
     height: TILE_H,
-    borderRadius: 10,
+    borderRadius: olyRadius.inner,
     overflow: "hidden",
-    backgroundColor: olyPalette.cardElevated,
+    backgroundColor: olyColors.glass.media,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     justifyContent: "flex-end",
     paddingHorizontal: olySpacing[8],
     paddingBottom: 6,
   },
   tileOn: { borderWidth: 2, borderColor: olyColors.accent },
   scrim: { position: "absolute", left: 0, right: 0, bottom: 0, height: "50%" },
-  check: {
-    position: "absolute",
-    top: 6,
-    right: 6,
-    width: 22,
-    height: 22,
-    borderRadius: olyRadius.full,
-    backgroundColor: olyColors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   tileKg: {
     fontFamily: olyFonts.bold,
     fontSize: 18,
@@ -453,7 +439,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: olySpacing[16],
-    marginBottom: olySpacing[8] + 2,
+    marginBottom: olySpacing[12],
   },
   rollHint: { ...olyTypography.caption, color: olyColors.text.secondary, flex: 1 },
   rollLink: { ...olyTypography.caption, fontFamily: olyFonts.medium, color: olyColors.text.primary },
@@ -462,9 +448,11 @@ const styles = StyleSheet.create({
   rollTile: {
     width: ROLL_W,
     height: ROLL_W,
-    borderRadius: olySpacing[8],
+    borderRadius: olyRadius.inner,
     overflow: "hidden",
-    backgroundColor: olyPalette.cardElevated,
+    backgroundColor: olyColors.glass.media,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
   },
   dur: {
     position: "absolute",
@@ -475,29 +463,7 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   durText: { ...olyTypography.caption, fontFamily: olyFonts.medium, color: olyColors.media.ink },
-  num: {
-    position: "absolute",
-    top: 6,
-    right: 6,
-    width: 22,
-    height: 22,
-    borderRadius: olyRadius.full,
-    backgroundColor: olyColors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   numText: { ...olyTypography.caption, fontFamily: olyFonts.bold, color: olyColors.text.onAccent },
-  ring: {
-    position: "absolute",
-    top: 6,
-    right: 6,
-    width: 22,
-    height: 22,
-    borderRadius: olyRadius.full,
-    borderWidth: 1.5,
-    borderColor: olyColors.media.ring,
-    backgroundColor: olyColors.media.chipFaint,
-  },
   roll: {
     alignItems: "center",
     gap: olySpacing[12],
@@ -516,6 +482,7 @@ const styles = StyleSheet.create({
     backgroundColor: olyPalette.primary,
     alignItems: "center",
     justifyContent: "center",
+    ...olyGlow.md,
   },
   rollBtnText: { ...olyTypography.label, color: olyColors.text.onAccent },
   input: {
@@ -523,24 +490,31 @@ const styles = StyleSheet.create({
     color: olyColors.text.primary,
     minHeight: olyLayout.minTouchTarget,
     marginTop: olySpacing[20],
-    paddingHorizontal: olySpacing[16],
+    paddingHorizontal: 18,
     borderRadius: olyRadius.full,
+    backgroundColor: olyColors.glass.inset,
     borderWidth: 1,
-    borderColor: olyColors.border.default,
+    borderColor: olyColors.glass.border,
   },
   send: {
     minHeight: 48,
-    marginTop: olySpacing[8] + 2,
+    marginTop: olySpacing[12],
     borderRadius: olyRadius.full,
     backgroundColor: olyPalette.primary,
     alignItems: "center",
     justifyContent: "center",
+    ...olyGlow.md,
   },
-  sendOff: { backgroundColor: olyColors.button.disabled.bg },
+  sendOff: {
+    backgroundColor: olyColors.glass.control,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
+    shadowOpacity: 0,
+  },
   sendText: {
     ...olyTypography.button,
     color: olyColors.text.onAccent,
     letterSpacing: olyLetterSpacing.uppercase,
   },
-  sendTextOff: { color: olyColors.button.disabled.text },
+  sendTextOff: { color: olyColors.text.disabled },
 });

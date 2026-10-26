@@ -10,11 +10,13 @@
 
 import { olyAlert } from "@/src/oly-components/feedback/OlyAlert";
 import { OlyScreenWrapper } from "@/src/oly-components/organisms/OlyScreenWrapper";
+import { OlyFloatingHeader, useFloatingHeader } from "@/src/oly-components/organisms/OlyFloatingHeader";
 import { OlySettingsRow } from "@/src/oly-components/molecules/OlySettingsRow";
-import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olyColors } from "@/src/oly-theme/oly-colors";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
 import {
+  olyFonts,
   olyLetterSpacing,
   olyTypography,
 } from "@/src/oly-theme/oly-typography";
@@ -23,13 +25,7 @@ import { logout } from "@/store/reducer/authSlice";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useDispatch } from "react-redux";
 
 type SettingsRowDef = {
@@ -65,6 +61,7 @@ const ACCOUNT_ROWS: SettingsRowDef[] = [
 export default function Settings() {
   const dispatch = useDispatch();
   const [deleteAccount, deleteState] = useDeleteAccountMutation();
+  const { headerH, onLayout: onHeaderLayout } = useFloatingHeader(72);
 
   const onLogout = () => {
     olyAlert("Log out", "You'll need to sign in again.", [
@@ -130,7 +127,8 @@ export default function Settings() {
 
   return (
     <OlyScreenWrapper padded={false}>
-      {/* nav */}
+      {/* nav: floats over the list, with a fade behind */}
+      <OlyFloatingHeader safeTop={false} onLayout={onHeaderLayout}>
       <View style={styles.nav}>
         <Pressable
           onPress={() => router.back()}
@@ -141,19 +139,21 @@ export default function Settings() {
         >
           <Ionicons
             name="chevron-back"
-            size={22}
-            color={olyColors.text.secondary as string}
+            size={20}
+            color={olyColors.text.primary as string}
           />
         </Pressable>
 
         <Text style={styles.navTitle}>SETTINGS</Text>
 
         {/* spacer keeps the title optically centred */}
-        <View style={styles.navBtn} />
+        <View style={styles.navSpacer} />
       </View>
+      </OlyFloatingHeader>
 
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, { paddingTop: headerH + olySpacing[8] }]}
+        scrollIndicatorInsets={{ top: headerH }}
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.sectionLabel}>ACCOUNT</Text>
@@ -188,7 +188,7 @@ export default function Settings() {
             icon="trash-outline"
             showChevron={false}
             onPress={deleteState.isLoading ? undefined : onDeleteAccount}
-            style={styles.destructiveRow}
+            destructive
           />
         </View>
 
@@ -207,51 +207,59 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: olyLayout.screenPadding,
+    paddingVertical: olySpacing[8],
     minHeight: olyLayout.navBarHeight,
   },
+  /* 40pt glass circle; hitSlop 8 takes the target to 56. */
   navBtn: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
     borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.card,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     alignItems: "center",
     justifyContent: "center",
   },
+  navSpacer: { width: 40, height: 40 },
   navTitle: {
     ...olyTypography.label,
+    fontFamily: olyFonts.bold,
     color: olyColors.text.primary,
     letterSpacing: olyLetterSpacing.uppercase,
     textTransform: "uppercase",
   },
   scroll: {
     paddingHorizontal: olyLayout.screenPadding,
-    paddingTop: olySpacing[24],
     paddingBottom: olySpacing[40],
   },
   sectionLabel: {
-    ...olyTypography.label,
+    ...olyTypography.caption,
     color: olyColors.text.secondary,
     textTransform: "uppercase",
-    letterSpacing: olyLetterSpacing.uppercase,
+    letterSpacing: 1.5,
+    marginTop: olySpacing[24],
     marginBottom: olyLayout.sectionHeaderGap,
   },
   card: {
-    backgroundColor: olyPalette.card,
-    borderRadius: olyRadius.lg,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
+    borderRadius: olyRadius.tile,
     overflow: "hidden",
-    marginBottom: olySpacing[24],
+    marginBottom: olySpacing[12],
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: olyColors.border.default,
+    backgroundColor: olyColors.glass.rule,
   },
-  destructiveRow: { opacity: 1 },
   rowDisabled: {
     opacity: 0.55,
   },
   footnote: {
     ...olyTypography.caption,
-    color: olyColors.text.secondary,
+    color: olyColors.text.hint,
     paddingHorizontal: olySpacing[4],
+    marginTop: olySpacing[12],
   },
 });

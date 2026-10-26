@@ -7,13 +7,10 @@
  * Abdul's data flow is unchanged — dispatches to onboardingSlice.
  */
 
+import { onboardingStyles } from "@/src/oly-components/onboarding/onboarding-styles";
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
-import {
-  olyTypography,
-  olyFonts,
-  olyLetterSpacing,
-} from "@/src/oly-theme/oly-typography";
-import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olyTypography } from "@/src/oly-theme/oly-typography";
+import { olyColors } from "@/src/oly-theme/oly-colors";
 import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { useToast } from "@/context/toast-context";
@@ -70,7 +67,7 @@ const IMPACT_OPTIONS = ["Mild", "Moderate", "High"] as const;
 
 const WHEN_TO_SHOW_OPTIONS: Record<
   string,
-  Array<{ label: string; value: string }>
+  { label: string; value: string }[]
 > = {
   "Lower back": [
     { label: "Off the floor", value: "Off the floor" },
@@ -505,26 +502,16 @@ export default function OnboardingScreen3({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContent: { flexGrow: 1 },
+  scrollContent: { flexGrow: 1, paddingBottom: olySpacing[24] },
 
   /* Title */
-  titleBlock: { marginBottom: olySpacing[20] },
-  title: { ...olyTypography.title1, color: olyColors.text.primary },
-  subtitle: {
-    ...olyTypography.body,
-    color: olyColors.text.secondary,
-    marginTop: olySpacing[4],
-  },
+  titleBlock: onboardingStyles.titleBlock,
+  title: onboardingStyles.title,
+  subtitle: onboardingStyles.subtitle,
 
   /* Form */
   formGroup: { gap: olySpacing[24] },
-  sectionLabel: {
-    ...olyTypography.label,
-    color: olyColors.text.secondary,
-    letterSpacing: olyLetterSpacing.uppercase,
-    textTransform: "uppercase",
-    marginBottom: olySpacing[8],
-  },
+  sectionLabel: onboardingStyles.sectionLabel,
 
   /* Pill grid (all controls) */
   pillGrid: {
@@ -534,23 +521,22 @@ const styles = StyleSheet.create({
   },
   pillButton: {
     width: "48%",
-    height: olyLayout.minTouchTarget,
+    minHeight: olyLayout.minTouchTarget,
+    paddingHorizontal: olySpacing[12],
     borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.card,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  pillButtonActive: {
-    backgroundColor: olyColors.bg.activeHighlight,
-    borderWidth: 1,
-    borderColor: olyPalette.primary,
-  },
+  pillButtonActive: onboardingStyles.selected,
   pillText: {
     ...olyTypography.label,
-    color: olyColors.text.primary,
+    color: olyColors.text.secondary,
   },
   pillTextActive: {
-    color: olyPalette.white,
+    color: olyColors.text.primary,
   },
 
   /* Impact row — 3 pills in a row */
@@ -560,20 +546,18 @@ const styles = StyleSheet.create({
   },
   impactPill: {
     flex: 1,
-    height: olyLayout.minTouchTarget,
+    minHeight: olyLayout.minTouchTarget,
+    paddingHorizontal: olySpacing[8],
     borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.card,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     alignItems: "center",
     justifyContent: "center",
   },
 
   /* Bottom buttons */
-  bottomButtons: {
-    flexDirection: "row",
-    gap: olySpacing[12],
-    paddingTop: olySpacing[40],
-    marginTop: "auto" as const,
-  },
+  bottomButtons: onboardingStyles.bottomButtons,
   halfButton: {
     flex: 1,
   },

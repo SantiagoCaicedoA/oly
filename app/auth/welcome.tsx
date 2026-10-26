@@ -2,7 +2,7 @@
  * Welcome / Landing Screen
  *
  * First screen users see. Shows OLY logo, tagline,
- * Sign Up (gradient) and Log In (outlined) buttons.
+ * Sign Up (primary, glowing) and Log In (glass) buttons.
  *
  * Figma: Login Screen (node 3591-1116)
  */
@@ -14,17 +14,17 @@ import {
   Text,
   View,
 } from 'react-native';
-import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
-import { Keyframe } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeIn, Keyframe, useReducedMotion } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 import { olyColors, olyPalette } from '@/src/oly-theme/oly-colors';
-import { olyTypography, olyLetterSpacing } from '@/src/oly-theme/oly-typography';
-import { olySpacing } from '@/src/oly-theme/oly-spacing';
+import { olyFonts, olyTypography, olyLetterSpacing } from '@/src/oly-theme/oly-typography';
+import { olyLayout, olySpacing } from '@/src/oly-theme/oly-spacing';
 import { olyRadius } from '@/src/oly-theme/oly-radius';
+import { olyGlow } from '@/src/oly-theme/oly-elevation';
+import { Glows } from '@/src/oly-components/shop/ShopKit';
 
 /* ── entrance animations ──────────────────────────────── */
 
@@ -32,22 +32,6 @@ const logoEntering = new Keyframe({
   0: { opacity: 0, transform: [{ scale: 0.92 }] },
   100: { opacity: 1, transform: [{ scale: 1 }] },
 }).duration(700);
-
-/* ── gradients from Figma ───────────────────────────────── */
-
-const BG_GRADIENT = {
-  colors: ['#1A2533', '#0F1A24', '#1E3348', '#0C1620'] as const,
-  locations: [0, 0.3, 0.6, 1] as [number, number, number, number],
-  start: { x: 0.5, y: 0 },
-  end: { x: 0.5, y: 1 },
-};
-
-const SIGNUP_GRADIENT = {
-  colors: ['#0058CC', '#004AAD', '#003D8F'] as const,
-  locations: [0, 0.4, 1] as [number, number, number],
-  start: { x: 0, y: 0.5 },
-  end: { x: 1, y: 0.5 },
-};
 
 /* ── component ──────────────────────────────────────────── */
 
@@ -68,13 +52,8 @@ export default function Welcome() {
     <>
       <Stack.Screen options={{ gestureEnabled: false }} />
 
-      <LinearGradient
-        colors={BG_GRADIENT.colors}
-        locations={BG_GRADIENT.locations}
-        start={BG_GRADIENT.start}
-        end={BG_GRADIENT.end}
-        style={styles.gradient}
-      >
+      <View style={styles.root}>
+        <Glows variant="shop" />
         <SafeAreaView style={styles.safe}>
           {/* ── Logo + tagline (centered) ── */}
           <View style={styles.centerContent}>
@@ -98,28 +77,21 @@ export default function Welcome() {
             entering={reduceMotion ? undefined : FadeIn.duration(500).delay(500)}
             style={styles.bottomSection}
           >
-            {/* Sign Up — gradient button */}
+            {/* Sign Up — primary button */}
             <Pressable
               onPress={handleSignUp}
               style={({ pressed }) => [
                 styles.buttonBase,
+                styles.signUpButton,
                 pressed && { opacity: 0.85 },
               ]}
               accessibilityRole="button"
               accessibilityLabel="Sign up"
             >
-              <LinearGradient
-                colors={SIGNUP_GRADIENT.colors}
-                locations={SIGNUP_GRADIENT.locations}
-                start={SIGNUP_GRADIENT.start}
-                end={SIGNUP_GRADIENT.end}
-                style={styles.signUpGradient}
-              >
-                <Text style={styles.signUpText}>SIGN UP</Text>
-              </LinearGradient>
+              <Text style={styles.signUpText}>SIGN UP</Text>
             </Pressable>
 
-            {/* Log In — outlined button */}
+            {/* Log In — glass button */}
             <Pressable
               onPress={handleLogIn}
               style={({ pressed }) => [
@@ -145,7 +117,7 @@ export default function Welcome() {
             </Text>
           </Animated.View>
         </SafeAreaView>
-      </LinearGradient>
+      </View>
     </>
   );
 }
@@ -153,12 +125,14 @@ export default function Welcome() {
 /* ── styles ─────────────────────────────────────────────── */
 
 const styles = StyleSheet.create({
-  gradient: {
+  root: {
     flex: 1,
+    backgroundColor: olyColors.bg.page,
   },
   safe: {
     flex: 1,
-    paddingHorizontal: olySpacing[16],
+    backgroundColor: 'transparent',
+    paddingHorizontal: olyLayout.screenPadding,
   },
   centerContent: {
     flex: 1,
@@ -183,34 +157,32 @@ const styles = StyleSheet.create({
   /* ── buttons ── */
   buttonBase: {
     width: '100%',
-    borderRadius: olyRadius.lg,
-    overflow: 'hidden',
-  },
-  signUpGradient: {
-    height: 52,
-    borderRadius: olyRadius.lg,
+    height: olyLayout.inputHeight,
+    borderRadius: olyRadius.full,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: olySpacing[16],
   },
+  signUpButton: {
+    backgroundColor: olyPalette.primary,
+    ...olyGlow.md,
+  },
   signUpText: {
     ...olyTypography.button,
-    color: olyColors.text.primary,
+    fontFamily: olyFonts.bold,
+    color: olyColors.text.onBrand,
     letterSpacing: olyLetterSpacing.uppercase,
     textTransform: 'uppercase',
   },
   logInButton: {
-    height: 54,
-    backgroundColor: olyPalette.card,
+    backgroundColor: olyColors.glass.control,
     borderWidth: 1,
-    borderColor: olyColors.button.disabled.bg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: olySpacing[16],
+    borderColor: olyColors.glass.border,
   },
   logInText: {
     ...olyTypography.button,
-    color: olyColors.text.secondary,
+    fontFamily: olyFonts.bold,
+    color: olyColors.text.primary,
     letterSpacing: olyLetterSpacing.uppercase,
     textTransform: 'uppercase',
   },

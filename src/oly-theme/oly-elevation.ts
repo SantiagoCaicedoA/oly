@@ -22,13 +22,9 @@
  *                                                Separate with a divider or
  *                                                spacing; active lifts to L2.
  *
- * There is no level 3 and there are no shadows.
- *
- * NOTE: olyElevation.level1 has no `borderWidth` or `borderColor` key, and it
- * never did — nine call sites in app/athlete/post-expanded.tsx read them and
- * silently got `undefined`. Under this model no border is the CORRECT result,
- * so those reads are now harmless, but they should be deleted rather than left
- * looking intentional.
+ * There is no level 3. The one exception to "no shadows" is olyGlow below:
+ * glass screens light blue elements from within, and olyShadow.float lifts
+ * the floating tab bar.
  */
 
 import { olyPalette, olyColors } from "./oly-colors";
@@ -50,11 +46,6 @@ export const olyElevation = {
   },
 } as const;
 
-// ─── Overlay ─────────────────────────────────────────────────────
-
-/** Behind bottom sheets and modals */
-export const olyOverlay = "rgba(0, 0, 0, 0.4)";
-
 // ─── Separator ───────────────────────────────────────────────────
 
 /**
@@ -64,4 +55,36 @@ export const olyOverlay = "rgba(0, 0, 0, 0.4)";
 export const olyHairline = {
   height: 1,
   backgroundColor: olyColors.border.default,
+} as const;
+
+// ─── Glow (glass screens) ────────────────────────────────────────
+
+/**
+ * Brand-blue light around an element. Spread into a style:
+ * `{ backgroundColor: olyPalette.primary, ...olyGlow.md }`.
+ *   sm — dots, progress fills, meters, checks
+ *   md — buttons, hot chips, badges
+ *   lg — sticky bars and large icon discs
+ */
+const glowOf = (shadowOpacity: number, shadowRadius: number) => ({
+  shadowColor: olyPalette.primary,
+  shadowOpacity,
+  shadowRadius,
+  shadowOffset: { width: 0, height: 0 },
+});
+
+export const olyGlow = {
+  sm: glowOf(0.8, 6),
+  md: glowOf(0.6, 14),
+  lg: glowOf(0.45, 18),
+} as const;
+
+/** Lifts a floating element (the tab bar) off the screen. */
+export const olyShadow = {
+  float: {
+    shadowColor: olyPalette.black,
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+  },
 } as const;

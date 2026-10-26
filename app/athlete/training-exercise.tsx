@@ -32,11 +32,13 @@ import {
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { OlyFloatingHeader, useFloatingHeader } from "@/src/oly-components/organisms/OlyFloatingHeader";
 import { useDispatch, useSelector } from "react-redux";
 
 export default function TrainingExercise() {
   const dispatch = useDispatch();
   const { showSuccess, showError } = useToast();
+  const { headerH, onLayout: onHeaderLayout } = useFloatingHeader(100);
   const [checkedSetNumbers, setCheckedSetNumbers] = useState<Set<number>>(
     new Set(),
   );
@@ -133,7 +135,7 @@ export default function TrainingExercise() {
       showSuccess("Set Added Successfully", "");
     } catch (e) {
       showError("Failed To Add Set", "Error");
-      console.log("error", e);
+      console.error("Add set error:", e);
     }
   };
 
@@ -161,10 +163,13 @@ export default function TrainingExercise() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <BottomSheetModalProvider>
-        <SafeAreaView style={styles.container}>
-          {/* ── Header — back nav ── */}
+        <SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
+          {/* ── Header + rest strip float over the scroll, with a fade behind ── */}
+          <OlyFloatingHeader onLayout={onHeaderLayout}>
           <View style={styles.header}>
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Back"
               onPress={handleBackPress}
               hitSlop={olySpacing[8]}
               style={styles.backButton}
@@ -203,9 +208,11 @@ export default function TrainingExercise() {
               </View>
             </TouchableOpacity>
           )}
+          </OlyFloatingHeader>
 
           <ScrollView
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[styles.scrollContent, { paddingTop: headerH }]}
+            scrollIndicatorInsets={{ top: headerH }}
             showsVerticalScrollIndicator={false}
           >
             {/* ── Exercise Title + Icons ── */}
@@ -216,7 +223,12 @@ export default function TrainingExercise() {
                 </Text>
                 <View style={styles.titleIcons}>
                   {!isTimerActive && (
-                    <TouchableOpacity hitSlop={olySpacing[8]} onPress={handleStartTimer}>
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      accessibilityLabel="Start rest timer"
+                      hitSlop={11}
+                      onPress={handleStartTimer}
+                    >
                       <Ionicons
                         name="time-outline"
                         size={22}
@@ -224,7 +236,11 @@ export default function TrainingExercise() {
                       />
                     </TouchableOpacity>
                   )}
-                  <TouchableOpacity hitSlop={olySpacing[8]}>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="More options"
+                    hitSlop={11}
+                  >
                     <Ionicons
                       name="ellipsis-horizontal"
                       size={22}

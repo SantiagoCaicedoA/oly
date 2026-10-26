@@ -15,6 +15,8 @@ export default function AthleteLayout() {
       <Stack.Screen name="post-expanded" />
       <Stack.Screen name="chat" />
       <Stack.Screen name="message-requests" />
+      <Stack.Screen name="wallet" />
+      <Stack.Screen name="how-olys" options={{ animation: "slide_from_bottom" }} />
       <Stack.Screen name="new-message" options={{ animation: "slide_from_bottom" }} />
       <Stack.Screen name="daily-check-in" />
       <Stack.Screen name="training-exercise" />

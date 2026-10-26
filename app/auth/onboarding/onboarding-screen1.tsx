@@ -9,10 +9,19 @@
  * onboardingSlice, image upload via useUploadProfileImageMutation.
  */
 
+import { onboardingStyles } from "@/src/oly-components/onboarding/onboarding-styles";
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
 import { OlyFormField } from "@/src/oly-components/molecules/OlyFormField";
 import { olyTypography, olyFonts, olyLetterSpacing } from "@/src/oly-theme/oly-typography";
-import { olyColors, olyPalette, olyGradient } from "@/src/oly-theme/oly-colors";
+import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olyGlow } from "@/src/oly-theme/oly-elevation";
+import {
+  Glows,
+  SHEET_SIDE,
+  SheetBackdrop,
+  SheetGrabber,
+  SheetSurface,
+} from "@/src/oly-components/shop/ShopKit";
 import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { useToast } from "@/context/toast-context";
@@ -23,15 +32,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as ImagePicker from "expo-image-picker";
+import { MediaPickerSheet } from "@/src/oly-components/media/MediaPickerSheet";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   ActivityIndicator,
-  Alert,
-  Dimensions,
   FlatList,
   Image,
-  Keyboard,
   KeyboardAvoidingView,
   Modal,
   NativeScrollEvent,
@@ -69,6 +76,8 @@ interface OnboardingScreen1Props {
   name?: string;
   email?: string;
   mode?: "onboarding" | "settings";
+  /** Settings only. Height of the floating header above, so content starts below it and scrolls under its fade. */
+  topInset?: number;
 }
 
 /* ── Exposure card data ────────────────────────────────── */
@@ -152,6 +161,9 @@ const MONTHS = [
   { value: "12", short: "Dec", long: "December", num: "12" },
 ];
 
+/** One row of the DOB wheels. */
+const DOB_ITEM_HEIGHT = olyLayout.minTouchTarget;
+
 const currentYear = new Date().getFullYear();
 const MIN_AGE = 10;
 const MAX_AGE = 110;
@@ -178,6 +190,7 @@ export default function OnboardingScreen1({
   onComplete,
   name: authName,
   mode = "onboarding",
+  topInset = 0,
 }: OnboardingScreen1Props) {
   const isSettings = mode === "settings";
   const dispatch = useDispatch();
@@ -193,7 +206,6 @@ export default function OnboardingScreen1({
   const [imageLoading, setImageLoading] = useState(false);
   const [countryModalVisible, setCountryModalVisible] = useState(false);
   const [countrySearch, setCountrySearch] = useState("");
-  const [sexModalVisible, setSexModalVisible] = useState(false);
   const [heightInches, setHeightInches] = useState(
     onboardingData?.heightInches || ""
   );
@@ -287,8 +299,6 @@ export default function OnboardingScreen1({
   }, [navigationRef, isSettings, dispatch, onboardingData, heightInches]);
 
   // DOB wheel picker data
-  const DOB_ITEM_HEIGHT = olyLayout.minTouchTarget;
-  const DOB_VISIBLE_ITEMS = 5;
 
   const dayItems = useMemo(() => {
     const max = getDaysInMonth(
@@ -362,7 +372,42 @@ export default function OnboardingScreen1({
     }
   }, [dayItems.length, tempDay]);
 
-  const handleImagePick = async () => {
+  /* Profile photo: Oly's own picker first, the system picker (with its
+     square crop) behind "All photos". Both end in the same upload. */
+  const [photoSheet, setPhotoSheet] = useState(false);
+
+  const uploadPhoto = async (uri: string, mimeType?: string | null) => {
+    setImageLoading(true);
+    try {
+      // The upload endpoint expects multipart form data with an "image"
+      // field — a bare { uri } object uploads nothing and 400s.
+      const formData = new FormData();
+      formData.append("image", {
+        uri,
+        type: mimeType ?? "image/jpeg",
+        name: "profile.jpg",
+      } as any);
+
+      const uploadResult = await uploadProfileImage(formData).unwrap();
+
+      setProfileImage(uploadResult.url);
+      dispatch(
+        saveOnboardingData({
+          ...onboardingData,
+          photo_url: uploadResult.url,
+        })
+      );
+      showToast("Profile image updated", "success");
+    } catch {
+      showToast("Failed to upload image", "error");
+    } finally {
+      setImageLoading(false);
+    }
+  };
+
+  const handleImagePick = () => setPhotoSheet(true);
+
+  const pickFromSystem = async () => {
     try {
       const permissionResult =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -380,34 +425,9 @@ export default function OnboardingScreen1({
 
       if (!result.canceled) {
         const selectedAsset = result.assets[0];
-        setImageLoading(true);
-        try {
-          // The upload endpoint expects multipart form data with an "image"
-          // field — a bare { uri } object uploads nothing and 400s.
-          const formData = new FormData();
-          formData.append("image", {
-            uri: selectedAsset.uri,
-            type: selectedAsset.mimeType ?? "image/jpeg",
-            name: "profile.jpg",
-          } as any);
-
-          const uploadResult = await uploadProfileImage(formData).unwrap();
-
-          setProfileImage(uploadResult.url);
-          dispatch(
-            saveOnboardingData({
-              ...onboardingData,
-              photo_url: uploadResult.url,
-            })
-          );
-          showToast("Profile image updated", "success");
-        } catch (error) {
-          showToast("Failed to upload image", "error");
-        } finally {
-          setImageLoading(false);
-        }
+        await uploadPhoto(selectedAsset.uri, selectedAsset.mimeType);
       }
-    } catch (error) {
+    } catch {
       showToast("Error picking image", "error");
     }
   };
@@ -430,7 +450,10 @@ export default function OnboardingScreen1({
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.container}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          contentContainerStyle={[styles.scrollContent, topInset > 0 && { paddingTop: topInset }]}
+          scrollIndicatorInsets={{ top: topInset }}
+        >
           {/* Title Block */}
           {!isSettings && (
           <View style={styles.titleBlock}>
@@ -448,6 +471,8 @@ export default function OnboardingScreen1({
             <Pressable
               onPress={handleImagePick}
               disabled={imageLoading}
+              accessibilityRole="button"
+              accessibilityLabel={profileImage ? "Change profile photo" : "Add profile photo"}
               style={({ pressed }) => [
                 styles.profileImageButton,
                 pressed && { opacity: 0.6 },
@@ -469,7 +494,7 @@ export default function OnboardingScreen1({
               )}
               {/* Blue + badge */}
               <View style={styles.addBadge}>
-                <Ionicons name="add" size={20} color={olyPalette.white} />
+                <Ionicons name="add" size={20} color={olyColors.text.onBrand} />
               </View>
               {imageLoading && (
                 <View style={styles.imageLoadingOverlay}>
@@ -576,21 +601,26 @@ export default function OnboardingScreen1({
                   onRequestClose={() => setCountryModalVisible(false)}
                 >
                   <View style={[styles.modalBg, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+                    <Glows variant="shop" />
                     <View style={styles.modalHeader}>
-                      <Pressable onPress={() => setCountryModalVisible(false)}>
+                      <Pressable
+                        onPress={() => setCountryModalVisible(false)}
+                        style={styles.modalCloseHit}
+                      >
                         <Text style={styles.modalCloseButton}>Done</Text>
                       </Pressable>
                       <Text style={styles.modalTitle}>Select Country</Text>
-                      <View style={{ width: 40 }} />
+                      <View style={{ width: olyLayout.minTouchTarget }} />
                     </View>
                     <TextInput
                       style={styles.searchInput}
                       placeholder="Search countries..."
                       value={countrySearch}
                       onChangeText={setCountrySearch}
-                      placeholderTextColor={olyColors.text.secondary}
+                      placeholderTextColor={olyColors.text.hint}
                     />
                     <FlatList
+                      style={styles.countryList}
                       data={filteredCountries}
                       keyExtractor={(item) => item}
                       keyboardShouldPersistTaps="handled"
@@ -603,7 +633,7 @@ export default function OnboardingScreen1({
                           }}
                           style={({ pressed }) => [
                             styles.countryItem,
-                            pressed && { backgroundColor: olyPalette.card },
+                            pressed && styles.countryItemPressed,
                           ]}
                         >
                           <Text style={styles.countryItemText}>{item}</Text>
@@ -659,15 +689,16 @@ export default function OnboardingScreen1({
             transparent={true}
             onRequestClose={() => setDobModalVisible(false)}
           >
-            <View style={styles.dobOverlay}>
-              {/* Tap overlay to dismiss */}
-              <Pressable
-                style={styles.dobOverlayTap}
-                onPress={() => setDobModalVisible(false)}
-              />
-              <View style={styles.dobSheet}>
+            <SheetBackdrop onPress={() => setDobModalVisible(false)} />
+            <View style={styles.dobOverlay} pointerEvents="box-none">
+              <SheetSurface
+                style={[
+                  styles.dobSheet,
+                  { paddingBottom: insets.bottom + olySpacing[12] },
+                ]}
+              >
                 {/* Handle */}
-                <View style={styles.dobHandle} />
+                <SheetGrabber />
 
                 {/* Header */}
                 <View style={styles.dobSheetHeader}>
@@ -676,7 +707,9 @@ export default function OnboardingScreen1({
                   </Text>
                   <Pressable
                     onPress={() => setDobModalVisible(false)}
-                    hitSlop={olySpacing[12]}
+                    hitSlop={olySpacing[4]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Close"
                   >
                     <View style={styles.dobCloseBtn}>
                       <Ionicons name="close" size={18} color={olyColors.text.secondary} />
@@ -839,7 +872,7 @@ export default function OnboardingScreen1({
                     fullWidth
                   />
                 </View>
-              </View>
+              </SheetSurface>
             </View>
           </Modal>
 
@@ -896,7 +929,7 @@ export default function OnboardingScreen1({
                       onChangeText={(t) => onChange(t.replace(/[^0-9]/g, ""))}
                       keyboardType="number-pad"
                       maxLength={3}
-                      placeholderTextColor={olyColors.text.disabled}
+                      placeholderTextColor={olyColors.text.hint}
                       textAlign="center"
                     />
                   )}
@@ -910,6 +943,7 @@ export default function OnboardingScreen1({
                         <Pressable
                           key={unit}
                           onPress={() => onChange(unit as "KG" | "LB")}
+                          hitSlop={{ top: 4, bottom: 4 }}
                           style={[
                             styles.unitPill,
                             value === unit && styles.unitPillActive,
@@ -947,10 +981,10 @@ export default function OnboardingScreen1({
                             onChangeText={(t) => onChange(t.replace(/[^0-9]/g, ""))}
                             keyboardType="number-pad"
                             maxLength={1}
-                            placeholderTextColor={olyColors.text.disabled}
+                            placeholderTextColor={olyColors.text.hint}
                             textAlign="center"
                           />
-                          <Text style={styles.ftSeparator}>'</Text>
+                          <Text style={styles.ftSeparator}>&apos;</Text>
                           <TextInput
                             style={styles.ftInput}
                             placeholder="11"
@@ -958,10 +992,10 @@ export default function OnboardingScreen1({
                             onChangeText={(t) => setHeightInches(t.replace(/[^0-9]/g, ""))}
                             keyboardType="number-pad"
                             maxLength={2}
-                            placeholderTextColor={olyColors.text.disabled}
+                            placeholderTextColor={olyColors.text.hint}
                             textAlign="center"
                           />
-                          <Text style={styles.ftSeparator}>"</Text>
+                          <Text style={styles.ftSeparator}>&quot;</Text>
                         </>
                       ) : (
                         <TextInput
@@ -971,7 +1005,7 @@ export default function OnboardingScreen1({
                           onChangeText={(t) => onChange(t.replace(/[^0-9]/g, ""))}
                           keyboardType="number-pad"
                           maxLength={3}
-                          placeholderTextColor={olyColors.text.disabled}
+                          placeholderTextColor={olyColors.text.hint}
                           textAlign="center"
                         />
                       )}
@@ -987,6 +1021,7 @@ export default function OnboardingScreen1({
                         <Pressable
                           key={unit}
                           onPress={() => onChange(unit.toLowerCase() as "cm" | "ft")}
+                          hitSlop={{ top: 4, bottom: 4 }}
                           style={[
                             styles.unitPill,
                             value === unit.toLowerCase() && styles.unitPillActive,
@@ -1069,6 +1104,21 @@ export default function OnboardingScreen1({
             />
           )}
         </ScrollView>
+
+        <MediaPickerSheet
+          visible={photoSheet}
+          kind="photo"
+          onCancel={() => setPhotoSheet(false)}
+          onPick={(m) => {
+            setPhotoSheet(false);
+            uploadPhoto(m.uri);
+          }}
+          onUseSystemPicker={() => {
+            setPhotoSheet(false);
+            /* Let the sheet finish closing before iOS presents its picker. */
+            setTimeout(pickFromSystem, 450);
+          }}
+        />
       </KeyboardAvoidingView>
   );
 }
@@ -1080,15 +1130,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: olyColors.bg.app,
   },
-  titleBlock: { marginBottom: olySpacing[20] },
-  title: { ...olyTypography.title1, color: olyColors.text.primary },
-  subtitle: {
-    ...olyTypography.body,
-    color: olyColors.text.secondary,
-    marginTop: olySpacing[4],
-  },
+  titleBlock: onboardingStyles.titleBlock,
+  title: onboardingStyles.title,
+  subtitle: onboardingStyles.subtitle,
   scrollContent: {
     flexGrow: 1,
+    paddingBottom: olySpacing[24],
   },
   profileImageContainer: {
     alignItems: "center",
@@ -1101,17 +1148,19 @@ const styles = StyleSheet.create({
   profileImagePlaceholder: {
     width: 120,
     height: 120,
-    borderRadius: 60,
-    borderWidth: 2,
-    borderColor: olyColors.border.default,
+    borderRadius: olyRadius.full,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: olyColors.bg.app,
+    backgroundColor: olyColors.glass.card,
   },
   profileImage: {
     width: 120,
     height: 120,
-    borderRadius: 60,
+    borderRadius: olyRadius.full,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
   },
   addBadge: {
     position: "absolute",
@@ -1119,10 +1168,11 @@ const styles = StyleSheet.create({
     right: 4,
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: olyRadius.full,
     backgroundColor: olyPalette.primary,
     alignItems: "center",
     justifyContent: "center",
+    ...olyGlow.sm,
   },
   imageLoadingOverlay: {
     position: "absolute",
@@ -1130,8 +1180,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: 60,
-    backgroundColor: olyColors.bg.overlay,
+    borderRadius: olyRadius.full,
+    backgroundColor: olyColors.glass.scrim,
     justifyContent: "center",
     alignItems: "center",
     zIndex: 999,
@@ -1145,76 +1195,94 @@ const styles = StyleSheet.create({
   },
   usernameHintChecking: {
     ...olyTypography.caption,
-    color: olyColors.text.secondary,
+    color: olyColors.text.hint,
     marginTop: olySpacing[4],
   },
   usernameHintAvailable: {
     ...olyTypography.caption,
-    color: olyPalette.green,
+    color: olyColors.text.success,
     marginTop: olySpacing[4],
   },
-  label: {
-    ...olyTypography.label,
-    color: olyColors.text.secondary,
-    letterSpacing: olyLetterSpacing.uppercase,
-    textTransform: "uppercase",
-    marginBottom: olySpacing[8],
-  },
+  label: onboardingStyles.sectionLabel,
   dropdownButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: olySpacing[16],
+    paddingHorizontal: olySpacing[20],
     minHeight: olyLayout.inputHeight,
-    borderRadius: olyRadius.lg,
-    backgroundColor: olyPalette.card,
+    borderRadius: olyRadius.full,
+    backgroundColor: olyColors.glass.inset,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
   },
   dropdownButtonText: {
     ...olyTypography.body,
     color: olyColors.text.primary,
   },
   dropdownPlaceholder: {
-    color: olyColors.text.disabled,
+    color: olyColors.text.hint,
   },
+  // Country picker (full-screen modal)
   modalBg: {
     flex: 1,
-    backgroundColor: olyGradient.colors[2],
+    backgroundColor: olyColors.bg.page,
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: olySpacing[16],
-    paddingVertical: olySpacing[16],
+    paddingHorizontal: olyLayout.screenPadding,
+    paddingVertical: olySpacing[8],
     borderBottomWidth: 1,
-    borderBottomColor: olyColors.border.default,
+    borderBottomColor: olyColors.glass.rule,
+  },
+  modalCloseHit: {
+    minWidth: olyLayout.minTouchTarget,
+    minHeight: olyLayout.minTouchTarget,
+    justifyContent: "center",
   },
   modalCloseButton: {
     ...olyTypography.body,
-    color: olyPalette.white,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.primary,
   },
   modalTitle: {
-    ...olyTypography.label,
+    fontFamily: olyFonts.bold,
+    fontSize: 20,
     color: olyColors.text.primary,
-    letterSpacing: olyLetterSpacing.uppercase,
-    textTransform: "uppercase",
   },
   searchInput: {
     ...olyTypography.body,
-    marginHorizontal: olySpacing[16],
+    marginHorizontal: olyLayout.screenPadding,
     marginTop: olySpacing[16],
-    marginBottom: olySpacing[8],
-    paddingHorizontal: olySpacing[16],
+    marginBottom: olySpacing[12],
+    paddingHorizontal: olySpacing[20],
     minHeight: olyLayout.inputHeight,
-    borderRadius: olyRadius.lg,
-    backgroundColor: olyPalette.card,
+    borderRadius: olyRadius.full,
+    backgroundColor: olyColors.glass.inset,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     color: olyColors.text.primary,
   },
+  countryList: {
+    flexGrow: 0,
+    marginHorizontal: olyLayout.screenPadding,
+    marginBottom: olySpacing[12],
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
+    borderRadius: olyRadius.tile,
+  },
   countryItem: {
-    paddingHorizontal: olySpacing[16],
-    paddingVertical: olySpacing[16],
+    minHeight: olyLayout.minTouchTarget,
+    justifyContent: "center",
+    paddingHorizontal: olyLayout.cardPadding,
+    paddingVertical: olySpacing[12],
     borderBottomWidth: 1,
-    borderBottomColor: olyColors.border.default,
+    borderBottomColor: olyColors.glass.rule,
+  },
+  countryItemPressed: {
+    backgroundColor: olyColors.glass.control,
   },
   countryItemText: {
     ...olyTypography.body,
@@ -1223,44 +1291,32 @@ const styles = StyleSheet.create({
   // DOB bottom sheet overlay
   dobOverlay: {
     flex: 1,
-    backgroundColor: olyColors.bg.overlay,
     justifyContent: "flex-end" as const,
-  },
-  dobOverlayTap: {
-    flex: 1,
+    paddingHorizontal: SHEET_SIDE,
   },
   dobSheet: {
-    backgroundColor: olyPalette.card,
-    borderTopLeftRadius: olyRadius.lg,
-    borderTopRightRadius: olyRadius.lg,
-    paddingBottom: olySpacing[32],
-  },
-  dobHandle: {
-    width: olySpacing[32],
-    height: olySpacing[4],
-    borderRadius: olyRadius.sm,
-    backgroundColor: olyColors.border.default,
-    alignSelf: "center" as const,
-    marginTop: olySpacing[8],
+    paddingTop: olySpacing[8],
   },
   dobSheetHeader: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
     justifyContent: "space-between" as const,
-    paddingHorizontal: olySpacing[16],
-    paddingVertical: olySpacing[12],
+    paddingHorizontal: olyLayout.screenPadding,
+    paddingTop: olySpacing[12],
+    paddingBottom: olySpacing[16],
   },
   dobSheetTitle: {
-    ...olyTypography.label,
-    color: olyColors.text.secondary,
-    letterSpacing: olyLetterSpacing.uppercase,
-    textTransform: "uppercase" as const,
+    fontFamily: olyFonts.bold,
+    fontSize: 20,
+    color: olyColors.text.primary,
   },
   dobCloseBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: olyPalette.card,
+    width: 40,
+    height: 40,
+    borderRadius: olyRadius.full,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     alignItems: "center" as const,
     justifyContent: "center" as const,
   },
@@ -1268,7 +1324,7 @@ const styles = StyleSheet.create({
   wheelContainer: {
     position: "relative" as const,
     height: olyLayout.minTouchTarget * 5,
-    marginHorizontal: olySpacing[16],
+    marginHorizontal: olyLayout.screenPadding,
     overflow: "hidden" as const,
   },
   wheelHighlight: {
@@ -1277,22 +1333,22 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: olyLayout.minTouchTarget,
-    backgroundColor: olyColors.bg.subtleHighlight,
-    borderRadius: olyRadius.lg,
+    backgroundColor: olyColors.glass.selected,
+    borderRadius: olyRadius.inner,
     zIndex: 1,
   },
   wheelLabels: {
     flexDirection: "row" as const,
-    paddingHorizontal: olySpacing[16],
+    paddingHorizontal: olyLayout.screenPadding,
     marginBottom: olySpacing[8],
   },
   wheelLabel: {
     flex: 1,
     ...olyTypography.caption,
-    color: olyColors.text.disabled,
+    color: olyColors.text.secondary,
     textAlign: "center" as const,
     textTransform: "uppercase" as const,
-    letterSpacing: olyLetterSpacing.uppercase,
+    letterSpacing: 1.5,
   },
   wheelRow: {
     flexDirection: "row" as const,
@@ -1308,7 +1364,7 @@ const styles = StyleSheet.create({
   },
   wheelItemText: {
     ...olyTypography.body,
-    color: olyColors.text.disabled,
+    color: olyColors.text.hint,
     textAlign: "center" as const,
   },
   wheelItemTextActive: {
@@ -1316,7 +1372,7 @@ const styles = StyleSheet.create({
     fontFamily: olyFonts.medium,
   },
   dobConfirmContainer: {
-    paddingHorizontal: olySpacing[16],
+    paddingHorizontal: olyLayout.screenPadding,
     marginTop: olySpacing[24],
   },
   sexSelector: {
@@ -1327,23 +1383,21 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: olyLayout.minTouchTarget,
     borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.card,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     alignItems: "center" as const,
     justifyContent: "center" as const,
   },
-  sexButtonActive: {
-    backgroundColor: olyColors.bg.activeHighlight,
-    borderWidth: 1,
-    borderColor: olyPalette.primary,
-  },
+  sexButtonActive: onboardingStyles.selected,
   sexButtonText: {
     ...olyTypography.label,
-    color: olyColors.text.primary,
+    color: olyColors.text.secondary,
     textTransform: "capitalize" as const,
     letterSpacing: olyLetterSpacing.uppercase,
   },
   sexButtonTextActive: {
-    color: olyPalette.white,
+    color: olyColors.text.primary,
   },
   metricsRow: {
     flexDirection: "row" as const,
@@ -1351,17 +1405,19 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     flex: 1,
-    padding: olySpacing[16],
-    backgroundColor: olyPalette.card,
-    borderRadius: olyRadius.lg,
+    padding: olyLayout.cardPadding,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
+    borderRadius: olyRadius.tile,
     alignItems: "center" as const,
   },
   metricTitle: {
-    ...olyTypography.bodySmall,
+    ...olyTypography.caption,
     color: olyColors.text.secondary,
     marginBottom: olySpacing[8],
     textTransform: "uppercase" as const,
-    letterSpacing: olyLetterSpacing.uppercase,
+    letterSpacing: 1.5,
   },
   metricInput: {
     ...olyTypography.display,
@@ -1387,37 +1443,37 @@ const styles = StyleSheet.create({
   },
   ftSeparator: {
     ...olyTypography.title2,
-    color: olyColors.text.disabled,
+    color: olyColors.text.hint,
   },
   unitToggle: {
     flexDirection: "row" as const,
-    backgroundColor: olyPalette.card,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     borderRadius: olyRadius.full,
-    padding: olySpacing[4],
+    padding: 3,
     marginTop: olySpacing[8],
   },
   unitPill: {
+    minHeight: 36,
+    minWidth: olyLayout.minTouchTarget,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
     paddingHorizontal: olySpacing[16],
-    paddingVertical: olySpacing[4],
     borderRadius: olyRadius.full,
   },
   unitPillActive: {
-    backgroundColor: olyColors.bg.activeHighlight,
-    borderWidth: 1,
-    borderColor: olyPalette.primary,
+    backgroundColor: olyColors.glass.selected,
   },
   unitPillText: {
     ...olyTypography.caption,
     fontFamily: olyFonts.medium,
-    color: olyColors.text.primary,
+    color: olyColors.text.secondary,
     textTransform: "capitalize" as const,
     letterSpacing: olyLetterSpacing.uppercase,
   },
   unitPillTextActive: {
-    color: olyPalette.white,
-  },
-  inputError: {
-    borderColor: olyColors.border.error,
+    color: olyColors.text.primary,
   },
   errorText: {
     ...olyTypography.caption,
@@ -1431,17 +1487,16 @@ const styles = StyleSheet.create({
   },
   exposureCard: {
     width: "48%",
-    padding: olySpacing[16],
-    backgroundColor: olyPalette.card,
-    borderRadius: olyRadius.lg,
-  },
-  exposureCardActive: {
-    backgroundColor: olyColors.bg.activeHighlight,
+    padding: olyLayout.cardPadding,
+    backgroundColor: olyColors.glass.card,
     borderWidth: 1,
-    borderColor: olyPalette.primary,
+    borderColor: olyColors.glass.border,
+    borderRadius: olyRadius.tile,
   },
+  exposureCardActive: onboardingStyles.selected,
   exposureTitle: {
     ...olyTypography.label,
+    fontFamily: olyFonts.bold,
     color: olyColors.text.primary,
     marginBottom: olySpacing[4],
   },

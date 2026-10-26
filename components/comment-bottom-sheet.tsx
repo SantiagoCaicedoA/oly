@@ -1,14 +1,19 @@
 import { OlyIcon } from "@/components/icons/OlyIcon";
+import {
+  GorhomSheetBackdrop,
+  GorhomSheetBackground,
+  gorhomSheet,
+} from "@/src/oly-components/shop/GorhomSheet";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olyGlow } from "@/src/oly-theme/oly-elevation";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
-import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
-import { olyFonts, olyTypography } from "@/src/oly-theme/oly-typography";
+import { olySpacing } from "@/src/oly-theme/oly-spacing";
+import { olyFonts } from "@/src/oly-theme/oly-typography";
 import {
   useCommentOnPostMutation,
   useGetCommentsQuery,
 } from "@/store/api";
 import {
-  BottomSheetBackdrop,
   BottomSheetFooter,
   BottomSheetFooterProps,
   BottomSheetModal,
@@ -25,9 +30,8 @@ import CommentCard from "./comment-card";
 /**
  * Comments sheet, opened from a post.
  *
- * Same family as the chat SendSheet: level 1 surface, left-aligned title
- * with a close circle, and the chat composer at the bottom (pill input,
- * round send button with the up arrow, disabled until there is text).
+ * The shared glass sheet (GorhomSheet): a bold title with a count chip, a glass close
+ * circle, and a dark inset composer with a glowing send button.
  */
 
 interface CommentBottomSheetProps {
@@ -80,18 +84,6 @@ const CommentBottomSheet = forwardRef<BottomSheetModal, CommentBottomSheetProps>
       setCommentText("");
       setTimeout(() => commentInputRef.current?.focus(), 100);
     }, []);
-
-    const renderBackdrop = useCallback(
-      (props: any) => (
-        <BottomSheetBackdrop
-          {...props}
-          disappearsOnIndex={-1}
-          appearsOnIndex={0}
-          opacity={0.4}
-        />
-      ),
-      [],
-    );
 
     const renderFooter = useCallback(
       (props: BottomSheetFooterProps) => (
@@ -170,9 +162,10 @@ const CommentBottomSheet = forwardRef<BottomSheetModal, CommentBottomSheetProps>
         }}
         enableDynamicSizing={false}
         snapPoints={snapPoints}
-        backgroundStyle={styles.sheetBg}
-        handleIndicatorStyle={styles.handle}
-        backdropComponent={renderBackdrop}
+        style={gorhomSheet.inset}
+        backgroundComponent={GorhomSheetBackground}
+        handleIndicatorStyle={gorhomSheet.handle}
+        backdropComponent={GorhomSheetBackdrop}
         footerComponent={renderFooter}
         keyboardBehavior="extend"
         keyboardBlurBehavior="restore"
@@ -183,9 +176,14 @@ const CommentBottomSheet = forwardRef<BottomSheetModal, CommentBottomSheetProps>
         <View style={styles.head}>
           <Text style={styles.title}>
             Comments
-            {comments.length > 0 && <Text style={styles.count}>  {comments.length}</Text>}
           </Text>
-          <Pressable
+          {comments.length > 0 && (
+            <View style={styles.countChip}>
+              <Text style={styles.count}>{comments.length}</Text>
+            </View>
+          )}
+          <View style={styles.flex} />
+          <Pressable hitSlop={4}
             onPress={() => dismiss()}
             style={styles.close}
             accessibilityRole="button"
@@ -206,9 +204,11 @@ const CommentBottomSheet = forwardRef<BottomSheetModal, CommentBottomSheetProps>
             </View>
           ) : comments.length === 0 ? (
             <View style={styles.state}>
-              <OlyIcon name="messages" size={28} color={olyColors.text.disabled} />
+              <View style={styles.stateIcon}>
+                <OlyIcon name="messages" size={24} color={olyColors.text.primary} />
+              </View>
               <Text style={styles.stateTitle}>No comments yet</Text>
-              <Text style={styles.stateText}>Start the conversation.</Text>
+              <Text style={styles.stateText}>Be the first to say something about this lift.</Text>
             </View>
           ) : (
             comments.map((comment: any) => (
@@ -230,56 +230,68 @@ CommentBottomSheet.displayName = "CommentBottomSheet";
 export default CommentBottomSheet;
 
 const styles = StyleSheet.create({
-  sheetBg: {
-    backgroundColor: olyPalette.card,
-    borderTopLeftRadius: olyRadius.lg,
-    borderTopRightRadius: olyRadius.lg,
-  },
-  handle: { backgroundColor: olyColors.text.disabled, width: 36 },
+  flex: { flex: 1 },
 
   head: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: olyLayout.screenPadding,
-    paddingTop: olySpacing[4],
+    gap: olySpacing[8],
+    paddingHorizontal: olySpacing[20],
+    paddingTop: olySpacing[8],
     paddingBottom: olySpacing[12],
   },
-  title: { ...olyTypography.body, fontFamily: olyFonts.medium, color: olyColors.text.primary },
-  count: { ...olyTypography.bodySmall, color: olyColors.text.secondary },
-  close: {
-    width: 32,
-    height: 32,
+  title: { fontFamily: olyFonts.bold, fontSize: 20, lineHeight: 26, color: olyColors.text.primary },
+  countChip: {
+    paddingHorizontal: olySpacing[8],
+    paddingVertical: 2,
     borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.cardElevated,
+    backgroundColor: olyColors.glass.accentFill,
+    borderWidth: 1,
+    borderColor: olyColors.glass.accentBorder,
+  },
+  count: { fontFamily: olyFonts.bold, fontSize: 12, color: olyColors.text.primary },
+  close: {
+    width: 36,
+    height: 36,
+    borderRadius: olyRadius.full,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     alignItems: "center",
     justifyContent: "center",
   },
 
   scrollContent: {
-    paddingHorizontal: olyLayout.screenPadding,
+    paddingHorizontal: olySpacing[20],
     paddingBottom: 120,
   },
 
   state: {
     alignItems: "center",
-    paddingTop: olySpacing[32],
-    gap: olySpacing[8],
+    paddingTop: 48,
+    gap: 6,
   },
-  stateTitle: {
-    ...olyTypography.body,
-    fontFamily: olyFonts.medium,
-    color: olyColors.text.primary,
-    marginTop: olySpacing[4],
+  stateIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: olyRadius.full,
+    marginBottom: olySpacing[8],
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: olyColors.glass.accentFill,
+    borderWidth: 1,
+    borderColor: olyColors.glass.accentBorder,
+    ...olyGlow.lg,
   },
-  stateText: { ...olyTypography.bodySmall, color: olyColors.text.secondary },
+  stateTitle: { fontFamily: olyFonts.bold, fontSize: 17, color: olyColors.text.primary },
+  stateText: { fontFamily: olyFonts.regular, fontSize: 14, color: olyColors.text.secondary, textAlign: "center" },
 
   footer: {
-    backgroundColor: olyPalette.card,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: olyColors.border.hairline,
-    paddingHorizontal: olySpacing[12],
-    paddingTop: olySpacing[8],
+    paddingHorizontal: olySpacing[16],
+    paddingTop: 10,
+    backgroundColor: olyColors.bg.card,
+    borderBottomLeftRadius: olyRadius.sheet,
+    borderBottomRightRadius: olyRadius.sheet,
   },
   replyStrip: {
     flexDirection: "row",
@@ -288,29 +300,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: olySpacing[4],
     paddingBottom: olySpacing[8],
   },
-  replyStripText: { ...olyTypography.caption, color: olyColors.text.disabled },
+  replyStripText: { fontFamily: olyFonts.regular, fontSize: 12, color: olyColors.text.disabled },
   replyStripName: { fontFamily: olyFonts.medium, color: olyColors.text.secondary },
   inputRow: { flexDirection: "row", alignItems: "flex-end", gap: olySpacing[8] },
   input: {
-    ...olyTypography.body,
     flex: 1,
-    minHeight: 40,
+    minHeight: 44,
     maxHeight: 120,
-    paddingHorizontal: olySpacing[16],
-    paddingTop: 10,
-    paddingBottom: 10,
-    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingTop: olySpacing[12],
+    paddingBottom: olySpacing[12],
+    borderRadius: olyRadius.xl,
+    backgroundColor: olyColors.glass.inset,
     borderWidth: 1,
-    borderColor: olyColors.border.default,
+    borderColor: olyColors.glass.border,
+    fontFamily: olyFonts.regular,
+    fontSize: 15,
     color: olyColors.text.primary,
   },
   sendBtn: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: olyRadius.full,
     backgroundColor: olyPalette.primary,
     alignItems: "center",
     justifyContent: "center",
+    ...olyGlow.md,
   },
-  sendBtnOff: { backgroundColor: olyColors.button.disabled.bg },
+  sendBtnOff: {
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
+    shadowOpacity: 0,
+  },
 });

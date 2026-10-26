@@ -3,6 +3,7 @@
  * message, then Delete / Accept (44 tall). Block / Report sits behind the
  * "..." in the corner, far from the main buttons.
  */
+import { olyGlow } from "@/src/oly-theme/oly-elevation";
 import { OlyIcon } from "@/components/icons/OlyIcon";
 import { olyAlert } from "@/src/oly-components/feedback/OlyAlert";
 import {
@@ -93,8 +94,10 @@ export function RequestCard({ r }: { r: Request }) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: olyPalette.card,
-    borderRadius: olyRadius.lg,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
+    borderRadius: olyRadius.xl,
     padding: olySpacing[16],
     marginBottom: olySpacing[12],
   },
@@ -103,11 +106,13 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.cardElevated,
+    backgroundColor: olyColors.glass.raised,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarText: { ...olyTypography.label, color: olyColors.text.secondary },
+  avatarText: { ...olyTypography.label, color: olyColors.text.primary },
   headText: { flex: 1, minWidth: 0 },
   nameRow: { flexDirection: "row", alignItems: "baseline", gap: olySpacing[8] },
   name: { ...olyTypography.body, fontFamily: olyFonts.bold, color: olyColors.text.primary, flex: 1 },
@@ -126,10 +131,12 @@ const styles = StyleSheet.create({
     marginTop: olySpacing[12],
     paddingVertical: 10,
     paddingHorizontal: 14,
-    backgroundColor: olyPalette.cardElevated,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    borderBottomRightRadius: 18,
+    backgroundColor: olyColors.glass.inset,
+    borderWidth: 1,
+    borderColor: olyColors.glass.rule,
+    borderTopLeftRadius: olyRadius.tile,
+    borderTopRightRadius: olyRadius.tile,
+    borderBottomRightRadius: olyRadius.tile,
     borderBottomLeftRadius: 6,
   },
   bubbleText: { ...olyTypography.bodySmall, lineHeight: 20, color: olyColors.text.primary },
@@ -141,8 +148,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  btnQuiet: { backgroundColor: olyPalette.cardElevated },
-  btnBrand: { backgroundColor: olyPalette.primary },
+  btnQuiet: { backgroundColor: olyColors.glass.card, borderWidth: 1, borderColor: olyColors.glass.border },
+  btnBrand: {
+    backgroundColor: olyPalette.primary,
+    ...olyGlow.md,
+  },
   pressed: { opacity: 0.8 },
   btnText: { ...olyTypography.label, color: olyColors.text.primary },
   btnTextBrand: { color: olyColors.text.onAccent },

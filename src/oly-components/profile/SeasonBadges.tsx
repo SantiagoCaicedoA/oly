@@ -1,29 +1,38 @@
 /**
- * SeasonBadges — Faceted Hex badge shelf (spec 2a).
+ * SeasonBadges, faceted hex badges in Oly blue.
  *
- * Flat vector polygons only: six bevel facets lit from the top-left, a dark
- * field, and an embossed numeral. Tier lives in the metal (gold / silver /
- * graphite); the caption under the badge names the season. In-progress is
- * always the neutral dashed hex; locked is the grey ghost.
+ * Earned: six bevel facets of one blue metal lit from the top left, a dark
+ * field, a white numeral and a soft blue glow. In progress: a dashed blue
+ * hex with a faint star. Locked: a glass ghost with an empty field.
+ * HexVerifiedMark, the flat check on proof videos, lives here too.
  */
 
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olyGlow } from "@/src/oly-theme/oly-elevation";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olySpacing } from "@/src/oly-theme/oly-spacing";
-import { olyTypography } from "@/src/oly-theme/oly-typography";
+import { olyFonts } from "@/src/oly-theme/oly-typography";
+import { Glass } from "@/src/oly-components/shop/ShopKit";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Svg, { Polygon, Polyline, Rect, Text as SvgText } from "react-native-svg";
 
-/* ── Spec geometry (viewBox 0 0 200 200) ─────────────────────── */
+/** The badge metal: light (L) and dark (D) facets, plus the locked ghost fill. */
+const BADGE_BLUE = {
+  L1: "#7FBAF2",
+  L2: "#3D95E3",
+  D1: "#0F6FC4",
+  D2: "#0A4E8C",
+  ghost: "rgba(239, 241, 244, 0.04)",
+} as const;
+
+/* ── Geometry (viewBox 0 0 200 200) ──────────────────────────── */
 
 const HEX_OUTER = "196,100 148,183.1 52,183.1 4,100 52,16.9 148,16.9";
 const HEX_RIM = "172,100 136,162.4 64,162.4 28,100 64,37.6 136,37.6";
 const HEX_FIELD = "166,100 133,157.2 67,157.2 34,100 67,42.8 133,42.8";
-const STAR =
-  "100,46 112.9,82.2 151.4,83.3 120.9,106.8 131.7,143.7 100,122 68.3,143.7 79.1,106.8 48.6,83.3 87.1,82.2";
 
-const FACETS: [string, keyof Tier][] = [
+const FACETS: [string, "L1" | "L2" | "D1" | "D2"][] = [
   ["52,16.9 148,16.9 136,37.6 64,37.6", "L1"],
   ["148,16.9 196,100 172,100 136,37.6", "L2"],
   ["196,100 148,183.1 136,162.4 172,100", "D1"],
@@ -32,115 +41,107 @@ const FACETS: [string, keyof Tier][] = [
   ["4,100 52,16.9 64,37.6 28,100", "L2"],
 ];
 
-type Tier = {
-  L1: string;
-  L2: string;
-  D1: string;
-  D2: string;
-  L: string;
-};
-
-const TIERS: Record<"gold" | "silver" | "graphite", Tier> = {
-  gold: { L1: "#EBD293", L2: "#D9B96A", D1: "#B08B3C", D2: "#8E6F26", L: "#F0DCA4" },
-  silver: { L1: "#DFE5EE", L2: "#C2CAD6", D1: "#99A1AD", D2: "#7A828E", L: "#EEF2F7" },
-  graphite: { L1: "#6E7681", L2: "#5A616B", D1: "#454B54", D2: "#343A42", L: "#9BA3AF" },
-};
-
-const PROGRESS_STROKE = "#C2CAD6";
-
-const numeralSize = (v: string): [number, number] =>
-  v.startsWith("#") ? [68, -3] : v.length >= 3 ? [62, -2] : [66, -2];
+const BADGE_SIZE = 64;
 
 /* ── Badge SVGs ──────────────────────────────────────────────── */
 
-export function HexBadgeEarned({
-  tier,
-  value,
-  size = 64,
-}: {
-  tier: keyof typeof TIERS;
-  value: string;
-  size?: number;
-}) {
-  const t = TIERS[tier];
-  const [fs, ls] = numeralSize(value);
+/** The six metal facets. `opacity` fades them for the in progress badge. */
+function Facets({ opacity }: { opacity?: number }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 200 200">
+    <>
       {FACETS.map(([pts, tone], i) => (
-        <Polygon key={i} points={pts} fill={t[tone]} />
+        <Polygon key={i} points={pts} fill={BADGE_BLUE[tone]} fillOpacity={opacity} />
       ))}
+    </>
+  );
+}
+
+/** The numeral in the field. Ranks ("#9") run a touch larger. */
+function Numeral({ value, opacity }: { value: string; opacity?: number }) {
+  return (
+    <SvgText
+      x={100}
+      y={121}
+      textAnchor="middle"
+      fontSize={value.startsWith("#") ? 64 : 62}
+      fontFamily={olyFonts.bold}
+      fontWeight="700"
+      letterSpacing={-2}
+      fill={olyColors.media.ink}
+      fillOpacity={opacity}
+    >
+      {value}
+    </SvgText>
+  );
+}
+
+function HexBadgeEarned({ value }: { value: string }) {
+  return (
+    <View style={styles.glow}>
+      <Svg width={BADGE_SIZE} height={BADGE_SIZE} viewBox="0 0 200 200">
+        <Facets />
+        <Polygon
+          points={HEX_OUTER}
+          fill="none"
+          stroke={olyColors.media.ink}
+          strokeOpacity={0.25}
+          strokeWidth={1.5}
+        />
+        <Polygon points={HEX_RIM} fill={BADGE_BLUE.D2} />
+        <Polygon points={HEX_FIELD} fill={olyPalette.background} />
+        <Polygon
+          points={HEX_FIELD}
+          fill="none"
+          stroke={olyColors.accent}
+          strokeOpacity={0.35}
+          strokeWidth={2}
+        />
+        <Numeral value={value} />
+      </Svg>
+    </View>
+  );
+}
+
+/** In progress: the badge you will earn, faded, with a dashed blue rim. */
+function HexBadgeProgress({ value }: { value?: string }) {
+  return (
+    <Svg width={BADGE_SIZE} height={BADGE_SIZE} viewBox="0 0 200 200">
+      <Facets opacity={0.28} />
+      <Polygon points={HEX_RIM} fill={BADGE_BLUE.D2} fillOpacity={0.3} />
+      <Polygon points={HEX_FIELD} fill={olyPalette.background} />
       <Polygon
         points={HEX_OUTER}
         fill="none"
-        stroke="#FFFFFF"
-        strokeOpacity={0.14}
-        strokeWidth={1.2}
+        stroke={BADGE_BLUE.L2}
+        strokeWidth={3}
+        strokeDasharray="14 10"
+        strokeLinejoin="round"
       />
-      <Polygon points={HEX_RIM} fill={t.D2} />
-      <Polygon points={HEX_FIELD} fill="#131A23" />
-      <Polygon
-        points={HEX_FIELD}
-        fill="none"
-        stroke="#000000"
-        strokeOpacity={0.35}
-        strokeWidth={2}
-      />
-      <SvgText
-        x={100}
-        y={124}
-        textAnchor="middle"
-        fontSize={fs}
-        fontWeight="600"
-        letterSpacing={ls}
-        fill="#000000"
-        fillOpacity={0.4}
-      >
-        {value}
-      </SvgText>
-      <SvgText
-        x={100}
-        y={122}
-        textAnchor="middle"
-        fontSize={fs}
-        fontWeight="600"
-        letterSpacing={ls}
-        fill={t.L}
-      >
-        {value}
-      </SvgText>
+      {value ? <Numeral value={value} opacity={0.55} /> : null}
     </Svg>
   );
 }
 
-export function HexBadgeProgress({ size = 64 }: { size?: number }) {
+function HexBadgeLocked() {
   return (
-    <Svg width={size} height={size} viewBox="0 0 200 200">
-      <Polygon points={HEX_OUTER} fill="#12161C" />
+    <Svg width={BADGE_SIZE} height={BADGE_SIZE} viewBox="0 0 200 200">
       <Polygon
         points={HEX_OUTER}
-        fill="none"
-        stroke={PROGRESS_STROKE}
-        strokeOpacity={0.5}
-        strokeWidth={3}
-        strokeDasharray="16 12"
-        strokeLinejoin="round"
-      />
-      <Polygon
-        points={STAR}
-        fill="#1E252E"
-        stroke={PROGRESS_STROKE}
-        strokeOpacity={0.35}
+        fill={BADGE_BLUE.ghost}
+        stroke={olyColors.glass.border}
         strokeWidth={2}
         strokeLinejoin="round"
       />
+      <Polygon points={HEX_FIELD} fill={olyColors.glass.inset} />
+      <Rect x={84} y={96} width={32} height={8} rx={4} fill={olyColors.glass.bar} />
     </Svg>
   );
 }
 
 /**
- * Verified mark — flat brand-blue hexagon (pointy-top) with a white check.
- * Sits on proof videos. Deliberately flat: the metallic facets stay
- * reserved for season awards.
+ * Verified mark: flat brand blue hexagon (pointy top) with a white check.
+ * Sits on proof videos and next to a verified athlete's name. Deliberately
+ * flat: the faceted metal stays reserved for badges.
  */
 export function HexVerifiedMark({ size = 26 }: { size?: number }) {
   const HEX_POINTY = "100,10 178,55 178,145 100,190 22,145 22,55";
@@ -165,106 +166,73 @@ export function HexVerifiedMark({ size = 26 }: { size?: number }) {
   );
 }
 
-export function HexBadgeLocked({ size = 64 }: { size?: number }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 200 200">
-      <Polygon points={HEX_OUTER} fill="#1B222B" />
-      <Polygon points={HEX_RIM} fill="#151B23" />
-      <Rect x={82} y={95} width={36} height={10} rx={5} fill="#3A424C" />
-    </Svg>
-  );
-}
+/* ── Grid ────────────────────────────────────────────────────── */
 
-/* ── Shelf ───────────────────────────────────────────────────── */
-
-export interface SeasonBadge {
+export interface Badge {
   state: "earned" | "progress" | "locked";
-  caption: string;
-  tier?: keyof typeof TIERS;
+  title: string;
+  sub: string;
+  /** The numeral. In progress badges show it faded. */
   value?: string;
 }
 
-export const SeasonBadgesShelf: React.FC<{ badges: SeasonBadge[] }> = ({
-  badges,
-}) => {
-  // Nothing earned yet: one quiet row for the season in progress — locked
-  // slots only appear once there's at least one real badge on the shelf.
-  if (badges.length === 1 && badges[0].state === "progress") {
-    return (
-      <View style={styles.rowCard}>
-        <HexBadgeProgress size={48} />
-        <View style={styles.rowText}>
-          <Text style={styles.rowTitle}>{badges[0].caption}</Text>
-          <Text style={styles.rowSub}>
-            In progress — finish top 3 when the season ends to earn it
-          </Text>
-        </View>
-      </View>
-    );
-  }
+/** Four to a row in one glass card: earned first, then in progress, then locked. */
+export function BadgeGrid({ badges }: { badges: Badge[] }) {
   return (
-    <View style={styles.shelf}>
+    <Glass radius={olyRadius.tile} style={styles.card}>
       {badges.map((b, i) => (
-        <View key={i} style={styles.tile}>
-          {b.state === "earned" && b.tier && b.value ? (
-            <HexBadgeEarned tier={b.tier} value={b.value} />
+        <View
+          key={i}
+          style={styles.cell}
+          accessible
+          accessibilityLabel={`${b.title}, ${b.sub}`}
+        >
+          {b.state === "earned" && b.value ? (
+            <HexBadgeEarned value={b.value} />
           ) : b.state === "progress" ? (
-            <HexBadgeProgress />
+            <HexBadgeProgress value={b.value} />
           ) : (
             <HexBadgeLocked />
           )}
           <Text
-            style={[
-              styles.caption,
-              b.state === "locked" && styles.captionLocked,
-            ]}
+            style={[styles.title, b.state !== "earned" && styles.dim]}
+            numberOfLines={1}
           >
-            {b.caption}
+            {b.title}
+          </Text>
+          <Text style={styles.sub} numberOfLines={1}>
+            {b.sub}
           </Text>
         </View>
       ))}
-    </View>
+    </Glass>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  shelf: {
+  card: {
     flexDirection: "row",
-    gap: olySpacing[12],
+    flexWrap: "wrap",
+    rowGap: olySpacing[20],
+    paddingHorizontal: 6,
+    paddingTop: olySpacing[20],
+    paddingBottom: 18,
   },
-  rowCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: olySpacing[16],
-    backgroundColor: olyPalette.card,
-    borderRadius: olyRadius.lg,
-    padding: olySpacing[16],
-  },
-  rowText: { flex: 1, minWidth: 0 },
-  rowTitle: {
-    ...olyTypography.bodySmall,
-    fontFamily: olyTypography.label.fontFamily,
+  cell: { width: "25%", alignItems: "center", paddingHorizontal: 2 },
+  glow: { ...olyGlow.md },
+  title: {
+    marginTop: olySpacing[8],
+    fontFamily: olyFonts.bold,
+    fontSize: 11,
+    lineHeight: 14,
     color: olyColors.text.primary,
   },
-  rowSub: {
-    ...olyTypography.caption,
-    color: olyColors.text.secondary,
-    marginTop: 2,
-    lineHeight: 16,
-  },
-  tile: {
-    flex: 1,
-    alignItems: "center",
-    gap: olySpacing[8] + 2,
-    backgroundColor: olyPalette.card,
-    borderRadius: olyRadius.lg,
-    paddingVertical: olySpacing[16],
-  },
-  caption: {
-    ...olyTypography.caption,
-    color: olyColors.text.secondary,
-  },
-  captionLocked: {
-    color: olyColors.text.disabled,
+  dim: { color: olyColors.text.hint },
+  sub: {
+    marginTop: 1,
+    fontFamily: olyFonts.regular,
+    fontSize: 10,
+    lineHeight: 13,
+    color: olyColors.text.hint,
   },
 });

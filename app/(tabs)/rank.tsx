@@ -1,5 +1,9 @@
 import { useTabLoader } from "@/components/tab-loader";
-import { COUNTRIES, MEN_CLASSES, WOMEN_CLASSES } from "@/constants/leaderboard-data";
+import {
+  COUNTRIES,
+  MEN_CLASSES,
+  WOMEN_CLASSES,
+} from "@/constants/leaderboard-data";
 import {
   useFollowAthleteMutation,
   useGetAthleteCardQuery,
@@ -19,13 +23,21 @@ import type {
   SeasonMeta,
 } from "@/types/api/leaderboard";
 import { OlyAvatar } from "@/src/oly-components/atoms/OlyAvatar";
-import { OlyScreenWrapper } from "@/src/oly-components/organisms/OlyScreenWrapper";
+import {
+  Glows,
+  SHEET_SIDE,
+  SheetBackdrop,
+  SheetGrabber,
+  SheetSurface,
+} from "@/src/oly-components/shop/ShopKit";
+import { withMockRows } from "@/src/oly-mock/leaderboard";
 import * as Haptics from "expo-haptics";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
-import { olyElevation, olyOverlay } from "@/src/oly-theme/oly-elevation";
+import { olyGlow } from "@/src/oly-theme/oly-elevation";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
 import {
+  olyFonts,
   olyLetterSpacing,
   olyTypography,
 } from "@/src/oly-theme/oly-typography";
@@ -62,7 +74,9 @@ const API_LIFT: Record<LiftKey, ApiLift> = {
 };
 
 const liftName = (l: LiftKey) =>
-  ({ total: "Total", sn: "Snatch", cj: "Clean & Jerk", sinclair: "Sinclair" }[l]);
+  ({ total: "Total", sn: "Snatch", cj: "Clean & Jerk", sinclair: "Sinclair" })[
+    l
+  ];
 
 /** Row shape the board renders — a light view over the API's BoardRow. */
 type Ranked = {
@@ -109,17 +123,11 @@ const toRanked = (r: BoardRow, myId: string | undefined): Ranked => ({
 
 const fmtDate = (iso: string | null | undefined) =>
   iso
-    ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    ? new Date(iso).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      })
     : "";
-
-/** Tab bar (64) + its bottom margin (28) + one card gap */
-const TAB_BAR_CLEARANCE = 64 + 28 + olySpacing[4];
-
-/**
- * Concentric corner: container uses olyRadius.lg (12) with olySpacing[4]
- * inner padding, so nested pills use 12 - 4 = 8 to stay optically aligned.
- */
-const NESTED_RADIUS = olyRadius.lg - olySpacing[4];
 
 /**
  * Quiet segmented control for the leaderboard (reference design):
@@ -152,6 +160,7 @@ function LiftSegments({
               }
             }}
             style={[styles.segment, active && styles.segmentActive]}
+            hitSlop={{ top: 6, bottom: 6 }}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
             accessibilityLabel={label}
@@ -196,16 +205,13 @@ function FilterChip({
         onPress();
       }}
       style={[styles.chip, active && styles.chipActive]}
+      hitSlop={6}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ selected: active }}
     >
       {active && (
-        <Ionicons
-          name="checkmark"
-          size={12}
-          color={olyColors.text.onBrand}
-        />
+        <Ionicons name="checkmark" size={12} color={olyColors.text.onBrand} />
       )}
       <Text
         style={[styles.chipLabel, active && styles.chipLabelActive]}
@@ -228,11 +234,9 @@ export default function Rank() {
   const insets = useSafeAreaInsets();
   const { begin, end } = useTabLoader();
   const myId: string | undefined = useSelector(
-    (s: any) => s?.auth?.user?._id ?? undefined
+    (s: any) => s?.auth?.user?._id ?? undefined,
   );
-  const myName: string = useSelector(
-    (s: any) => s?.auth?.user?.name ?? "You"
-  );
+  const myName: string = useSelector((s: any) => s?.auth?.user?.name ?? "You");
 
   // filters — Open is the default board (no age restriction, §4.2)
   const [scope, setScope] = useState<"season" | "alltime">("season");
@@ -253,7 +257,7 @@ export default function Rank() {
       country: country === "ALL" ? undefined : country,
       limit: 50,
     }),
-    [lift, scope, sex, age, wclass, country]
+    [lift, scope, sex, age, wclass, country],
   );
 
   // live data — the board is viewer-independent (cacheable); /me rides
@@ -301,7 +305,7 @@ export default function Rank() {
     (friendsOnly ? friendsQ.data?.season : boardQ.data?.season) ??
     seasonQ.data?.season ??
     null;
-  const me = !friendsOnly ? meQ.data?.me ?? null : null;
+  const me = !friendsOnly ? (meQ.data?.me ?? null) : null;
 
   // sheets
   const [filterSheet, setFilterSheet] = useState<
@@ -313,13 +317,15 @@ export default function Rank() {
 
   const ranked: Ranked[] = useMemo(() => {
     const rows = friendsOnly
-      ? friendsQ.data?.entries ?? []
-      : [...(boardQ.data?.entries ?? []), ...extra];
+      ? (friendsQ.data?.entries ?? [])
+      : withMockRows([...(boardQ.data?.entries ?? []), ...extra], params);
     return rows.map((r) => toRanked(r, myId));
-  }, [friendsOnly, friendsQ.data, boardQ.data, extra, myId]);
+  }, [friendsOnly, friendsQ.data, boardQ.data, extra, myId, params]);
 
   const youIndex = ranked.findIndex((r) => r.isYou);
-  const youBarBottom = Math.max(TAB_BAR_CLEARANCE - insets.bottom, olySpacing[8]);
+  /* Sits just above the floating glass tab bar (64 tall, its bottom at
+     max(inset - 10, 12)); the screen now runs under the bar. */
+  const youBarBottom = Math.max(insets.bottom - 10, 12) + 64 + olySpacing[8];
 
   // The sticky bar shows whenever I have a rank on this board and my own
   // row isn't currently visible (or isn't on the fetched pages at all).
@@ -335,15 +341,16 @@ export default function Rank() {
     rowY: null as number | null,
     rowH: 0,
     inPodium: false,
+    headerH: 0,
   });
   const recomputeYouVisible = () => {
     const L = layoutRef.current;
     if (L.rowY == null || L.viewportH === 0) return;
-    const top = (L.inPodium ? 0 : L.cardY) + L.rowY;
+    const top = (L.inPodium ? L.headerH + olySpacing[12] : L.cardY) + L.rowY;
     const bottom = top + L.rowH;
     const visibleBottomEdge =
       L.scrollY + L.viewportH - (youBarBottom + YOU_BAR_HEIGHT);
-    const visible = bottom > L.scrollY && top < visibleBottomEdge;
+    const visible = bottom > L.scrollY + insets.top && top < visibleBottomEdge;
     setYouRowVisible((v) => (v === visible ? v : visible));
   };
   useEffect(() => {
@@ -372,383 +379,420 @@ export default function Rank() {
   const openPostFlow = () => router.push("/athlete/create-new-post");
 
   return (
-    <OlyScreenWrapper padded={false}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.kicker}>RANK</Text>
-        <Text style={styles.title}>Leaderboard</Text>
-        <LiftSegments
-          segments={LIFT_LABELS}
-          activeIndex={LIFT_KEYS.indexOf(lift)}
-          onChange={(i) => setLift(LIFT_KEYS[i])}
-          style={styles.segmentsSpacing}
-        />
-      </View>
-
-      {/* Filter chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.chipsRow}
-        contentContainerStyle={styles.chipsContent}
-      >
-        <FilterChip
-          label={
-            scope === "season" ? season?.label ?? "Season" : "All-time"
-          }
-          chevron
-          onPress={() => setFilterSheet("scope")}
-        />
-        {lift !== "sinclair" && (
-          <FilterChip
-            label={`${wclass} kg`}
-            chevron
-            onPress={() => setFilterSheet("class")}
-          />
-        )}
-        {lift !== "sinclair" && (
-          <FilterChip
-            label={sex === "M" ? "Men" : "Women"}
-            chevron
-            onPress={() => setFilterSheet("sex")}
-          />
-        )}
-        <FilterChip
-          label={age === "junior" ? "Junior" : age === "masters" ? "Masters" : "Open"}
-          chevron
-          onPress={() => setFilterSheet("age")}
-        />
-        <FilterChip
-          label={
-            country === "ALL"
-              ? "World"
-              : COUNTRIES.find((c) => c.code === country)?.name ?? country
-          }
-          chevron
-          onPress={() => setFilterSheet("country")}
-        />
-        <FilterChip
-          label="Friends"
-          active={friendsOnly}
-          onPress={() => setFriendsOnly((f) => !f)}
-        />
-      </ScrollView>
-
-      {/* Board */}
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={{
-          paddingBottom:
-            youBarBottom +
-            olySpacing[12] +
-            (showYouBar && !(youRowVisible && youIndex >= 0)
-              ? YOU_BAR_HEIGHT + olySpacing[12]
-              : 0),
-        }}
-        showsVerticalScrollIndicator={false}
-        onLayout={(e) => {
-          layoutRef.current.viewportH = e.nativeEvent.layout.height;
-          recomputeYouVisible();
-        }}
-        onScroll={(e) => {
-          layoutRef.current.scrollY = e.nativeEvent.contentOffset.y;
-          recomputeYouVisible();
-        }}
-        scrollEventThrottle={32}
-      >
-        {isError && (
-          <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>Couldn’t load the board</Text>
-            <Text style={styles.emptyText}>
-              Check your connection and try again.
-            </Text>
-            <TouchableOpacity style={styles.emptyBtn} onPress={() => refetch()}>
-              <Text style={styles.emptyBtnText}>RETRY</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {!isError && !firstLoading && ranked.length === 0 && (
-          <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>
-              {friendsOnly ? "No friends ranked here yet" : "No one is ranked here yet"}
-            </Text>
-            <Text style={styles.emptyText}>
-              {friendsOnly
-                ? "Athletes you follow will show up here once they post a verified lift on this board."
-                : "This board is wide open. Post a verified lift and take the #1 spot — someone has to be first."}
-            </Text>
-            {!friendsOnly && (
-              <TouchableOpacity style={styles.emptyBtn} onPress={openPostFlow}>
-                <Text style={styles.emptyBtnText}>POST A LIFT</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-
-        {podium.length === 3 && (
+    <View style={styles.root}>
+      <Glows variant="shop" />
+      <View style={styles.safe}>
+        {/* Board */}
+        <ScrollView
+          style={styles.scroll}
+          scrollIndicatorInsets={{ top: insets.top }}
+          contentContainerStyle={{
+            paddingTop: insets.top,
+            paddingBottom:
+              youBarBottom +
+              olySpacing[12] +
+              (showYouBar && !(youRowVisible && youIndex >= 0)
+                ? YOU_BAR_HEIGHT + olySpacing[12]
+                : 0),
+          }}
+          showsVerticalScrollIndicator={false}
+          onLayout={(e) => {
+            layoutRef.current.viewportH = e.nativeEvent.layout.height;
+            recomputeYouVisible();
+          }}
+          onScroll={(e) => {
+            layoutRef.current.scrollY = e.nativeEvent.contentOffset.y;
+            recomputeYouVisible();
+          }}
+          scrollEventThrottle={32}
+        >
+          {/* Header and filters scroll away with the board. */}
           <View
-            style={styles.podium}
+            style={styles.boardHeader}
             onLayout={(e) => {
-              if (podium.some((p) => p.isYou)) {
-                layoutRef.current.inPodium = true;
-                layoutRef.current.rowY = e.nativeEvent.layout.y;
-                layoutRef.current.rowH = e.nativeEvent.layout.height;
-                recomputeYouVisible();
-              }
+              layoutRef.current.headerH = e.nativeEvent.layout.height;
             }}
           >
-            {[1, 0, 2].map((i) => {
-              const a = podium[i];
-              const first = i === 0;
-              return (
-                <TouchableOpacity
-                  key={a.key}
-                  style={[styles.pSlot, first && styles.pSlotFirst]}
-                  onPress={() => setAthlete(a)}
-                  activeOpacity={0.7}
-                >
-                  <View>
-                    <OlyAvatar
-                      name={a.isYou ? "You" : a.name}
-                      size={first ? "large" : "medium"}
-                      showBorder={first}
-                    />
-                    <View style={[styles.pRank, first && styles.pRankFirst]}>
-                      <Text
-                        style={[styles.pRankText, first && styles.pRankTextFirst]}
-                      >
-                        {a.rank}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text
-                    style={[styles.pName, first && styles.pNameFirst]}
-                    numberOfLines={1}
-                  >
-                    {a.isYou ? "You" : a.name}
-                  </Text>
-                  <Text style={[styles.pKg, first && styles.pKgFirst]}>
-                    {a.m}
-                    <Text style={styles.unitText}> {unit}</Text>
-                  </Text>
-                  <Text style={styles.pCaption} numberOfLines={1}>
-                    {a.pending ? "Pending review" : caption(a)}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        )}
+            <View style={styles.header}>
+              <Text style={styles.kicker}>RANK</Text>
+              <Text style={styles.title}>Leaderboard</Text>
+              <LiftSegments
+                segments={LIFT_LABELS}
+                activeIndex={LIFT_KEYS.indexOf(lift)}
+                onChange={(i) => setLift(LIFT_KEYS[i])}
+                style={styles.segmentsSpacing}
+              />
+            </View>
 
-        {rest.length > 0 && (
-          <View
-            style={styles.card}
-            onLayout={(e) => {
-              layoutRef.current.cardY = e.nativeEvent.layout.y;
-              recomputeYouVisible();
-            }}
-          >
-            {rest.map((a, idx) => (
-              <TouchableOpacity
-                key={a.key}
-                style={[
-                  styles.row,
-                  idx > 0 && styles.rowBorder,
-                  a.isYou && styles.rowMe,
-                ]}
-                onPress={() => setAthlete(a)}
-                activeOpacity={0.7}
-                onLayout={
-                  a.isYou
-                    ? (e) => {
-                        layoutRef.current.inPodium = false;
-                        layoutRef.current.rowY = e.nativeEvent.layout.y;
-                        layoutRef.current.rowH = e.nativeEvent.layout.height;
-                        recomputeYouVisible();
-                      }
-                    : undefined
+            {/* Filter chips */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.chipsRow}
+              contentContainerStyle={styles.chipsContent}
+            >
+              <FilterChip
+                label={
+                  scope === "season" ? (season?.label ?? "Season") : "All-time"
                 }
+                chevron
+                onPress={() => setFilterSheet("scope")}
+              />
+              {lift !== "sinclair" && (
+                <FilterChip
+                  label={`${wclass} kg`}
+                  chevron
+                  onPress={() => setFilterSheet("class")}
+                />
+              )}
+              {lift !== "sinclair" && (
+                <FilterChip
+                  label={sex === "M" ? "Men" : "Women"}
+                  chevron
+                  onPress={() => setFilterSheet("sex")}
+                />
+              )}
+              <FilterChip
+                label={
+                  age === "junior"
+                    ? "Junior"
+                    : age === "masters"
+                      ? "Masters"
+                      : "Open"
+                }
+                chevron
+                onPress={() => setFilterSheet("age")}
+              />
+              <FilterChip
+                label={
+                  country === "ALL"
+                    ? "World"
+                    : (COUNTRIES.find((c) => c.code === country)?.name ??
+                      country)
+                }
+                chevron
+                onPress={() => setFilterSheet("country")}
+              />
+              <FilterChip
+                label="Friends"
+                active={friendsOnly}
+                onPress={() => setFriendsOnly((f) => !f)}
+              />
+            </ScrollView>
+          </View>
+          {isError && ranked.length === 0 && (
+            <View style={styles.empty}>
+              <Text style={styles.emptyTitle}>Couldn’t load the board</Text>
+              <Text style={styles.emptyText}>
+                Check your connection and try again.
+              </Text>
+              <TouchableOpacity
+                style={styles.emptyBtn}
+                onPress={() => refetch()}
               >
-                <Text style={styles.rankNum}>{a.rank}</Text>
-                <OlyAvatar name={a.isYou ? "You" : a.name} size="small" />
-                <View style={styles.rowInfo}>
-                  <View style={styles.rowNameLine}>
+                <Text style={styles.emptyBtnText}>RETRY</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {!isError && !firstLoading && ranked.length === 0 && (
+            <View style={styles.empty}>
+              <Text style={styles.emptyTitle}>
+                {friendsOnly
+                  ? "No friends ranked here yet"
+                  : "No one is ranked here yet"}
+              </Text>
+              <Text style={styles.emptyText}>
+                {friendsOnly
+                  ? "Athletes you follow will show up here once they post a verified lift on this board."
+                  : "This board is wide open. Post a verified lift and take the #1 spot. Someone has to be first."}
+              </Text>
+              {!friendsOnly && (
+                <TouchableOpacity
+                  style={styles.emptyBtn}
+                  onPress={openPostFlow}
+                >
+                  <Text style={styles.emptyBtnText}>POST A LIFT</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
+          {podium.length === 3 && (
+            <View
+              style={styles.podium}
+              onLayout={(e) => {
+                if (podium.some((p) => p.isYou)) {
+                  layoutRef.current.inPodium = true;
+                  layoutRef.current.rowY = e.nativeEvent.layout.y;
+                  layoutRef.current.rowH = e.nativeEvent.layout.height;
+                  recomputeYouVisible();
+                }
+              }}
+            >
+              {[1, 0, 2].map((i) => {
+                const a = podium[i];
+                const first = i === 0;
+                return (
+                  <TouchableOpacity
+                    key={a.key}
+                    style={[styles.pSlot, first && styles.pSlotFirst]}
+                    onPress={() => setAthlete(a)}
+                    activeOpacity={0.7}
+                  >
+                    <View>
+                      <OlyAvatar
+                        name={a.isYou ? "You" : a.name}
+                        size={first ? "large" : "medium"}
+                        showBorder={first}
+                      />
+                      <View style={[styles.pRank, first && styles.pRankFirst]}>
+                        <Text
+                          style={[
+                            styles.pRankText,
+                            first && styles.pRankTextFirst,
+                          ]}
+                        >
+                          {a.rank}
+                        </Text>
+                      </View>
+                    </View>
                     <Text
-                      style={[
-                        styles.rowName,
-                        a.isYou && styles.rowNameMe,
-                        a.anonymized && styles.rowNameInactive,
-                      ]}
+                      style={[styles.pName, first && styles.pNameFirst]}
                       numberOfLines={1}
                     >
                       {a.isYou ? "You" : a.name}
                     </Text>
-                    {a.anonymized && (
-                      <View style={styles.inactivePill}>
-                        <Text style={styles.inactivePillText}>INACTIVE</Text>
-                      </View>
-                    )}
-                    {a.pending && (
-                      <View style={styles.pendingPill}>
-                        <Text style={styles.pendingPillText}>PENDING</Text>
-                      </View>
-                    )}
+                    <Text style={[styles.pKg, first && styles.pKgFirst]}>
+                      {a.m}
+                      <Text style={styles.unitText}> {unit}</Text>
+                    </Text>
+                    <Text style={styles.pCaption} numberOfLines={1}>
+                      {a.pending ? "Pending review" : caption(a)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+
+          {rest.length > 0 && (
+            <View
+              style={styles.card}
+              onLayout={(e) => {
+                layoutRef.current.cardY = e.nativeEvent.layout.y;
+                recomputeYouVisible();
+              }}
+            >
+              {rest.map((a, idx) => (
+                <TouchableOpacity
+                  key={a.key}
+                  style={[
+                    styles.row,
+                    idx > 0 && styles.rowBorder,
+                    a.isYou && styles.rowMe,
+                  ]}
+                  onPress={() => setAthlete(a)}
+                  activeOpacity={0.7}
+                  onLayout={
+                    a.isYou
+                      ? (e) => {
+                          layoutRef.current.inPodium = false;
+                          layoutRef.current.rowY = e.nativeEvent.layout.y;
+                          layoutRef.current.rowH = e.nativeEvent.layout.height;
+                          recomputeYouVisible();
+                        }
+                      : undefined
+                  }
+                >
+                  <Text style={styles.rankNum}>{a.rank}</Text>
+                  <OlyAvatar name={a.isYou ? "You" : a.name} size="small" />
+                  <View style={styles.rowInfo}>
+                    <View style={styles.rowNameLine}>
+                      <Text
+                        style={[
+                          styles.rowName,
+                          a.isYou && styles.rowNameMe,
+                          a.anonymized && styles.rowNameInactive,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {a.isYou ? "You" : a.name}
+                      </Text>
+                      {a.anonymized && (
+                        <View style={styles.inactivePill}>
+                          <Text style={styles.inactivePillText}>INACTIVE</Text>
+                        </View>
+                      )}
+                      {a.pending && (
+                        <View style={styles.pendingPill}>
+                          <Text style={styles.pendingPillText}>PENDING</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.rowSub} numberOfLines={1}>
+                      {caption(a)}
+                    </Text>
                   </View>
-                  <Text style={styles.rowSub} numberOfLines={1}>
-                    {caption(a)}
+                  <Text style={styles.rowKg}>
+                    {a.m}
+                    <Text style={styles.unitText}> {unit}</Text>
                   </Text>
-                </View>
-                <Text style={styles.rowKg}>
-                  {a.m}
-                  <Text style={styles.unitText}> {unit}</Text>
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
-        {!friendsOnly && nextCursor && ranked.length > 0 && (
-          <TouchableOpacity
-            style={styles.loadMore}
-            onPress={loadMore}
-            disabled={moreQ.isFetching}
-          >
-            {moreQ.isFetching ? (
-              <ActivityIndicator size="small" color={olyColors.text.secondary} />
-            ) : (
-              <Text style={styles.loadMoreText}>SHOW MORE</Text>
-            )}
-          </TouchableOpacity>
-        )}
-
-        {ranked.length > 0 && (
-          <Text style={styles.footnote}>
-            {scope === "season" && season
-              ? `${season.label} ends ${fmtDate(season.endsAt)} · every lift video-verified`
-              : "All-time records · every lift video-verified"}
-          </Text>
-        )}
-      </ScrollView>
-
-      {/* Sticky You bar — rank always live-counted by the server */}
-      {showYouBar && !(youRowVisible && youIndex >= 0) && (
-        <Animated.View
-          entering={FadeIn.duration(180)}
-          exiting={FadeOut.duration(180)}
-          style={[styles.youBar, { bottom: youBarBottom }]}
-        >
-          <Pressable
-            style={styles.youBarInner}
-            onPress={() => {
-              if (me?.provisional) {
-                openPostFlow();
-              } else if (youIndex >= 0) {
-                setAthlete(ranked[youIndex]);
-              }
-            }}
-          >
-            <View style={styles.youRankBlock}>
-              <Text style={styles.youRank}>{me!.rank}</Text>
-              <Text style={styles.youRankLabel}>YOU</Text>
+                </TouchableOpacity>
+              ))}
             </View>
-            <View style={styles.youMid}>
-              <Text style={styles.youName}>{myName}</Text>
-              <Text style={styles.youGap}>
-                {me!.provisional
-                  ? "Unverified — post a video to claim your spot"
-                  : `Snatch ${me!.snatchKg ?? "—"} · C&J ${me!.cleanKg ?? "—"}`}
-              </Text>
-            </View>
-            <Text style={styles.youKg}>
-              {me!.value}
-              <Text style={styles.unitText}> {unit}</Text>
+          )}
+
+          {!friendsOnly && nextCursor && ranked.length > 0 && (
+            <TouchableOpacity
+              style={styles.loadMore}
+              onPress={loadMore}
+              disabled={moreQ.isFetching}
+            >
+              {moreQ.isFetching ? (
+                <ActivityIndicator
+                  size="small"
+                  color={olyColors.text.secondary}
+                />
+              ) : (
+                <Text style={styles.loadMoreText}>SHOW MORE</Text>
+              )}
+            </TouchableOpacity>
+          )}
+
+          {ranked.length > 0 && (
+            <Text style={styles.footnote}>
+              {scope === "season" && season
+                ? `${season.label} ends ${fmtDate(season.endsAt)} · every lift video-verified`
+                : "All-time records · every lift video-verified"}
             </Text>
-          </Pressable>
-        </Animated.View>
-      )}
+          )}
+        </ScrollView>
 
-      {/* Filter sheet */}
-      <SheetModal visible={filterSheet !== null} onClose={() => setFilterSheet(null)}>
-        {filterSheet === "scope" && (
-          <SheetOptions
-            title="BOARD"
-            options={[
-              {
-                value: "season",
-                label: season
-                  ? `${season.label} · ends ${fmtDate(season.endsAt)}`
-                  : "Season",
-              },
-              { value: "alltime", label: "All-time records" },
-            ]}
-            current={scope}
-            onPick={(v) => setScope(v as "season" | "alltime")}
-            onClose={() => setFilterSheet(null)}
-          />
+        {/* Sticky You bar — rank always live-counted by the server */}
+        {showYouBar && !(youRowVisible && youIndex >= 0) && (
+          <Animated.View
+            entering={FadeIn.duration(180)}
+            exiting={FadeOut.duration(180)}
+            style={[styles.youBar, { bottom: youBarBottom }]}
+          >
+            <Pressable
+              style={styles.youBarInner}
+              onPress={() => {
+                if (me?.provisional) {
+                  openPostFlow();
+                } else if (youIndex >= 0) {
+                  setAthlete(ranked[youIndex]);
+                }
+              }}
+            >
+              <View style={styles.youRankBlock}>
+                <Text style={styles.youRank}>
+                  {youIndex >= 0 ? ranked[youIndex].rank : me!.rank}
+                </Text>
+                <Text style={styles.youRankLabel}>YOU</Text>
+              </View>
+              <View style={styles.youMid}>
+                <Text style={styles.youName}>{myName}</Text>
+                <Text style={styles.youGap}>
+                  {me!.provisional
+                    ? "Unverified. Post a video to claim your spot"
+                    : `Snatch ${me!.snatchKg ?? "—"} · C&J ${me!.cleanKg ?? "—"}`}
+                </Text>
+              </View>
+              <Text style={styles.youKg}>
+                {me!.value}
+                <Text style={styles.unitText}> {unit}</Text>
+              </Text>
+            </Pressable>
+          </Animated.View>
         )}
-        {filterSheet === "class" && (
-          <SheetOptions
-            title="WEIGHT CLASS"
-            options={classOptions}
-            current={wclass}
-            onPick={(v) => setWclass(v)}
-            onClose={() => setFilterSheet(null)}
-          />
-        )}
-        {filterSheet === "sex" && (
-          <SheetOptions
-            title="CATEGORY"
-            options={[
-              { value: "M", label: "Men" },
-              { value: "F", label: "Women" },
-            ]}
-            current={sex}
-            onPick={(v) => {
-              setSex(v as ApiSex);
-              setWclass(v === "M" ? "88" : "69");
-            }}
-            onClose={() => setFilterSheet(null)}
-          />
-        )}
-        {filterSheet === "age" && (
-          <SheetOptions
-            title="AGE CATEGORY"
-            options={[
-              { value: "open", label: "Open · everyone competes" },
-              { value: "junior", label: "Junior · 20 and under" },
-              { value: "masters", label: "Masters · 35+" },
-            ]}
-            current={age}
-            onPick={(v) => setAge(v as ApiAge)}
-            onClose={() => setFilterSheet(null)}
-          />
-        )}
-        {filterSheet === "country" && (
-          <CountrySheet
-            current={country}
-            onPick={(v) => setCountry(v)}
-            onClose={() => setFilterSheet(null)}
-          />
-        )}
-      </SheetModal>
 
-      {/* Athlete sheet — card data fetched live per athlete */}
-      <SheetModal visible={athlete !== null} onClose={() => setAthlete(null)}>
-        {athlete && (
-          <AthleteSheet
-            a={athlete}
-            lift={lift}
-            unit={unit}
-            params={params}
-            onPost={() => {
-              setAthlete(null);
-              openPostFlow();
-            }}
-          />
-        )}
-      </SheetModal>
-    </OlyScreenWrapper>
+        {/* Filter sheet */}
+        <SheetModal
+          visible={filterSheet !== null}
+          onClose={() => setFilterSheet(null)}
+        >
+          {filterSheet === "scope" && (
+            <SheetOptions
+              title="BOARD"
+              options={[
+                {
+                  value: "season",
+                  label: season
+                    ? `${season.label} · ends ${fmtDate(season.endsAt)}`
+                    : "Season",
+                },
+                { value: "alltime", label: "All-time records" },
+              ]}
+              current={scope}
+              onPick={(v) => setScope(v as "season" | "alltime")}
+              onClose={() => setFilterSheet(null)}
+            />
+          )}
+          {filterSheet === "class" && (
+            <SheetOptions
+              title="WEIGHT CLASS"
+              options={classOptions}
+              current={wclass}
+              onPick={(v) => setWclass(v)}
+              onClose={() => setFilterSheet(null)}
+            />
+          )}
+          {filterSheet === "sex" && (
+            <SheetOptions
+              title="CATEGORY"
+              options={[
+                { value: "M", label: "Men" },
+                { value: "F", label: "Women" },
+              ]}
+              current={sex}
+              onPick={(v) => {
+                setSex(v as ApiSex);
+                setWclass(v === "M" ? "88" : "69");
+              }}
+              onClose={() => setFilterSheet(null)}
+            />
+          )}
+          {filterSheet === "age" && (
+            <SheetOptions
+              title="AGE CATEGORY"
+              options={[
+                { value: "open", label: "Open · everyone competes" },
+                { value: "junior", label: "Junior · 20 and under" },
+                { value: "masters", label: "Masters · 35+" },
+              ]}
+              current={age}
+              onPick={(v) => setAge(v as ApiAge)}
+              onClose={() => setFilterSheet(null)}
+            />
+          )}
+          {filterSheet === "country" && (
+            <CountrySheet
+              current={country}
+              onPick={(v) => setCountry(v)}
+              onClose={() => setFilterSheet(null)}
+            />
+          )}
+        </SheetModal>
+
+        {/* Athlete sheet — card data fetched live per athlete */}
+        <SheetModal visible={athlete !== null} onClose={() => setAthlete(null)}>
+          {athlete && (
+            <AthleteSheet
+              a={athlete}
+              lift={lift}
+              unit={unit}
+              params={params}
+              onPost={() => {
+                setAthlete(null);
+                openPostFlow();
+              }}
+            />
+          )}
+        </SheetModal>
+      </View>
+    </View>
   );
 }
 
@@ -774,12 +818,13 @@ function SheetModal({
         style={styles.kavFill}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <Pressable style={styles.sheetBackdrop} onPress={onClose}>
-          <Pressable style={styles.sheet} onPress={() => {}}>
-            <View style={styles.sheetHandle} />
+        <SheetBackdrop onPress={onClose} />
+        <View style={styles.sheetWrap} pointerEvents="box-none">
+          <SheetSurface style={styles.sheet}>
+            <SheetGrabber />
             {children}
-          </Pressable>
-        </Pressable>
+          </SheetSurface>
+        </View>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -839,7 +884,7 @@ function CountrySheet({
     ? COUNTRIES.filter(
         (c) =>
           c.name.toLowerCase().includes(q) ||
-          c.code.toLowerCase().startsWith(q)
+          c.code.toLowerCase().startsWith(q),
       )
     : COUNTRIES;
   const pick = (v: string) => {
@@ -933,7 +978,7 @@ function AthleteSheet({
     const next = !following;
     setFollowingLocal(next);
     (next ? follow(a.userId) : unfollow(a.userId)).catch(() =>
-      setFollowingLocal(!next)
+      setFollowingLocal(!next),
     );
   };
 
@@ -974,9 +1019,10 @@ function AthleteSheet({
           <TouchableOpacity
             style={[styles.followBtn, following && styles.followBtnOn]}
             onPress={toggleFollow}
+            hitSlop={5}
           >
             <Text style={[styles.followText, following && styles.followTextOn]}>
-              {following ? "FOLLOWING" : "FOLLOW"}
+              {following ? "Following" : "Follow"}
             </Text>
           </TouchableOpacity>
         )}
@@ -1037,7 +1083,10 @@ function AthleteSheet({
                 {k === "sn" ? "SNATCH" : "CLEAN & JERK"}
               </Text>
               {cardQ.isLoading ? (
-                <ActivityIndicator size="small" color={olyColors.text.secondary} />
+                <ActivityIndicator
+                  size="small"
+                  color={olyColors.text.secondary}
+                />
               ) : v ? (
                 <>
                   <View style={styles.playBtn}>
@@ -1074,6 +1123,8 @@ function AthleteSheet({
 /* ---------- styles (Design Bible v3.0 tokens only) ---------- */
 
 const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: olyColors.bg.page },
+  safe: { flex: 1 },
   header: {
     paddingHorizontal: olyLayout.screenPadding,
     paddingTop: olySpacing[8],
@@ -1085,6 +1136,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...olyTypography.title1,
+    fontFamily: olyFonts.bold,
     color: olyColors.text.primary,
   },
   segmentsSpacing: {
@@ -1092,27 +1144,33 @@ const styles = StyleSheet.create({
   },
   segments: {
     flexDirection: "row",
-    backgroundColor: olyColors.bg.card,
-    borderRadius: olyRadius.lg,
-    padding: olySpacing[4],
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
+    borderRadius: olyRadius.full,
+    padding: 3,
   },
   segment: {
     flex: 1,
     paddingVertical: olySpacing[8],
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: NESTED_RADIUS,
+    borderRadius: olyRadius.full,
   },
   segmentActive: {
-    backgroundColor: olyPalette.primary,
+    backgroundColor: olyColors.glass.border,
   },
   segmentLabel: {
     ...olyTypography.caption,
     fontFamily: olyTypography.label.fontFamily,
   },
-  segmentLabelActive: { color: olyColors.text.onBrand },
+  segmentLabelActive: { color: olyColors.text.primary },
   segmentLabelIdle: { color: olyColors.text.secondary },
   chipsRow: { flexGrow: 0, marginTop: olySpacing[12] },
+  /** Header and chips sit inside the padded board scroll: undo its side
+      padding so they keep their own (chips still scroll edge to edge), and
+      keep the gap above the podium. */
+  boardHeader: { marginHorizontal: -olyLayout.screenPadding, marginBottom: olySpacing[12] },
   chipsContent: {
     paddingHorizontal: olyLayout.screenPadding,
     gap: olySpacing[8],
@@ -1120,23 +1178,27 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: "row",
     gap: olySpacing[4],
-    backgroundColor: olyColors.bg.card,
-    borderRadius: NESTED_RADIUS,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
+    borderRadius: olyRadius.full,
     paddingVertical: olySpacing[8],
-    paddingHorizontal: olySpacing[12],
+    paddingHorizontal: 14,
     alignItems: "center",
     justifyContent: "center",
   },
-  chipActive: { backgroundColor: olyPalette.primary },
+  chipActive: {
+    backgroundColor: olyColors.glass.accentFill,
+    borderColor: olyColors.glass.accentBorder,
+  },
   chipLabel: {
     ...olyTypography.caption,
     fontFamily: olyTypography.label.fontFamily,
     color: olyColors.text.secondary,
   },
-  chipLabelActive: { color: olyColors.text.onBrand },
+  chipLabelActive: { color: olyColors.text.primary },
   scroll: {
     flex: 1,
-    marginTop: olySpacing[12],
     paddingHorizontal: olyLayout.screenPadding,
   },
   unitText: {
@@ -1148,8 +1210,10 @@ const styles = StyleSheet.create({
   podium: {
     flexDirection: "row",
     alignItems: "flex-end",
-    backgroundColor: olyColors.bg.card,
-    borderRadius: olyRadius.lg,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
+    borderRadius: olyRadius.xl,
     paddingTop: olySpacing[24],
     paddingBottom: olySpacing[16],
     paddingHorizontal: olySpacing[8],
@@ -1166,11 +1230,11 @@ const styles = StyleSheet.create({
     borderRadius: olyRadius.full,
     backgroundColor: olyPalette.cardElevated,
     borderWidth: 2,
-    borderColor: olyColors.bg.card,
+    borderColor: olyColors.bg.page,
     alignItems: "center",
     justifyContent: "center",
   },
-  pRankFirst: { backgroundColor: olyPalette.primary },
+  pRankFirst: { backgroundColor: olyPalette.primary, ...olyGlow.md },
   pRankText: {
     ...olyTypography.caption,
     color: olyColors.text.secondary,
@@ -1203,8 +1267,10 @@ const styles = StyleSheet.create({
 
   /* list */
   card: {
-    backgroundColor: olyColors.bg.card,
-    borderRadius: olyRadius.lg,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
+    borderRadius: olyRadius.xl,
     overflow: "hidden",
   },
   row: {
@@ -1216,9 +1282,9 @@ const styles = StyleSheet.create({
   },
   rowBorder: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: olyColors.border.default,
+    borderTopColor: olyColors.glass.rule,
   },
-  rowMe: { backgroundColor: olyColors.bg.subtleHighlight },
+  rowMe: { backgroundColor: olyColors.glass.accentFill },
   rankNum: {
     width: 20,
     textAlign: "center",
@@ -1329,10 +1395,11 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: olyLayout.screenPadding,
     right: olyLayout.screenPadding,
-    backgroundColor: olyPalette.cardElevated,
+    backgroundColor: olyColors.glass.accentBar,
     borderWidth: 1,
-    borderColor: olyColors.border.brand,
-    borderRadius: olyRadius.lg,
+    borderColor: olyColors.glass.accentBorder,
+    borderRadius: olyRadius.tile,
+    ...olyGlow.lg,
   },
   youBarInner: {
     flexDirection: "row",
@@ -1367,26 +1434,15 @@ const styles = StyleSheet.create({
   },
 
   /* sheets */
-  sheetBackdrop: {
+  sheetWrap: {
     flex: 1,
-    backgroundColor: olyOverlay,
     justifyContent: "flex-end",
+    paddingHorizontal: SHEET_SIDE,
   },
   sheet: {
-    backgroundColor: olyColors.bg.card,
-    borderTopLeftRadius: olyRadius.lg,
-    borderTopRightRadius: olyRadius.lg,
     paddingHorizontal: olyLayout.cardPadding,
     paddingTop: olySpacing[12],
     paddingBottom: olySpacing[32],
-  },
-  sheetHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: olyRadius.sm,
-    backgroundColor: olyColors.text.disabled,
-    alignSelf: "center",
-    marginBottom: olySpacing[16],
   },
   sheetTitle: {
     ...olyTypography.caption,
@@ -1408,8 +1464,10 @@ const styles = StyleSheet.create({
   searchInput: {
     ...olyTypography.body,
     color: olyColors.text.primary,
-    backgroundColor: olyElevation.level2.backgroundColor,
-    borderRadius: NESTED_RADIUS,
+    backgroundColor: olyColors.glass.inset,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
+    borderRadius: olyRadius.full,
     paddingVertical: olySpacing[8],
     paddingHorizontal: olySpacing[12],
     marginBottom: olySpacing[8],
@@ -1447,18 +1505,21 @@ const styles = StyleSheet.create({
   },
   athName: {
     ...olyTypography.body,
-    fontFamily: olyTypography.label.fontFamily,
+    fontSize: 17,
+    fontFamily: olyFonts.bold,
     color: olyColors.text.primary,
     flexShrink: 1,
   },
   rankPill: {
     backgroundColor: olyPalette.primary,
-    borderRadius: olyRadius.sm,
-    paddingHorizontal: olySpacing[4],
+    borderRadius: olyRadius.full,
+    paddingHorizontal: olySpacing[8],
     paddingVertical: 2,
+    ...olyGlow.md,
   },
   rankPillText: {
     ...olyTypography.caption,
+    fontFamily: olyFonts.bold,
     color: olyColors.text.onBrand,
   },
   athClub: {
@@ -1468,28 +1529,37 @@ const styles = StyleSheet.create({
   followBtn: {
     backgroundColor: olyPalette.primary,
     borderRadius: olyRadius.full,
-    paddingVertical: olySpacing[8],
-    paddingHorizontal: olySpacing[16],
+    paddingVertical: 9,
+    paddingHorizontal: 18,
+    ...olyGlow.md,
   },
-  followBtnOn: { backgroundColor: olyPalette.cardElevated },
+  followBtnOn: {
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
+    shadowOpacity: 0,
+  },
   followText: {
     ...olyTypography.caption,
-    fontFamily: olyTypography.label.fontFamily,
+    fontSize: 13,
+    fontFamily: olyFonts.bold,
     color: olyColors.text.onBrand,
-    letterSpacing: olyLetterSpacing.uppercase,
   },
   followTextOn: { color: olyColors.text.secondary },
 
   sheetPostBtn: {
     backgroundColor: olyPalette.primary,
+    ...olyGlow.md,
     borderRadius: olyRadius.full,
     alignItems: "center",
     paddingVertical: olySpacing[12],
     marginTop: olyLayout.cardGap,
   },
   statband: {
-    backgroundColor: olyElevation.level2.backgroundColor,
-    borderRadius: olyRadius.lg,
+    backgroundColor: olyColors.bg.subtleHighlight,
+    borderWidth: 1,
+    borderColor: olyColors.glass.accentBorder,
+    borderRadius: olyRadius.xl,
     padding: olyLayout.cardPadding,
     marginBottom: olyLayout.cardGap,
   },
@@ -1520,15 +1590,17 @@ const styles = StyleSheet.create({
   split: {
     flexDirection: "row",
     gap: 2,
-    height: olySpacing[4],
-    borderRadius: olyRadius.sm,
-    overflow: "hidden",
+    height: 5,
     marginTop: olySpacing[12],
   },
-  splitSn: { backgroundColor: olyPalette.primary, borderRadius: olyRadius.sm },
+  splitSn: {
+    backgroundColor: olyPalette.primary,
+    borderRadius: 3,
+    ...olyGlow.sm,
+  },
   splitCj: {
-    backgroundColor: olyColors.bg.cardUnselected,
-    borderRadius: olyRadius.sm,
+    backgroundColor: olyColors.glass.idle,
+    borderRadius: 3,
   },
   splitLabels: {
     flexDirection: "row",
@@ -1545,8 +1617,10 @@ const styles = StyleSheet.create({
   vidThumb: {
     flex: 1,
     height: 128,
-    borderRadius: olyRadius.lg,
-    backgroundColor: olyElevation.level2.backgroundColor,
+    borderRadius: olyRadius.tile,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1565,6 +1639,7 @@ const styles = StyleSheet.create({
     backgroundColor: olyPalette.primary,
     alignItems: "center",
     justifyContent: "center",
+    ...olyGlow.md,
   },
   playIcon: { marginLeft: 2 },
   vidKg: {

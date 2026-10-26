@@ -18,7 +18,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olyColors } from "@/src/oly-theme/oly-colors";
 import { olyTypography, olyMaxFontScale } from "@/src/oly-theme/oly-typography";
 import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
@@ -50,7 +50,7 @@ export const OlyTextInput: React.FC<OlyTextInputProps> = ({
   const getBorderColor = () => {
     if (error) return olyColors.border.error;
     if (isFocused) return olyColors.border.brand;
-    return "transparent";
+    return olyColors.glass.border;
   };
 
   return (
@@ -118,15 +118,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     minHeight: olyLayout.inputHeight,
-    backgroundColor: olyPalette.card,
+    backgroundColor: olyColors.glass.inset,
     borderWidth: 1,
-    borderRadius: olyRadius.lg,
+    borderRadius: olyRadius.full,
     overflow: "hidden",
   },
   input: {
     flex: 1,
     minHeight: olyLayout.inputHeight,
-    paddingHorizontal: olySpacing[16],
+    paddingHorizontal: olySpacing[20],
     ...olyTypography.body,
     color: olyColors.text.primary,
   },
@@ -145,12 +145,13 @@ const styles = StyleSheet.create({
   suffix: {
     ...olyTypography.body,
     color: olyColors.text.primary,
-    marginRight: olySpacing[16],
+    marginRight: olySpacing[20],
   },
   errorText: {
     ...olyTypography.caption,
     color: olyColors.text.error,
     marginTop: olySpacing[4],
+    marginLeft: olySpacing[20],
   },
 });
 

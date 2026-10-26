@@ -2,7 +2,7 @@
  * OlyAvatar — Avatar circle atom
  * Source: Design Bible v3.0, Section 8.1 Avatar
  *
- * Sizes: small (32px), medium (48px), large (80px)
+ * Sizes: small (32px), medium (48px), large (80px), xl (88px, profile hero)
  * Shape: Circle (oly-radius/full)
  *
  * Figma: oly/avatar/medium
@@ -17,7 +17,7 @@ import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyTypography } from "@/src/oly-theme/oly-typography";
 
 // ─── Types ───────────────────────────────────────────────────────
-type AvatarSize = "small" | "medium" | "large";
+type AvatarSize = "small" | "medium" | "large" | "xl";
 
 interface OlyAvatarProps {
   /** Image URI — if not provided, shows initials */
@@ -33,6 +33,7 @@ const SIZES: Record<AvatarSize, number> = {
   small: 32,
   medium: 48,
   large: 80,
+  xl: 88,
 };
 
 // ─── Component ───────────────────────────────────────────────────
@@ -82,7 +83,7 @@ export const OlyAvatar: React.FC<OlyAvatarProps> = ({
     >
       <Text
         style={[
-          size === "large"
+          size === "large" || size === "xl"
             ? olyTypography.title2
             : size === "medium"
               ? olyTypography.body

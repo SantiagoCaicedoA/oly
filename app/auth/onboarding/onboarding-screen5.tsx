@@ -2,19 +2,16 @@
  * Onboarding Screen 5 — Equipment (Redesigned v2)
  *
  * Essential (always included, non-interactive) and Optional (tap to toggle).
- * No checkboxes — active state = highlight bg + primary border.
+ * No checkboxes — active state = glass accent fill + accent border.
  *
  * Abdul's data flow unchanged — dispatches to onboardingSlice.
  */
 
+import { onboardingStyles } from "@/src/oly-components/onboarding/onboarding-styles";
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
-import {
-  olyTypography,
-  olyFonts,
-  olyLetterSpacing,
-} from "@/src/oly-theme/oly-typography";
-import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
-import { olySpacing } from "@/src/oly-theme/oly-spacing";
+import { olyTypography, olyFonts } from "@/src/oly-theme/oly-typography";
+import { olyColors } from "@/src/oly-theme/oly-colors";
+import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import {
   saveOnboardingData,
@@ -209,39 +206,31 @@ const styles = StyleSheet.create({
   },
 
   // Title
-  titleBlock: { marginBottom: olySpacing[20] },
-  title: { ...olyTypography.title1, color: olyColors.text.primary },
-  subtitle: {
-    ...olyTypography.body,
-    color: olyColors.text.secondary,
-    marginTop: olySpacing[4],
-  },
+  titleBlock: onboardingStyles.titleBlock,
+  title: onboardingStyles.title,
+  subtitle: onboardingStyles.subtitle,
 
   // Section
   section: {
     marginTop: olySpacing[24],
-    gap: olySpacing[8],
+    gap: 10,
   },
   label: {
-    ...olyTypography.label,
+    ...olyTypography.caption,
     color: olyColors.text.secondary,
-    letterSpacing: olyLetterSpacing.uppercase,
+    letterSpacing: 1.5,
     textTransform: "uppercase",
-    marginBottom: olySpacing[8],
   },
 
-  // Cards
+  // Option cards
   card: {
-    paddingHorizontal: olySpacing[16],
-    paddingVertical: olySpacing[16],
-    borderRadius: olyRadius.lg,
-    backgroundColor: olyPalette.card,
-  },
-  cardActive: {
+    padding: olyLayout.cardPadding,
+    borderRadius: olyRadius.tile,
+    backgroundColor: olyColors.glass.card,
     borderWidth: 1,
-    borderColor: olyPalette.primary,
-    backgroundColor: olyColors.bg.activeHighlight,
+    borderColor: olyColors.glass.border,
   },
+  cardActive: onboardingStyles.selected,
   cardTitle: {
     ...olyTypography.body,
     fontFamily: olyFonts.medium,
@@ -257,12 +246,7 @@ const styles = StyleSheet.create({
   },
 
   // Bottom buttons
-  bottomButtons: {
-    flexDirection: "row",
-    gap: olySpacing[12],
-    paddingTop: olySpacing[40],
-    marginTop: "auto" as const,
-  },
+  bottomButtons: onboardingStyles.bottomButtons,
   buttonHalf: {
     flex: 1,
   },

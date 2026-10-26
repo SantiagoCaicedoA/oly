@@ -18,12 +18,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { olyGradient } from '@/src/oly-theme/oly-colors';
 import { olyLayout } from '@/src/oly-theme/oly-spacing';
+import { Glows } from '@/src/oly-components/shop/ShopKit';
 
 interface OlyScreenWrapperProps {
   children: React.ReactNode;
   padded?: boolean;
   style?: ViewStyle;
   statusBarStyle?: 'light' | 'dark';
+  /** Blue light behind the glass. On by default; pass false for full-bleed media screens. */
+  glow?: boolean;
 }
 
 export const OlyScreenWrapper: React.FC<OlyScreenWrapperProps> = ({
@@ -31,6 +34,7 @@ export const OlyScreenWrapper: React.FC<OlyScreenWrapperProps> = ({
   padded = true,
   style,
   statusBarStyle = 'light',
+  glow = true,
 }) => {
   return (
     <LinearGradient
@@ -45,6 +49,7 @@ export const OlyScreenWrapper: React.FC<OlyScreenWrapperProps> = ({
         backgroundColor="transparent"
         translucent
       />
+      {glow && <Glows variant="shop" />}
       <SafeAreaView style={styles.safe}>
         <View
           style={[

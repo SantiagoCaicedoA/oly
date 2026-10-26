@@ -1,8 +1,9 @@
-import { useTheme } from "@/context/theme-context";
-import { Typography } from "@/utils/custom-styles";
+import { olyColors } from "@/src/oly-theme/oly-colors";
+import { olyRadius } from "@/src/oly-theme/oly-radius";
+import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
+import { olyFonts, olyTypography } from "@/src/oly-theme/oly-typography";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { scale } from "react-native-size-matters";
 
 type SegmentOption = {
   label: string;
@@ -34,8 +35,6 @@ const SegmentedSelector: React.FC<SegmentedSelectorProps> = ({
   segments,
   allowMultiple = false,
 }) => {
-  const { colors } = useTheme();
-
   const displayedOptions = segments ? options.slice(0, segments) : options;
 
   const handleSelect = (value: string) => {
@@ -58,58 +57,13 @@ const SegmentedSelector: React.FC<SegmentedSelectorProps> = ({
     return selectedValue === value;
   };
 
-  const styles = StyleSheet.create({
-    title: {
-      fontSize: Typography.fontSize.md,
-      fontWeight: Typography.fontWeight.normal,
-      letterSpacing: Typography.letterSpacing.normal,
-      marginBottom: scale(4),
-    },
-    container: {
-      borderRadius: scale(10),
-      padding: scale(4),
-      borderColor: colors.primary,
-      borderWidth: 0.5,
-      backgroundColor: colors.lightBlue,
-    },
-    row: {
-      flexDirection: "row",
-      marginBottom: scale(8),
-    },
-    segment: {
-      flex: 1,
-      paddingVertical: scale(12),
-      borderRadius: scale(10),
-      alignItems: "center",
-      justifyContent: "center",
-      marginHorizontal: scale(4),
-    },
-    label: {
-      fontSize: Typography.fontSize.md,
-      fontWeight: Typography.fontWeight.normal,
-      letterSpacing: Typography.letterSpacing.normal,
-    },
-  });
-
   const containerStyle =
-    displayedOptions.length > 3
-      ? {
-          backgroundColor: "transparent",
-          borderWidth: 0,
-          borderColor: "transparent",
-          padding: 0,
-          borderRadius: 0,
-        }
-      : styles.container;
+    displayedOptions.length > 3 ? styles.grid : styles.container;
 
   if (displayedOptions.length <= 3) {
     return (
       <View>
-        {title ? (
-          <Text style={[styles.title, { color: colors.textSecondary }]}>
-            {title.toUpperCase()}
-          </Text>
-        ) : null}
+        {title ? <Text style={styles.title}>{title.toUpperCase()}</Text> : null}
 
         <View style={[containerStyle, { flexDirection: "row" }]}>
           {displayedOptions.map((option) => {
@@ -118,21 +72,11 @@ const SegmentedSelector: React.FC<SegmentedSelectorProps> = ({
             return (
               <TouchableOpacity
                 key={option.value}
-                style={[
-                  styles.segment,
-                  {
-                    backgroundColor: active ? colors.primary : colors.lightBlue,
-                  },
-                ]}
+                style={[styles.segment, active && styles.segmentActive]}
                 activeOpacity={0.8}
                 onPress={() => handleSelect(option.value)}
               >
-                <Text
-                  style={[
-                    styles.label,
-                    { color: active ? colors.text : colors.textSecondary },
-                  ]}
-                >
+                <Text style={[styles.label, active && styles.labelActive]}>
                   {option.label}
                 </Text>
               </TouchableOpacity>
@@ -147,11 +91,7 @@ const SegmentedSelector: React.FC<SegmentedSelectorProps> = ({
 
   return (
     <View>
-      {title ? (
-        <Text style={[styles.title, { color: colors.textSecondary }]}>
-          {title.toUpperCase()}
-        </Text>
-      ) : null}
+      {title ? <Text style={styles.title}>{title.toUpperCase()}</Text> : null}
 
       <View style={containerStyle}>
         {chunkedOptions.map((rowOptions, rowIndex) => (
@@ -171,27 +111,15 @@ const SegmentedSelector: React.FC<SegmentedSelectorProps> = ({
                 <TouchableOpacity
                   key={option.value}
                   style={[
-                    styles.segment,
-                    {
-                      backgroundColor: active
-                        ? colors.primary
-                        : colors.lightBlue,
-                      borderColor: colors.primary,
-                      borderWidth:
-                        displayedOptions.length > 3 && !active ? 1 : 0,
-                    },
+                    styles.chip,
+                    active && styles.chipActive,
                     index === 0 ? { marginLeft: 0 } : {},
                     index === rowOptions.length - 1 ? { marginRight: 0 } : {},
                   ]}
                   activeOpacity={0.8}
                   onPress={() => handleSelect(option.value)}
                 >
-                  <Text
-                    style={[
-                      styles.label,
-                      { color: active ? colors.text : colors.textSecondary },
-                    ]}
-                  >
+                  <Text style={[styles.label, active && styles.labelActive]}>
                     {option.label}
                   </Text>
                 </TouchableOpacity>
@@ -203,5 +131,66 @@ const SegmentedSelector: React.FC<SegmentedSelectorProps> = ({
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  title: {
+    ...olyTypography.caption,
+    color: olyColors.text.secondary,
+    textTransform: "uppercase",
+    letterSpacing: 1.5,
+    marginBottom: olySpacing[8],
+  },
+  /* Up to three options: one glass pill track. */
+  container: {
+    borderRadius: olyRadius.full,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
+    backgroundColor: olyColors.glass.card,
+  },
+  /* More than three: a two-column grid of chips, no track. */
+  grid: {
+    padding: 0,
+  },
+  row: {
+    flexDirection: "row",
+    marginBottom: olySpacing[8],
+  },
+  segment: {
+    flex: 1,
+    minHeight: olyLayout.minTouchTarget,
+    paddingHorizontal: olySpacing[12],
+    borderRadius: olyRadius.full,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  segmentActive: {
+    backgroundColor: olyColors.glass.selected,
+  },
+  chip: {
+    flex: 1,
+    minHeight: olyLayout.minTouchTarget,
+    paddingHorizontal: olySpacing[16],
+    borderRadius: olyRadius.full,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
+    backgroundColor: olyColors.glass.card,
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: olySpacing[4],
+  },
+  chipActive: {
+    backgroundColor: olyColors.glass.accentFill,
+    borderColor: olyColors.glass.accentBorder,
+  },
+  label: {
+    ...olyTypography.bodySmall,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.secondary,
+  },
+  labelActive: {
+    color: olyColors.text.primary,
+  },
+});
 
 export default SegmentedSelector;

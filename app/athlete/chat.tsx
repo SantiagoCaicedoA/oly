@@ -1,4 +1,5 @@
 import { OlyIcon } from "@/components/icons/OlyIcon";
+import { Glows } from "@/src/oly-components/shop/ShopKit";
 import { SendSheet } from "@/src/oly-components/messages/SendSheet";
 import {
   initials,
@@ -9,6 +10,7 @@ import {
   type Msg,
 } from "@/src/oly-mock/messages";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olyGlow } from "@/src/oly-theme/oly-elevation";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
 import { olyFonts, olyTypography } from "@/src/oly-theme/oly-typography";
@@ -28,6 +30,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { OlyFloatingHeader, useFloatingHeader } from "@/src/oly-components/organisms/OlyFloatingHeader";
 import Svg, { Circle, Path } from "react-native-svg";
 
 /**
@@ -135,6 +138,7 @@ export default function ChatScreen() {
   const [draft, setDraft] = useState("");
   const [sheet, setSheet] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+  const { headerH, onLayout: onHeaderLayout } = useFloatingHeader(100);
 
   useEffect(() => {
     if (id) markRead(id);
@@ -142,9 +146,12 @@ export default function ChatScreen() {
 
   if (!thread) {
     return (
-      <SafeAreaView style={styles.screen}>
-        <Text style={styles.missing}>Conversation not found.</Text>
-      </SafeAreaView>
+      <View style={styles.root}>
+        <Glows variant="shop" />
+        <SafeAreaView style={styles.screen}>
+          <Text style={styles.missing}>Conversation not found.</Text>
+        </SafeAreaView>
+      </View>
     );
   }
 
@@ -156,15 +163,20 @@ export default function ChatScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
+    <View style={styles.root}>
+    <Glows variant="shop" />
+    <SafeAreaView style={styles.screen} edges={["bottom"]}>
+      {/* Header floats over the thread with a fade; keyboard handling below is unchanged. */}
+      <OlyFloatingHeader onLayout={onHeaderLayout}>
       <View style={styles.header}>
         <Pressable
           onPress={() => router.back()}
           style={styles.iconBtn}
+          hitSlop={2}
           accessibilityRole="button"
           accessibilityLabel="Back"
         >
-          <OlyIcon name="back" size={24} color={olyColors.text.primary} />
+          <OlyIcon name="back" size={22} color={olyColors.text.primary} />
         </Pressable>
         <View style={styles.headAvatar}>
           <Text style={styles.headAvatarText}>{initials(thread.name)}</Text>
@@ -177,7 +189,12 @@ export default function ChatScreen() {
             @{thread.handle} · {thread.club}
           </Text>
         </View>
-        <Pressable style={styles.iconBtn} accessibilityRole="button" accessibilityLabel="More">
+        <Pressable
+          style={styles.iconBtn}
+          hitSlop={2}
+          accessibilityRole="button"
+          accessibilityLabel="More"
+        >
           <Svg width={22} height={22} viewBox="0 0 24 24">
             <Circle cx={5} cy={12} r={1.6} fill={olyColors.text.primary} />
             <Circle cx={12} cy={12} r={1.6} fill={olyColors.text.primary} />
@@ -185,6 +202,7 @@ export default function ChatScreen() {
           </Svg>
         </Pressable>
       </View>
+      </OlyFloatingHeader>
 
       <KeyboardAvoidingView
         style={styles.flex}
@@ -193,7 +211,8 @@ export default function ChatScreen() {
         <ScrollView
           ref={scrollRef}
           style={styles.flex}
-          contentContainerStyle={styles.thread}
+          contentContainerStyle={[styles.thread, { paddingTop: headerH + olyLayout.screenPadding }]}
+          scrollIndicatorInsets={{ top: headerH }}
           onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
           keyboardShouldPersistTaps="handled"
         >
@@ -215,7 +234,7 @@ export default function ChatScreen() {
             value={draft}
             onChangeText={setDraft}
             placeholder="Message"
-            placeholderTextColor={olyColors.text.disabled}
+            placeholderTextColor={olyColors.text.hint}
             style={styles.input}
             multiline
           />
@@ -257,12 +276,14 @@ export default function ChatScreen() {
         }
       />
     </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  screen: { flex: 1, backgroundColor: olyColors.bg.page },
+  root: { flex: 1, backgroundColor: olyColors.bg.page },
+  screen: { flex: 1, backgroundColor: "transparent" },
   missing: {
     ...olyTypography.body,
     color: olyColors.text.secondary,
@@ -272,16 +293,17 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    paddingLeft: olySpacing[4],
-    paddingRight: olySpacing[12],
-    paddingVertical: 6,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: olyColors.border.hairline,
+    gap: olySpacing[12],
+    paddingHorizontal: olyLayout.screenPadding,
+    paddingVertical: olySpacing[8],
   },
   iconBtn: {
-    width: olyLayout.minTouchTarget,
-    height: olyLayout.minTouchTarget,
+    width: 40,
+    height: 40,
+    borderRadius: olyRadius.full,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -289,42 +311,46 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.cardElevated,
+    backgroundColor: olyColors.bg.avatar,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     alignItems: "center",
     justifyContent: "center",
   },
   headAvatarText: {
     ...olyTypography.caption,
     fontFamily: olyFonts.medium,
-    color: olyColors.text.secondary,
+    color: olyColors.text.primary,
   },
   headText: { flex: 1, minWidth: 0 },
   headName: { ...olyTypography.body, fontFamily: olyFonts.bold, color: olyColors.text.primary },
   headSub: { ...olyTypography.caption, color: olyColors.text.secondary },
   thread: {
     padding: olyLayout.screenPadding,
-    gap: 6,
+    gap: olySpacing[8],
   },
   group: { maxWidth: "78%", gap: olySpacing[4] },
   groupMine: { alignSelf: "flex-end" },
   groupTheirs: { alignSelf: "flex-start" },
-  replyLabel: { ...olyTypography.caption, color: olyColors.text.disabled },
+  replyLabel: { ...olyTypography.caption, color: olyColors.text.hint },
   reply: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: olySpacing[8],
+    minHeight: olyLayout.minTouchTarget,
     paddingVertical: 6,
     paddingLeft: 6,
     paddingRight: olySpacing[12],
-    borderRadius: olyRadius.lg,
+    borderRadius: olyRadius.inner,
+    backgroundColor: olyColors.glass.card,
     borderWidth: 1,
-    borderColor: olyColors.border.hairline,
+    borderColor: olyColors.glass.border,
   },
   replyThumb: {
     width: 40,
     height: 50,
     borderRadius: 6,
-    backgroundColor: olyPalette.cardElevated,
+    backgroundColor: olyColors.glass.inset,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -332,14 +358,16 @@ const styles = StyleSheet.create({
   replyMeta: { ...olyTypography.caption, color: olyColors.text.secondary },
   bubble: { paddingVertical: 10, paddingHorizontal: 14 },
   bubbleMine: {
-    backgroundColor: olyPalette.primaryPressed,
+    backgroundColor: olyPalette.primary,
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
     borderBottomLeftRadius: 18,
     borderBottomRightRadius: 6,
   },
   bubbleTheirs: {
-    backgroundColor: olyPalette.card,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
     borderBottomRightRadius: 18,
@@ -350,9 +378,11 @@ const styles = StyleSheet.create({
   card: {
     width: CARD_W,
     height: CARD_H,
-    borderRadius: 16,
+    borderRadius: olyRadius.tile,
     overflow: "hidden",
-    backgroundColor: olyPalette.cardElevated,
+    backgroundColor: olyColors.glass.media,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     justifyContent: "flex-end",
     paddingHorizontal: olySpacing[12],
     paddingBottom: 10,
@@ -387,39 +417,48 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-end",
     gap: olySpacing[8],
-    paddingHorizontal: olySpacing[12],
+    paddingHorizontal: olyLayout.screenPadding,
     paddingVertical: olySpacing[8],
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: olyColors.border.hairline,
+    borderTopColor: olyColors.glass.rule,
   },
   plus: {
-    width: 40,
-    height: 40,
+    width: olyLayout.minTouchTarget,
+    height: olyLayout.minTouchTarget,
     borderRadius: olyRadius.full,
-    backgroundColor: olyPalette.card,
+    backgroundColor: olyColors.glass.card,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
     alignItems: "center",
     justifyContent: "center",
   },
   input: {
     ...olyTypography.body,
     flex: 1,
-    minHeight: 40,
+    minHeight: olyLayout.minTouchTarget,
     maxHeight: 120,
-    paddingHorizontal: olySpacing[16],
-    paddingTop: 10,
-    paddingBottom: 10,
-    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingTop: olySpacing[12],
+    paddingBottom: olySpacing[12],
+    borderRadius: olyRadius.xl,
+    backgroundColor: olyColors.glass.inset,
     borderWidth: 1,
-    borderColor: olyColors.border.default,
+    borderColor: olyColors.glass.border,
     color: olyColors.text.primary,
   },
   sendBtn: {
-    width: 40,
-    height: 40,
+    width: olyLayout.minTouchTarget,
+    height: olyLayout.minTouchTarget,
     borderRadius: olyRadius.full,
     backgroundColor: olyPalette.primary,
     alignItems: "center",
     justifyContent: "center",
+    ...olyGlow.md,
   },
-  sendBtnOff: { backgroundColor: olyColors.button.disabled.bg },
+  sendBtnOff: {
+    backgroundColor: olyColors.glass.control,
+    borderWidth: 1,
+    borderColor: olyColors.glass.border,
+    shadowOpacity: 0,
+  },
 });
