@@ -10,6 +10,7 @@ import { router } from "expo-router";
 import React from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { OlyScreenHeader } from "@/src/oly-components/organisms/OlyScreenHeader";
 import { OlyFloatingHeader, useFloatingHeader } from "@/src/oly-components/organisms/OlyFloatingHeader";
 
 /**
@@ -25,18 +26,7 @@ export default function MessageRequests() {
     <Glows variant="shop" />
     <SafeAreaView style={styles.screen} edges={["bottom"]}>
       <OlyFloatingHeader onLayout={onHeaderLayout}>
-      <View style={styles.header}>
-        <Pressable
-          onPress={() => router.back()}
-          style={styles.iconBtn}
-          hitSlop={2}
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-        >
-          <OlyIcon name="back" size={22} color={olyColors.text.primary} />
-        </Pressable>
-        <Text style={styles.title}>Requests</Text>
-      </View>
+      <OlyScreenHeader title="Requests" onBack={() => router.back()} />
       </OlyFloatingHeader>
       <FlatList
         data={requests}

@@ -10,8 +10,10 @@
 
 import { olyAlert } from "@/src/oly-components/feedback/OlyAlert";
 import { OlyScreenWrapper } from "@/src/oly-components/organisms/OlyScreenWrapper";
+import { OlyScreenHeader } from "@/src/oly-components/organisms/OlyScreenHeader";
 import { OlyFloatingHeader, useFloatingHeader } from "@/src/oly-components/organisms/OlyFloatingHeader";
 import { OlySettingsRow } from "@/src/oly-components/molecules/OlySettingsRow";
+import type { GlyphName } from "@/src/oly-components/atoms/OlyGlyph";
 import { olyColors } from "@/src/oly-theme/oly-colors";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
@@ -30,7 +32,7 @@ import { useDispatch } from "react-redux";
 
 type SettingsRowDef = {
   label: string;
-  icon: string;
+  glyph: GlyphName;
   /** Route to push. Omit while the screen does not exist yet. */
   route?: string;
   /** Short hint shown on the right. */
@@ -41,21 +43,22 @@ type SettingsRowDef = {
 const ACCOUNT_ROWS: SettingsRowDef[] = [
   {
     label: "Profile",
-    icon: "person-outline",
+    glyph: "person",
     route: "/athlete/settings-user-info",
   },
   {
     label: "Competition",
-    icon: "podium-outline",
+    glyph: "meet",
     route: "/athlete/settings-competition",
   },
   {
     label: "Personal records",
-    icon: "barbell-outline",
+    // Personal records are what place you on the board, so they wear its icon.
+    glyph: "rank",
     route: "/athlete/settings-personal-bests",
   },
-  { label: "Notifications", icon: "notifications-outline", hint: "Soon" },
-  { label: "Privacy", icon: "lock-closed-outline", hint: "Soon" },
+  { label: "Notifications", glyph: "bell", route: "/athlete/settings-notifications" },
+  { label: "Privacy", glyph: "lock", hint: "Soon" },
 ];
 
 export default function Settings() {
@@ -129,26 +132,7 @@ export default function Settings() {
     <OlyScreenWrapper padded={false}>
       {/* nav: floats over the list, with a fade behind */}
       <OlyFloatingHeader safeTop={false} onLayout={onHeaderLayout}>
-      <View style={styles.nav}>
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={olySpacing[8]}
-          style={styles.navBtn}
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-        >
-          <Ionicons
-            name="chevron-back"
-            size={20}
-            color={olyColors.text.primary as string}
-          />
-        </Pressable>
-
-        <Text style={styles.navTitle}>SETTINGS</Text>
-
-        {/* spacer keeps the title optically centred */}
-        <View style={styles.navSpacer} />
-      </View>
+      <OlyScreenHeader title="Settings" onBack={() => router.back()} />
       </OlyFloatingHeader>
 
       <ScrollView
@@ -163,7 +147,7 @@ export default function Settings() {
               {i > 0 ? <View style={styles.divider} /> : null}
               <OlySettingsRow
                 label={row.label}
-                icon={row.icon}
+                glyph={row.glyph}
                 value={row.hint}
                 showChevron={!!row.route}
                 onPress={
@@ -178,14 +162,14 @@ export default function Settings() {
         <View style={styles.card}>
           <OlySettingsRow
             label="Log out"
-            icon="log-out-outline"
+            glyph="out"
             showChevron={false}
             onPress={onLogout}
           />
           <View style={styles.divider} />
           <OlySettingsRow
             label={deleteState.isLoading ? "Deleting…" : "Delete account"}
-            icon="trash-outline"
+            glyph="trash"
             showChevron={false}
             onPress={deleteState.isLoading ? undefined : onDeleteAccount}
             destructive

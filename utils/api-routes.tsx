@@ -45,8 +45,18 @@ export const LEADERBOARD_ROUTES = {
   FOLLOW_STATUS: (userId: string) => `/api/follow/status/${userId}`,
 } as const;
 
+export const NOTIFICATION_ROUTES = {
+  LIST: "/api/notifications",
+  UNREAD_COUNT: "/api/notifications/unread-count",
+  MARK_READ: "/api/notifications/read",
+  PREFERENCES: "/api/notifications/preferences",
+  APPROVE_REQUEST: (userId: string) => `/api/follow/requests/${userId}/approve`,
+  DECLINE_REQUEST: (userId: string) => `/api/follow/requests/${userId}`,
+} as const;
+
 export const API_ROUTES = {
   AUTH: AUTH_ROUTES,
   ATHLETE: ATHLETE_ROUTES,
   LEADERBOARD: LEADERBOARD_ROUTES,
+  NOTIFICATIONS: NOTIFICATION_ROUTES,
 } as const;

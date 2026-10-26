@@ -22,6 +22,7 @@ import OnboardingScreen2, {
 import { OlyButton } from "@/src/oly-components/atoms/OlyButton";
 import { Glass } from "@/src/oly-components/shop/ShopKit";
 import { OlyScreenWrapper } from "@/src/oly-components/organisms/OlyScreenWrapper";
+import { OlyScreenHeader } from "@/src/oly-components/organisms/OlyScreenHeader";
 import { OlyFloatingHeader, useFloatingHeader } from "@/src/oly-components/organisms/OlyFloatingHeader";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
@@ -168,29 +169,10 @@ export default function SettingsPersonalBests() {
     <OlyScreenWrapper padded={false}>
       {/* Nav + title float over the form, with a fade behind. */}
       <OlyFloatingHeader safeTop={false} onLayout={onHeaderLayout}>
-      <View style={styles.nav}>
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={olySpacing[8]}
-          style={styles.navBtn}
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-        >
-          <Ionicons
-            name="chevron-back"
-            size={20}
-            color={olyColors.text.primary as string}
-          />
-        </Pressable>
-        <Text style={styles.navTitle}>PERSONAL RECORDS</Text>
-        <View style={styles.navSpacer} />
-      </View>
-      {!(loading || !ready) && (
-      <View style={styles.titleBlock}>
-        <View style={styles.titleRow}>
-          <Text style={styles.title} maxFontSizeMultiplier={1.2}>
-            Your record book
-          </Text>
+      <OlyScreenHeader
+        title="Personal records"
+        onBack={() => router.back()}
+        right={
           <Pressable
             hitSlop={4}
             onPress={() => setHelpOpen(true)}
@@ -202,7 +184,10 @@ export default function SettingsPersonalBests() {
               <Text style={styles.helpText}>?</Text>
             </Glass>
           </Pressable>
-        </View>
+        }
+      />
+      {!(loading || !ready) && (
+      <View style={styles.titleBlock}>
         <Text style={styles.subtitle} maxFontSizeMultiplier={1.5}>
           Tap a number to update it. Verified lifts rank you.
         </Text>

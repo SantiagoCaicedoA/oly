@@ -30,6 +30,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { OlyScreenHeader } from "@/src/oly-components/organisms/OlyScreenHeader";
 import { OlyFloatingHeader, useFloatingHeader } from "@/src/oly-components/organisms/OlyFloatingHeader";
 
 /**
@@ -77,17 +78,7 @@ export default function WalletScreen() {
       <View style={styles.safe}>
         {/* Header floats over the scroll, with a fade behind. */}
         <OlyFloatingHeader onLayout={onHeaderLayout}>
-        <View style={styles.header}>
-          <Pressable
-            onPress={() => router.back()}
-            style={styles.iconBtn}
-            accessibilityRole="button"
-            accessibilityLabel="Back"
-          >
-            <OlyIcon name="back" size={24} color={olyColors.text.primary} />
-          </Pressable>
-          <Text style={styles.title}>Wallet</Text>
-        </View>
+        <OlyScreenHeader title="Wallet" onBack={() => router.back()} />
         </OlyFloatingHeader>
 
         <ScrollView

@@ -7,6 +7,7 @@ import {
 } from "@reduxjs/toolkit/query/react";
 
 import { API_BASE_URL, API_ROUTES } from "@/utils/api-routes";
+import type { NotificationPrefs, NotificationsResponse } from "@/types/api/notifications";
 
 import {
     AuthState,
@@ -127,7 +128,7 @@ const customBaseQuery: BaseQueryFn<
 export const api = createApi({
   reducerPath: "api",
   baseQuery: customBaseQuery,
-  tagTypes: ["Athlete", "Auth", "Leaderboard"],
+  tagTypes: ["Athlete", "Auth", "Leaderboard", "Notifications"],
   endpoints: (builder) => ({
     signup: builder.mutation<SignupResponse, SignUpValues>({
       query: (body) => ({
@@ -405,6 +406,51 @@ export const api = createApi({
       }),
       providesTags: ["Athlete"],
     }),
+
+    /* ── Notifications ──────────────────────────────────────── */
+    getNotifications: builder.query<NotificationsResponse, { page?: number; limit?: number } | void>({
+      query: (p) => ({
+        url: `${API_ROUTES.NOTIFICATIONS.LIST}?page=${p?.page ?? 1}&limit=${p?.limit ?? 30}`,
+        method: "GET",
+      }),
+      providesTags: ["Notifications"],
+    }),
+    getUnreadCount: builder.query<{ success: boolean; unread: number }, void>({
+      query: () => ({ url: API_ROUTES.NOTIFICATIONS.UNREAD_COUNT, method: "GET" }),
+      providesTags: ["Notifications"],
+    }),
+    markNotificationsRead: builder.mutation<{ success: boolean; unread: number }, { ids?: string[] } | void>({
+      query: (b) => ({ url: API_ROUTES.NOTIFICATIONS.MARK_READ, method: "POST", body: b ?? {} }),
+      invalidatesTags: ["Notifications"],
+    }),
+    getNotificationPrefs: builder.query<{ success: boolean; data: NotificationPrefs }, void>({
+      query: () => ({ url: API_ROUTES.NOTIFICATIONS.PREFERENCES, method: "GET" }),
+      providesTags: ["Notifications"],
+    }),
+    updateNotificationPrefs: builder.mutation<{ success: boolean; data: NotificationPrefs }, Partial<NotificationPrefs>>({
+      query: (body) => ({ url: API_ROUTES.NOTIFICATIONS.PREFERENCES, method: "PUT", body }),
+      async onQueryStarted(patch, { dispatch, queryFulfilled }) {
+        // Flip the switch now; put it back if the server says no.
+        const undo = dispatch(
+          api.util.updateQueryData("getNotificationPrefs", undefined, (d) => {
+            Object.assign(d.data, patch);
+          }),
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          undo.undo();
+        }
+      },
+    }),
+    approveFollowRequest: builder.mutation<{ success: boolean }, string>({
+      query: (userId) => ({ url: API_ROUTES.NOTIFICATIONS.APPROVE_REQUEST(userId), method: "POST" }),
+      invalidatesTags: ["Notifications", "Leaderboard"],
+    }),
+    declineFollowRequest: builder.mutation<{ success: boolean }, string>({
+      query: (userId) => ({ url: API_ROUTES.NOTIFICATIONS.DECLINE_REQUEST(userId), method: "DELETE" }),
+      invalidatesTags: ["Notifications"],
+    }),
   }),
 });
 
@@ -448,4 +494,12 @@ export const {
   useGetMyLiftsQuery,
   useGetFollowStatusQuery,
   useGetMyPostsQuery,
+
+  useGetNotificationsQuery,
+  useGetUnreadCountQuery,
+  useMarkNotificationsReadMutation,
+  useGetNotificationPrefsQuery,
+  useUpdateNotificationPrefsMutation,
+  useApproveFollowRequestMutation,
+  useDeclineFollowRequestMutation,
 } = api;

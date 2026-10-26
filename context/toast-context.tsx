@@ -2,16 +2,14 @@ import React, {
   createContext,
   ReactNode,
   useContext,
-  useEffect,
-  useState,
 } from "react";
-import { Animated, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import Toast from "react-native-toast-message";
-import { Ionicons } from "@expo/vector-icons";
 import { olyPalette, olyColors } from "@/src/oly-theme/oly-colors";
 import { olyTypography, olyFonts } from "@/src/oly-theme/oly-typography";
 import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
+import { Glass } from "@/src/oly-components/shop/ShopKit";
 
 /* ── Context ───────────────────────────────────────────── */
 
@@ -33,86 +31,34 @@ export const useToast = () => {
   return context;
 };
 
-/* ── Toast accent colors ───────────────────────────────── */
-
-const TOAST_ACCENTS = {
+/* ── Toast ─────────────────────────────────────────────────
+ * The same glass pill as the olys chip in the home header and the
+ * shop toast: one quiet line, a status dot, no icon disc and no
+ * progress bar. A generic title ("Success", "Error") is noise, so
+ * when the caller passes one the pill shows the message instead.
+ */
+const DOT = {
   success: olyPalette.green,
-  error: olyPalette.red,
+  error: olyPalette.redInk,
   info: olyPalette.primary,
-  warning: olyPalette.orange,
+  warning: olyPalette.yellow,
 } as const;
 
-const TOAST_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  success: "checkmark-circle",
-  error: "alert-circle",
-  info: "information-circle",
-  warning: "warning",
-};
-
-/* ── Progress Bar ──────────────────────────────────────── */
-
-const ProgressBar: React.FC<{ duration: number; color: string }> = ({
-  duration,
-  color,
-}) => {
-  const [progress] = useState(new Animated.Value(1));
-
-  useEffect(() => {
-    Animated.timing(progress, {
-      toValue: 0,
-      duration,
-      useNativeDriver: false,
-    }).start();
-  }, [duration, progress]);
-
-  return (
-    <View style={styles.progressTrack}>
-      <Animated.View
-        style={[
-          styles.progressFill,
-          {
-            backgroundColor: color,
-            width: progress.interpolate({
-              inputRange: [0, 1],
-              outputRange: ["0%", "100%"],
-            }),
-          },
-        ]}
-      />
-    </View>
-  );
-};
-
-/* ── Custom Toast Component ────────────────────────────── */
+const GENERIC_TITLES = new Set(["Success", "Error", "Info", "Warning"]);
 
 const OlyToast = (props: any) => {
-  const { text1, text2, visibilityTime, toastType = "info" } = props;
-  const accent = TOAST_ACCENTS[toastType as keyof typeof TOAST_ACCENTS] || TOAST_ACCENTS.info;
-  const icon = TOAST_ICONS[toastType] || TOAST_ICONS.info;
-  const duration = visibilityTime || 4000;
+  const { text1, text2, toastType = "info" } = props;
+  const dot = DOT[toastType as keyof typeof DOT] ?? DOT.info;
+  const line =
+    text1 && !GENERIC_TITLES.has(text1) ? text1 : text2 || text1 || "";
 
   return (
-    <View style={styles.toastOuter}>
-      <View style={styles.toastContainer}>
-        {/* Icon */}
-        <View style={[styles.iconContainer, { backgroundColor: `${accent}20` }]}>
-          <Ionicons name={icon} size={20} color={accent} />
-        </View>
-
-        {/* Text */}
-        <View style={styles.textContainer}>
-          {text1 ? <Text style={styles.title}>{text1}</Text> : null}
-          {text2 ? (
-            <Text style={styles.message} numberOfLines={3}>
-              {text2}
-            </Text>
-          ) : null}
-        </View>
-      </View>
-
-      {/* Progress bar */}
-      <ProgressBar duration={duration} color={accent} />
-    </View>
+    <Glass radius={olyRadius.full} style={styles.pill}>
+      <View style={[styles.dot, { backgroundColor: dot }]} />
+      <Text style={styles.text} numberOfLines={2}>
+        {line}
+      </Text>
+    </Glass>
   );
 };
 
@@ -219,47 +165,24 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
 /* ── Styles ────────────────────────────────────────────── */
 
 const styles = StyleSheet.create({
-  toastOuter: {
-    width: "90%",
+  pill: {
     alignSelf: "center",
-    borderRadius: olyRadius.lg,
-    backgroundColor: olyPalette.card,
-    borderWidth: 1,
-    borderColor: olyColors.border.default,
-    overflow: "hidden",
-  },
-  toastContainer: {
+    maxWidth: "90%",
     flexDirection: "row",
     alignItems: "center",
+    gap: olySpacing[8],
     paddingHorizontal: olySpacing[16],
-    paddingVertical: olySpacing[12],
-    gap: olySpacing[12],
+    paddingVertical: 10,
   },
-  iconContainer: {
-    width: 36,
-    height: 36,
+  dot: {
+    width: 8,
+    height: 8,
     borderRadius: olyRadius.full,
-    alignItems: "center",
-    justifyContent: "center",
   },
-  textContainer: {
-    flex: 1,
-  },
-  title: {
+  text: {
     ...olyTypography.bodySmall,
     fontFamily: olyFonts.medium,
     color: olyColors.text.primary,
-  },
-  message: {
-    ...olyTypography.caption,
-    color: olyColors.text.secondary,
-    marginTop: 2,
-  },
-  progressTrack: {
-    height: 3,
-    backgroundColor: olyPalette.cardElevated,
-  },
-  progressFill: {
-    height: "100%",
+    flexShrink: 1,
   },
 });

@@ -76,7 +76,7 @@ export default function Login() {
     try {
       const result = await login(payload).unwrap();
 
-      showSuccess("Login successful", "Welcome back!");
+      showSuccess("", "Welcome back");
       dispatch(
         loginSuccess({
           user: result.data,

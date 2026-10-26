@@ -48,6 +48,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { OlyScreenHeader } from "@/src/oly-components/organisms/OlyScreenHeader";
 import { OlyFloatingHeader, useFloatingHeader } from "@/src/oly-components/organisms/OlyFloatingHeader";
 import { useSelector } from "react-redux";
 
@@ -393,25 +394,11 @@ export default function DailyCheckIn() {
       <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
         {/* ── Header: floats over the form, with a fade behind ── */}
         <OlyFloatingHeader onLayout={onHeaderLayout}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel="Back"
-            onPress={handleBack}
-            style={styles.headerBackTouch}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <Ionicons
-              name="chevron-back"
-              size={24}
-              color={olyColors.text.primary}
-            />
-          </TouchableOpacity>
-
-          <Text style={styles.headerTitle}>DAILY CHECK-IN</Text>
-
-          <Text style={styles.headerDate}>{getFormattedDate()}</Text>
-        </View>
+        <OlyScreenHeader
+            title="Check-in"
+            onBack={handleBack}
+            right={<Text style={styles.headerDate}>{getFormattedDate()}</Text>}
+          />
         </OlyFloatingHeader>
 
         <ScrollView

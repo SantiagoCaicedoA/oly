@@ -16,6 +16,7 @@ export default function AthleteLayout() {
       <Stack.Screen name="chat" />
       <Stack.Screen name="message-requests" />
       <Stack.Screen name="wallet" />
+      <Stack.Screen name="notifications" />
       <Stack.Screen name="how-olys" options={{ animation: "slide_from_bottom" }} />
       <Stack.Screen name="new-message" options={{ animation: "slide_from_bottom" }} />
       <Stack.Screen name="daily-check-in" />
@@ -35,6 +36,8 @@ export default function AthleteLayout() {
       <Stack.Screen name="settings-coach-preferences" />
       <Stack.Screen name="settings-notifications" />
       <Stack.Screen name="settings-privacy" />
+      <Stack.Screen name="settings-rank-alerts" />
+      <Stack.Screen name="settings-quiet-hours" />
     </Stack>
   );
 }

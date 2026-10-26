@@ -43,6 +43,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { OlyScreenHeader } from "@/src/oly-components/organisms/OlyScreenHeader";
 import { OlyFloatingHeader, useFloatingHeader } from "@/src/oly-components/organisms/OlyFloatingHeader";
 
 /**
@@ -276,9 +277,10 @@ export default function MarketplaceScreen() {
 
         {/* Title floats over the scroll, with a fade behind. */}
         <OlyFloatingHeader onLayout={onHeaderLayout}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Shop</Text>
-            <Pressable hitSlop={4}
+          <OlyScreenHeader
+            title="Shop"
+            right={
+              <Pressable hitSlop={4}
               onPress={() => router.push("/athlete/how-olys")}
               style={({ pressed }) => pressed && kit.pressed}
               accessibilityRole="button"
@@ -288,7 +290,8 @@ export default function MarketplaceScreen() {
                 <Text style={styles.headerBtnText}>?</Text>
               </Glass>
             </Pressable>
-          </View>
+            }
+          />
         </OlyFloatingHeader>
 
         <Sheet open={!!sheet} onClose={() => setSheet(null)}>

@@ -99,7 +99,7 @@ export default function SignUp() {
       // Clear any stale onboarding data from previous accounts
       dispatch(clearOnboardingData());
 
-      showSuccess("Success", "Welcome! Let's get started");
+      showSuccess("", "Welcome to Oly");
       router.push({
         pathname: "/auth/onboarding/main-onboarding",
         params: {

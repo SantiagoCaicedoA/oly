@@ -22,6 +22,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { OlyScreenHeader } from "@/src/oly-components/organisms/OlyScreenHeader";
 import { OlyFloatingHeader, useFloatingHeader } from "@/src/oly-components/organisms/OlyFloatingHeader";
 import Svg, { Circle, Path } from "react-native-svg";
 
@@ -67,18 +68,7 @@ export default function NewMessage() {
     <SafeAreaView style={styles.screen} edges={["bottom"]}>
       {/* Title + search float over the list, with a fade behind. */}
       <OlyFloatingHeader onLayout={onHeaderLayout}>
-      <View style={styles.header}>
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={2}
-          style={({ pressed }) => [styles.cancelBtn, pressed && styles.pressed]}
-          accessibilityRole="button"
-        >
-          <Text style={styles.cancel}>Cancel</Text>
-        </Pressable>
-        <Text style={styles.title}>New message</Text>
-        <View style={styles.spacer} />
-      </View>
+      <OlyScreenHeader title="New message" onBack={() => router.back()} />
 
       <View style={styles.search}>
         <Svg width={18} height={18} viewBox="0 0 24 24">

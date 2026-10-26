@@ -11,18 +11,27 @@
  */
 
 import React from "react";
-import { Pressable, StyleSheet, Text, ViewStyle } from "react-native";
+import { Pressable, StyleSheet, Text, View, ViewStyle } from "react-native";
+import { GlyphCircle, type GlyphName } from "@/src/oly-components/atoms/OlyGlyph";
 import { Ionicons } from "@expo/vector-icons";
 
 import { olyColors } from "@/src/oly-theme/oly-colors";
-import { olyTypography, olyMaxFontScale } from "@/src/oly-theme/oly-typography";
+import { olyFonts, olyTypography, olyMaxFontScale } from "@/src/oly-theme/oly-typography";
 import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
 
 // ─── Types ───────────────────────────────────────────────────────
 interface OlySettingsRowProps {
   label: string;
-  /** Ionicons name for left icon */
+  /** Ionicons name for left icon (older screens) */
   icon?: string;
+  /** Oly glyph in a glass circle. Takes priority over `icon`. */
+  glyph?: GlyphName;
+  /** Any picture for the left slot, such as the oly coin. Takes priority over both. */
+  lead?: React.ReactNode;
+  /** Quiet second line under the label. */
+  subtitle?: string;
+  /** Replaces value and chevron, for a switch. */
+  right?: React.ReactNode;
   /** Right-side value text */
   value?: string;
   onPress?: () => void;
@@ -37,6 +46,10 @@ interface OlySettingsRowProps {
 export const OlySettingsRow: React.FC<OlySettingsRowProps> = ({
   label,
   icon,
+  glyph,
+  lead,
+  subtitle,
+  right,
   value,
   onPress,
   showChevron = true,
@@ -50,7 +63,13 @@ export const OlySettingsRow: React.FC<OlySettingsRowProps> = ({
       accessibilityRole="button"
       accessibilityLabel={label}
     >
-      {icon ? (
+      {lead ? (
+        <View style={styles.lead}>{lead}</View>
+      ) : glyph ? (
+        <View style={styles.lead}>
+          <GlyphCircle name={glyph} destructive={destructive} />
+        </View>
+      ) : icon ? (
         <Ionicons
           name={icon as any}
           size={24}
@@ -59,29 +78,34 @@ export const OlySettingsRow: React.FC<OlySettingsRowProps> = ({
         />
       ) : null}
 
-      <Text
-        style={[styles.label, destructive && styles.labelDestructive]}
-        maxFontSizeMultiplier={olyMaxFontScale.body}
-        numberOfLines={1}
-      >
-        {label}
-      </Text>
-
-      {value ? (
+      <View style={styles.words}>
         <Text
-          style={styles.value}
-          maxFontSizeMultiplier={olyMaxFontScale.bodySmall}
+          style={[styles.label, destructive && styles.labelDestructive]}
+          maxFontSizeMultiplier={olyMaxFontScale.body}
+          numberOfLines={1}
         >
-          {value}
+          {label}
         </Text>
-      ) : null}
+        {subtitle ? (
+          <Text style={styles.subtitle} maxFontSizeMultiplier={olyMaxFontScale.bodySmall}>
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
 
-      {showChevron ? (
-        <Ionicons
-          name="chevron-forward"
-          size={20}
-          color={olyColors.text.secondary as string}
-        />
+      {right ? <View style={styles.right}>{right}</View> : null}
+
+      {!right && (value || showChevron) ? (
+        <View style={styles.trail}>
+          {value ? (
+            <Text style={styles.value} maxFontSizeMultiplier={olyMaxFontScale.bodySmall} numberOfLines={1}>
+              {value}
+            </Text>
+          ) : null}
+          {showChevron ? (
+            <Ionicons name="chevron-forward" size={18} color={olyColors.text.secondary as string} />
+          ) : null}
+        </View>
       ) : null}
     </Pressable>
   );
@@ -98,18 +122,34 @@ const styles = StyleSheet.create({
   icon: {
     marginRight: olySpacing[12],
   },
+  lead: { marginRight: olySpacing[12] },
+  words: { flex: 1, paddingVertical: olySpacing[12] },
   label: {
     ...olyTypography.body,
+    fontFamily: olyFonts.medium,
     color: olyColors.text.primary,
-    flex: 1,
   },
+  subtitle: {
+    ...olyTypography.bodySmall,
+    marginTop: 2,
+    color: olyColors.text.secondary,
+  },
+  right: { marginLeft: olySpacing[12] },
   labelDestructive: {
     color: olyColors.text.error,
   },
+  trail: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: olySpacing[4],
+    marginLeft: olySpacing[12],
+  },
   value: {
     ...olyTypography.bodySmall,
+    lineHeight: 18,
     color: olyColors.text.secondary,
-    marginRight: olySpacing[8],
+    includeFontPadding: false,
+    textAlignVertical: "center",
   },
 });
 

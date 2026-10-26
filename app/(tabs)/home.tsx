@@ -8,7 +8,7 @@ import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
 import { olyGlow } from "@/src/oly-theme/oly-elevation";
 import { olySpacing, olyLayout } from "@/src/oly-theme/oly-spacing";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
-import { useGetPostsQuery } from "@/store/api";
+import { useGetNotificationsQuery, useGetPostsQuery, useGetUnreadCountQuery } from "@/store/api";
 import { RootState } from "@/store/store";
 import { router, Stack } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -86,6 +86,16 @@ export default function Home() {
   const [hasMore, setHasMore] = useState(true);
   const [visibleIds, setVisibleIds] = useState<Set<string>>(new Set());
   const loadingMore = useRef(false);
+
+  // The bell's dot. A dev build with an empty account shows the sample
+  // notifications (src/oly-mock/notifications.ts), so it shows the dot too.
+  const { data: unreadData } = useGetUnreadCountQuery(undefined, {
+    skip: !token,
+    pollingInterval: 60_000,
+  });
+  const { data: anyNotif } = useGetNotificationsQuery({ page: 1, limit: 1 }, { skip: !token || !__DEV__ });
+  const hasUnread =
+    (unreadData?.unread ?? 0) > 0 || (__DEV__ && anyNotif?.totalPages === 0);
 
   const { data, isLoading, isError, isFetching } = useGetPostsQuery(
     { page, limit: LIMIT },
@@ -168,13 +178,14 @@ export default function Home() {
         </Pressable>
         <Pressable hitSlop={4}
           accessibilityRole="button"
-          accessibilityLabel="Notifications"
+          accessibilityLabel={hasUnread ? "Notifications, unread" : "Notifications"}
+          onPress={() => router.push("/athlete/notifications")}
           style={({ pressed }) => pressed && kit.pressed}
         >
           <Glass radius={olyRadius.full} style={styles.act}>
             <OlyIcon name="bell" size={20} color={olyColors.text.primary} />
           </Glass>
-          <View style={styles.dot} />
+          {hasUnread ? <View style={styles.dot} /> : null}
         </Pressable>
       </View>
     </View>

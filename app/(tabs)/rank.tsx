@@ -1,4 +1,5 @@
 import { useTabLoader } from "@/components/tab-loader";
+import { OlyScreenHeader } from "@/src/oly-components/organisms/OlyScreenHeader";
 import {
   COUNTRIES,
   MEN_CLASSES,
@@ -414,7 +415,6 @@ export default function Rank() {
             }}
           >
             <View style={styles.header}>
-              <Text style={styles.kicker}>RANK</Text>
               <Text style={styles.title}>Leaderboard</Text>
               <LiftSegments
                 segments={LIFT_LABELS}
