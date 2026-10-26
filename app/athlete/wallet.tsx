@@ -1,4 +1,3 @@
-import { OlyIcon } from "@/components/icons/OlyIcon";
 import {
   CountUp,
   Glass,
@@ -278,25 +277,6 @@ export default function WalletScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: olyColors.bg.page },
   safe: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: olySpacing[4],
-    paddingLeft: olySpacing[4],
-    paddingVertical: 6,
-  },
-  iconBtn: {
-    width: olyLayout.minTouchTarget,
-    height: olyLayout.minTouchTarget,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  title: {
-    fontFamily: olyFonts.medium,
-    fontSize: 20,
-    lineHeight: 26,
-    color: olyColors.text.primary,
-  },
   content: {
     paddingHorizontal: olyLayout.screenPadding,
     paddingBottom: olySpacing[40],

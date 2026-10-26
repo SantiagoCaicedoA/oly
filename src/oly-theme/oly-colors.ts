@@ -333,3 +333,30 @@ export const olyColors = {
 export const olyMedal = {
   graphite: { light: "#6E7681", mid: "#5A616B", deep: "#454B54" },
 } as const;
+
+// ─── Badge metal ─────────────────────────────────────────────────
+/**
+ * The season badge's facets: two light (L) and two dark (D) blues, plus the
+ * grey set a lift sent back for review wears. Shared by the profile badges
+ * and the notification badges so they can never drift apart.
+ */
+export const olyBadge = {
+  L1: "#7FBAF2",
+  L2: "#3D95E3",
+  D1: "#0F6FC4",
+  D2: "#0A4E8C",
+  greyL1: "#8A93A3",
+  greyL2: "#5E6675",
+  greyD1: "#454C58",
+  greyD2: "#343A44",
+} as const;
+
+// ─── Oly coin ────────────────────────────────────────────────────
+/** The olys coin: the badge blues on the rim, a lit metallic face. */
+export const olyCoin = {
+  rim: ["#9CCBF6", olyBadge.L2, olyBadge.D1, olyBadge.D2] as readonly [string, string, string, string],
+  face: ["#4A9BEA", "#1B6FC6", "#0C4F98", "#083A72"] as readonly [string, string, string, string],
+} as const;
+
+/** A soft red ring for destructive icons on glass. Drawn, never filled. */
+export const olyDestructiveRing = "rgba(242, 145, 139, 0.35)";

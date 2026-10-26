@@ -2,8 +2,16 @@ import { OlySwitch } from "@/src/oly-components/atoms/OlySwitch";
 import { GlyphCircle } from "@/src/oly-components/atoms/OlyGlyph";
 import { OlySettingsRow } from "@/src/oly-components/molecules/OlySettingsRow";
 import { OlyCoin } from "@/src/oly-components/olys/OlyCoin";
-import { SectionLabel, SettingsCard, SettingsNote, SettingsScreen } from "@/src/oly-components/settings/SettingsKit";
-import { formatTime, useNotificationSettings } from "@/src/oly-hooks/useNotificationSettings";
+import {
+  SectionLabel,
+  SettingsCard,
+  SettingsNote,
+  SettingsScreen,
+} from "@/src/oly-components/settings/SettingsKit";
+import {
+  formatTime,
+  useNotificationSettings,
+} from "@/src/oly-hooks/useNotificationSettings";
 import { router } from "expo-router";
 import React from "react";
 
@@ -15,8 +23,14 @@ import React from "react";
  * phone: the inbox always fills.
  */
 export default function NotificationSettings() {
-  const { server, local, setServer, setLocal, rankOn } = useNotificationSettings();
-  const rankSummary = server.muteRank || rankOn === 0 ? "Off" : rankOn === 3 ? "All on" : `${rankOn} of 3`;
+  const { server, local, setServer, setLocal, rankOn } =
+    useNotificationSettings();
+  const rankSummary =
+    server.muteRank || rankOn === 0
+      ? "Off"
+      : rankOn === 3
+        ? "All on"
+        : `${rankOn} of 3`;
   const quietSummary = server.quietHoursOff
     ? "Off"
     : `${formatTime(local.quietStart)} to ${formatTime(local.quietEnd)}`;
@@ -36,19 +50,37 @@ export default function NotificationSettings() {
           label="Lifts"
           subtitle="Verified lifts, olys earned, challenges"
           lead={<OlyCoin size={36} />}
-          right={<OlySwitch label="Lifts" value={!server.muteLifts} onChange={(v) => setServer({ muteLifts: !v })} />}
+          right={
+            <OlySwitch
+              label="Lifts"
+              value={!server.muteLifts}
+              onChange={(v) => setServer({ muteLifts: !v })}
+            />
+          }
         />
         <OlySettingsRow
           label="People"
           subtitle="Likes, comments, follows and PRs"
           glyph="person"
-          right={<OlySwitch label="People" value={!server.muteSocial} onChange={(v) => setServer({ muteSocial: !v })} />}
+          right={
+            <OlySwitch
+              label="People"
+              value={!server.muteSocial}
+              onChange={(v) => setServer({ muteSocial: !v })}
+            />
+          }
         />
         <OlySettingsRow
           label="Messages"
           subtitle="New messages and requests"
           glyph="chat"
-          right={<OlySwitch label="Messages" value={local.messages} onChange={(v) => setLocal({ messages: v })} />}
+          right={
+            <OlySwitch
+              label="Messages"
+              value={local.messages}
+              onChange={(v) => setLocal({ messages: v })}
+            />
+          }
         />
       </SettingsCard>
 
@@ -63,7 +95,10 @@ export default function NotificationSettings() {
         />
       </SettingsCard>
 
-      <SettingsNote>Everything still shows up in your inbox. These only control what buzzes your phone.</SettingsNote>
+      <SettingsNote>
+        Everything still shows up in your inbox. These only control what buzzes
+        your phone.
+      </SettingsNote>
     </SettingsScreen>
   );
 }

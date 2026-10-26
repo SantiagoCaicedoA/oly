@@ -8,7 +8,14 @@
  * Put it inside OlyFloatingHeader so the list fades under it.
  */
 import React from "react";
-import { Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
+import {
+  Pressable,
+  StyleProp,
+  StyleSheet,
+  Text,
+  View,
+  ViewStyle,
+} from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { Glass } from "@/src/oly-components/shop/ShopKit";
 import { olyRadius } from "@/src/oly-theme/oly-radius";

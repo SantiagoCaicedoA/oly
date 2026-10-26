@@ -7,7 +7,7 @@
  * HexVerifiedMark, the flat check on proof videos, lives here too.
  */
 
-import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olyColors, olyPalette, olyBadge } from "@/src/oly-theme/oly-colors";
 import { olyGlow } from "@/src/oly-theme/oly-elevation";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olySpacing } from "@/src/oly-theme/oly-spacing";
@@ -19,10 +19,10 @@ import Svg, { Polygon, Polyline, Rect, Text as SvgText } from "react-native-svg"
 
 /** The badge metal: light (L) and dark (D) facets, plus the locked ghost fill. */
 const BADGE_BLUE = {
-  L1: "#7FBAF2",
-  L2: "#3D95E3",
-  D1: "#0F6FC4",
-  D2: "#0A4E8C",
+  L1: olyBadge.L1,
+  L2: olyBadge.L2,
+  D1: olyBadge.D1,
+  D2: olyBadge.D2,
   ghost: "rgba(239, 241, 244, 0.04)",
 } as const;
 

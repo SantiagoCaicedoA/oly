@@ -30,7 +30,6 @@ import { useDailyCheckInMutation } from "@/store/api";
 import { Days } from "@/store/reducer/trainingSlice";
 import { RootState } from "@/store/store";
 import { DailyCheckInPayload } from "@/types/api/dashboard";
-import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -587,27 +586,6 @@ const styles = StyleSheet.create({
   },
   safe: {
     flex: 1,
-  },
-
-  // ── Header ──
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    height: olyLayout.navBarHeight,
-    paddingHorizontal: olyLayout.screenPadding,
-  },
-  headerBackTouch: {
-    width: olyLayout.minTouchTarget,
-    height: olyLayout.minTouchTarget,
-    alignItems: "flex-start",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    ...olyTypography.label,
-    color: olyColors.text.primary,
-    textTransform: "uppercase",
-    letterSpacing: olyLetterSpacing.uppercase,
   },
   headerDate: {
     ...olyTypography.caption,

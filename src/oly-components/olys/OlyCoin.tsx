@@ -21,7 +21,7 @@ import Svg, {
   Stop,
 } from "react-native-svg";
 import { OLY_LOGO_PATH } from "@/constants/oly-logo";
-import { olyPalette } from "@/src/oly-theme/oly-colors";
+import { olyCoin, olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
 
 const RIDGES = Array.from({ length: 90 }, (_, i) => {
   const a = (i / 90) * Math.PI * 2;
@@ -56,20 +56,24 @@ export function OlyCoin({ size = 44 }: { size?: number }) {
       <Svg width={size} height={size} viewBox="0 0 100 100">
         <Defs>
           <LinearGradient id={`${id}rim`} x1="0.15" y1="0" x2="0.85" y2="1">
-            <Stop offset="0" stopColor="#9CCBF6" />
-            <Stop offset="0.35" stopColor="#3D95E3" />
-            <Stop offset="0.65" stopColor="#0F6FC4" />
-            <Stop offset="1" stopColor="#0A4E8C" />
+            <Stop offset="0" stopColor={olyCoin.rim[0]} />
+            <Stop offset="0.35" stopColor={olyCoin.rim[1]} />
+            <Stop offset="0.65" stopColor={olyCoin.rim[2]} />
+            <Stop offset="1" stopColor={olyCoin.rim[3]} />
           </LinearGradient>
           <RadialGradient id={`${id}face`} cx="0.3" cy="0.22" r="0.95">
-            <Stop offset="0" stopColor="#4A9BEA" />
-            <Stop offset="0.38" stopColor="#1B6FC6" />
-            <Stop offset="0.72" stopColor="#0C4F98" />
-            <Stop offset="1" stopColor="#083A72" />
+            <Stop offset="0" stopColor={olyCoin.face[0]} />
+            <Stop offset="0.38" stopColor={olyCoin.face[1]} />
+            <Stop offset="0.72" stopColor={olyCoin.face[2]} />
+            <Stop offset="1" stopColor={olyCoin.face[3]} />
           </RadialGradient>
           <RadialGradient id={`${id}shine`} cx="0.5" cy="0.5" r="0.5">
-            <Stop offset="0" stopColor="#FFFFFF" stopOpacity={0.28} />
-            <Stop offset="1" stopColor="#FFFFFF" stopOpacity={0} />
+            <Stop
+              offset="0"
+              stopColor={olyColors.media.ink}
+              stopOpacity={0.28}
+            />
+            <Stop offset="1" stopColor={olyColors.media.ink} stopOpacity={0} />
           </RadialGradient>
           <ClipPath id={`${id}clip`}>
             <Circle cx={50} cy={50} r={41} />
@@ -85,7 +89,7 @@ export function OlyCoin({ size = 44 }: { size?: number }) {
             y1={r.y1}
             x2={r.x2}
             y2={r.y2}
-            stroke={r.light ? "#FFFFFF" : "#000000"}
+            stroke={r.light ? olyColors.media.ink : olyPalette.black}
             strokeOpacity={0.12}
             strokeWidth={1.4}
           />
@@ -103,15 +107,33 @@ export function OlyCoin({ size = 44 }: { size?: number }) {
             transform="rotate(-20 30 18)"
           />
           {/* Inner shadow where the face meets the rim */}
-          <Circle cx={50} cy={50} r={41} fill="none" stroke="#000000" strokeOpacity={0.35} strokeWidth={4} />
+          <Circle
+            cx={50}
+            cy={50}
+            r={41}
+            fill="none"
+            stroke={olyPalette.black}
+            strokeOpacity={0.35}
+            strokeWidth={4}
+          />
         </G>
 
         {/* Raised inner ring */}
-        <Circle cx={50} cy={50} r={34.5} fill="none" stroke="#FFFFFF" strokeOpacity={0.22} strokeWidth={3} />
+        <Circle
+          cx={50}
+          cy={50}
+          r={34.5}
+          fill="none"
+          stroke={olyColors.media.ink}
+          strokeOpacity={0.22}
+          strokeWidth={3}
+        />
 
         {/* Wordmark, flat and sharp */}
-        <G transform={`translate(${50 - MARK / 2} ${50 - MARK / 2}) scale(${MARK_SCALE})`}>
-          <Path d={OLY_LOGO_PATH} fill="#FFFFFF" />
+        <G
+          transform={`translate(${50 - MARK / 2} ${50 - MARK / 2}) scale(${MARK_SCALE})`}
+        >
+          <Path d={OLY_LOGO_PATH} fill={olyColors.media.ink} />
         </G>
       </Svg>
     </View>

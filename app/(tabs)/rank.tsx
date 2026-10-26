@@ -1,5 +1,4 @@
 import { useTabLoader } from "@/components/tab-loader";
-import { OlyScreenHeader } from "@/src/oly-components/organisms/OlyScreenHeader";
 import {
   COUNTRIES,
   MEN_CLASSES,
@@ -1128,11 +1127,6 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: olyLayout.screenPadding,
     paddingTop: olySpacing[8],
-  },
-  kicker: {
-    ...olyTypography.caption,
-    color: olyColors.text.disabled,
-    letterSpacing: olyLetterSpacing.uppercase,
   },
   title: {
     ...olyTypography.title1,

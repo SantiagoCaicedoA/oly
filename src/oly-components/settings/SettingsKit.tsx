@@ -8,19 +8,31 @@ import React from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { OlyScreenWrapper } from "@/src/oly-components/organisms/OlyScreenWrapper";
-import { OlyFloatingHeader, useFloatingHeader } from "@/src/oly-components/organisms/OlyFloatingHeader";
+import {
+  OlyFloatingHeader,
+  useFloatingHeader,
+} from "@/src/oly-components/organisms/OlyFloatingHeader";
 import { OlyScreenHeader } from "@/src/oly-components/organisms/OlyScreenHeader";
 import { olyColors } from "@/src/oly-theme/oly-colors";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
 import { olyTypography } from "@/src/oly-theme/oly-typography";
 
-export function SettingsScreen({ title, children }: { title: string; children: React.ReactNode }) {
+export function SettingsScreen({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   const { headerH, onLayout } = useFloatingHeader(72);
   return (
     <OlyScreenWrapper padded={false}>
       <ScrollView
-        contentContainerStyle={[s.scroll, { paddingTop: headerH + olySpacing[8] }]}
+        contentContainerStyle={[
+          s.scroll,
+          { paddingTop: headerH + olySpacing[8] },
+        ]}
         scrollIndicatorInsets={{ top: headerH }}
         showsVerticalScrollIndicator={false}
       >
@@ -38,7 +50,13 @@ export function SectionLabel({ children }: { children: string }) {
 }
 
 /** A glass card; children are separated by hairlines. */
-export function SettingsCard({ children, style }: { children: React.ReactNode; style?: any }) {
+export function SettingsCard({
+  children,
+  style,
+}: {
+  children: React.ReactNode;
+  style?: any;
+}) {
   const items = React.Children.toArray(children).filter(Boolean);
   return (
     <View style={[s.card, style]}>
@@ -57,7 +75,10 @@ export function SettingsNote({ children }: { children: string }) {
 }
 
 const s = StyleSheet.create({
-  scroll: { paddingHorizontal: olyLayout.screenPadding, paddingBottom: olySpacing[40] },
+  scroll: {
+    paddingHorizontal: olyLayout.screenPadding,
+    paddingBottom: olySpacing[40],
+  },
   label: {
     ...olyTypography.caption,
     color: olyColors.text.secondary,
@@ -75,7 +96,10 @@ const s = StyleSheet.create({
     overflow: "hidden",
     marginBottom: olySpacing[12],
   },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: olyColors.glass.rule },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: olyColors.glass.rule,
+  },
   note: {
     ...olyTypography.bodySmall,
     color: olyColors.text.secondary,

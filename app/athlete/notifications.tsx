@@ -1,9 +1,9 @@
-import { OlyIcon } from "@/components/icons/OlyIcon";
-import {
-  NotificationCard,
-} from "@/src/oly-components/notifications/NotificationCard";
+import { NotificationCard } from "@/src/oly-components/notifications/NotificationCard";
 import { OlyScreenHeader } from "@/src/oly-components/organisms/OlyScreenHeader";
-import { OlyFloatingHeader, useFloatingHeader } from "@/src/oly-components/organisms/OlyFloatingHeader";
+import {
+  OlyFloatingHeader,
+  useFloatingHeader,
+} from "@/src/oly-components/organisms/OlyFloatingHeader";
 import { GlassTabs, Glows } from "@/src/oly-components/shop/ShopKit";
 import { useNotificationFeed } from "@/src/oly-mock/notifications";
 import { olyColors } from "@/src/oly-theme/oly-colors";
@@ -15,10 +15,13 @@ import {
   useFollowAthleteMutation,
   useMarkNotificationsReadMutation,
 } from "@/store/api";
-import type { NotificationType, OlyNotification } from "@/types/api/notifications";
+import type {
+  NotificationType,
+  OlyNotification,
+} from "@/types/api/notifications";
 import { router } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
 
 /**
  * Notifications. Design "C. Glass cards with filters" on the canvas.
@@ -93,14 +96,19 @@ export default function NotificationsScreen() {
   const rows = useMemo(
     () =>
       feed.items.filter(
-        (n) => !gone.has(n._id) && (filter === "all" || GROUP[n.type] === filter),
+        (n) =>
+          !gone.has(n._id) && (filter === "all" || GROUP[n.type] === filter),
       ),
     [feed.items, filter, gone],
   );
 
   const open = (n: OlyNotification) => {
     const postId = n.data?.postId;
-    if (postId) router.push({ pathname: "/athlete/post-expanded", params: { post_id: postId } });
+    if (postId)
+      router.push({
+        pathname: "/athlete/post-expanded",
+        params: { post_id: postId },
+      });
   };
 
   const answer = async (n: OlyNotification, accept: boolean) => {
@@ -140,7 +148,10 @@ export default function NotificationsScreen() {
       <FlatList
         data={rows}
         keyExtractor={(n) => n._id}
-        contentContainerStyle={[styles.list, { paddingTop: headerH + olySpacing[12] }]}
+        contentContainerStyle={[
+          styles.list,
+          { paddingTop: headerH + olySpacing[12] },
+        ]}
         scrollIndicatorInsets={{ top: headerH }}
         showsVerticalScrollIndicator={false}
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
@@ -188,25 +199,6 @@ export default function NotificationsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: olyColors.bg.page },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: olySpacing[4],
-    paddingLeft: olySpacing[4],
-    paddingVertical: 6,
-  },
-  iconBtn: {
-    width: olyLayout.minTouchTarget,
-    height: olyLayout.minTouchTarget,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  title: {
-    fontFamily: olyFonts.medium,
-    fontSize: 20,
-    lineHeight: 26,
-    color: olyColors.text.primary,
-  },
   tabs: {
     paddingHorizontal: olyLayout.screenPadding,
     paddingBottom: olySpacing[8],
@@ -215,7 +207,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: olySpacing[12],
     paddingBottom: olySpacing[40],
   },
-  empty: { alignItems: "center", paddingTop: olySpacing[40], paddingHorizontal: olySpacing[32], gap: olySpacing[8] },
-  emptyTitle: { ...olyTypography.body, fontFamily: olyFonts.medium, color: olyColors.text.primary },
-  emptyBody: { ...olyTypography.bodySmall, color: olyColors.text.secondary, textAlign: "center" },
+  empty: {
+    alignItems: "center",
+    paddingTop: olySpacing[40],
+    paddingHorizontal: olySpacing[32],
+    gap: olySpacing[8],
+  },
+  emptyTitle: {
+    ...olyTypography.body,
+    fontFamily: olyFonts.medium,
+    color: olyColors.text.primary,
+  },
+  emptyBody: {
+    ...olyTypography.bodySmall,
+    color: olyColors.text.secondary,
+    textAlign: "center",
+  },
 });

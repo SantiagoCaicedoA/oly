@@ -24,7 +24,12 @@ export function OlySwitch({
 }) {
   const t = useRef(new Animated.Value(value ? 1 : 0)).current;
   useEffect(() => {
-    Animated.spring(t, { toValue: value ? 1 : 0, useNativeDriver: false, speed: 20, bounciness: 4 }).start();
+    Animated.spring(t, {
+      toValue: value ? 1 : 0,
+      useNativeDriver: false,
+      speed: 20,
+      bounciness: 4,
+    }).start();
   }, [value, t]);
 
   return (
@@ -61,8 +66,15 @@ export function OlySwitch({
             width: KNOB,
             height: KNOB,
             borderRadius: KNOB / 2,
-            backgroundColor: "#FFFFFF",
-            transform: [{ translateX: t.interpolate({ inputRange: [0, 1], outputRange: [0, W - KNOB - 4] }) }],
+            backgroundColor: olyColors.media.ink,
+            transform: [
+              {
+                translateX: t.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, W - KNOB - 4],
+                }),
+              },
+            ],
           }}
         />
       </Animated.View>

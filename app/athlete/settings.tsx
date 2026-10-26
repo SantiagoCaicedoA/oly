@@ -18,16 +18,13 @@ import { olyColors } from "@/src/oly-theme/oly-colors";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
 import {
-  olyFonts,
-  olyLetterSpacing,
   olyTypography,
 } from "@/src/oly-theme/oly-typography";
 import { api, useDeleteAccountMutation } from "@/store/api";
 import { logout } from "@/store/reducer/authSlice";
-import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useDispatch } from "react-redux";
 
 type SettingsRowDef = {
@@ -186,33 +183,6 @@ export default function Settings() {
 }
 
 const styles = StyleSheet.create({
-  nav: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: olyLayout.screenPadding,
-    paddingVertical: olySpacing[8],
-    minHeight: olyLayout.navBarHeight,
-  },
-  /* 40pt glass circle; hitSlop 8 takes the target to 56. */
-  navBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: olyRadius.full,
-    backgroundColor: olyColors.glass.card,
-    borderWidth: 1,
-    borderColor: olyColors.glass.border,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  navSpacer: { width: 40, height: 40 },
-  navTitle: {
-    ...olyTypography.label,
-    fontFamily: olyFonts.bold,
-    color: olyColors.text.primary,
-    letterSpacing: olyLetterSpacing.uppercase,
-    textTransform: "uppercase",
-  },
   scroll: {
     paddingHorizontal: olyLayout.screenPadding,
     paddingBottom: olySpacing[40],

@@ -20,11 +20,8 @@ import { OlyScreenWrapper } from "@/src/oly-components/organisms/OlyScreenWrappe
 import { OlyScreenHeader } from "@/src/oly-components/organisms/OlyScreenHeader";
 import { OlyFloatingHeader, useFloatingHeader } from "@/src/oly-components/organisms/OlyFloatingHeader";
 import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
-import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olyLayout, olySpacing } from "@/src/oly-theme/oly-spacing";
 import {
-  olyFonts,
-  olyLetterSpacing,
   olyTypography,
 } from "@/src/oly-theme/oly-typography";
 import { useGetProfileQuery, useSubmitProfileMutation } from "@/store/api";
@@ -32,12 +29,10 @@ import {
   saveOnboardingData,
   selectOnboardingData,
 } from "@/store/reducer/onboardingSlice";
-import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Pressable,
   StyleSheet,
   Text,
   View,
@@ -157,33 +152,6 @@ export default function SettingsCompetition() {
 
 const styles = StyleSheet.create({
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
-  nav: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: olyLayout.screenPadding,
-    paddingVertical: olySpacing[8],
-    minHeight: olyLayout.navBarHeight,
-  },
-  /* 40pt glass circle; hitSlop 8 takes the target to 56. */
-  navBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: olyRadius.full,
-    backgroundColor: olyColors.glass.card,
-    borderWidth: 1,
-    borderColor: olyColors.glass.border,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  navSpacer: { width: 40, height: 40 },
-  navTitle: {
-    ...olyTypography.label,
-    fontFamily: olyFonts.bold,
-    color: olyColors.text.primary,
-    letterSpacing: olyLetterSpacing.uppercase,
-    textTransform: "uppercase",
-  },
   body: {
     flex: 1,
     paddingHorizontal: olyLayout.screenPadding,
@@ -193,11 +161,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: olyLayout.screenPadding,
     paddingTop: olySpacing[16],
     paddingBottom: olySpacing[16],
-  },
-  title: {
-    ...olyTypography.title1,
-    fontFamily: olyFonts.bold,
-    color: olyColors.text.primary,
   },
   subtitle: {
     ...olyTypography.body,

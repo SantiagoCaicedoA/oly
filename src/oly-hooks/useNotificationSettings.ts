@@ -10,7 +10,10 @@
  */
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCallback, useEffect, useState } from "react";
-import { useGetNotificationPrefsQuery, useUpdateNotificationPrefsMutation } from "@/store/api";
+import {
+  useGetNotificationPrefsQuery,
+  useUpdateNotificationPrefsMutation,
+} from "@/store/api";
 import type { NotificationPrefs } from "@/types/api/notifications";
 
 const KEY = "oly.notificationSettings.v1";
@@ -73,7 +76,9 @@ export function useNotificationSettings() {
   const q = useGetNotificationPrefsQuery();
   const [update] = useUpdateNotificationPrefsMutation();
   const server = { ...SERVER_DEFAULTS, ...(q.data?.data ?? {}) };
-  const [local, setLocalState] = useState<LocalNotificationSettings>(cache ?? LOCAL_DEFAULTS);
+  const [local, setLocalState] = useState<LocalNotificationSettings>(
+    cache ?? LOCAL_DEFAULTS,
+  );
 
   useEffect(() => {
     let live = true;
@@ -94,11 +99,18 @@ export function useNotificationSettings() {
     return next;
   }, []);
 
-  const setServer = useCallback((patch: Partial<NotificationPrefs>) => update(patch), [update]);
+  const setServer = useCallback(
+    (patch: Partial<NotificationPrefs>) => update(patch),
+    [update],
+  );
 
   /** Rank alerts: each one on the phone, and muteRank only when all three are off. */
   const setRank = useCallback(
-    (patch: Partial<Pick<LocalNotificationSettings, "rankUp" | "rankDown" | "proximity">>) => {
+    (
+      patch: Partial<
+        Pick<LocalNotificationSettings, "rankUp" | "rankDown" | "proximity">
+      >,
+    ) => {
       const next = setLocal(patch);
       const allOff = !next.rankUp && !next.rankDown && !next.proximity;
       if (allOff !== server.muteRank) setServer({ muteRank: allOff });
@@ -106,7 +118,18 @@ export function useNotificationSettings() {
     [setLocal, setServer, server.muteRank],
   );
 
-  const rankOn = [local.rankUp, local.rankDown, local.proximity].filter(Boolean).length;
+  const rankOn = [local.rankUp, local.rankDown, local.proximity].filter(
+    Boolean,
+  ).length;
 
-  return { server, local, setServer, setLocal, setRank, rankOn, isLoading: q.isLoading, isError: q.isError };
+  return {
+    server,
+    local,
+    setServer,
+    setLocal,
+    setRank,
+    rankOn,
+    isLoading: q.isLoading,
+    isError: q.isError,
+  };
 }

@@ -15,7 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Circle, Polygon, Text as SvgText } from "react-native-svg";
 import { Glass, kit } from "@/src/oly-components/shop/ShopKit";
 import { OlyCoin } from "@/src/oly-components/olys/OlyCoin";
-import { olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
+import { olyBadge, olyColors, olyPalette } from "@/src/oly-theme/oly-colors";
 import { olyRadius } from "@/src/oly-theme/oly-radius";
 import { olySpacing } from "@/src/oly-theme/oly-spacing";
 import { olyFonts, olyTypography } from "@/src/oly-theme/oly-typography";
@@ -25,16 +25,27 @@ const LEAD = 44;
 
 /* ── Reading the row ─────────────────────────────────────────── */
 
-const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
+const num = (v: unknown) =>
+  typeof v === "number" && Number.isFinite(v) ? v : undefined;
 /** The backend does not send rank or weight in `data` yet, so fall back to the text. */
-const rankOf = (n: OlyNotification) => num(n.data?.rank) ?? Number((`${n.title} ${n.body}`.match(/#(\d+)/) ?? [])[1] ?? NaN);
-const kgOf = (n: OlyNotification) => num(n.data?.kg) ?? Number((n.body.match(/(\d+(?:\.\d+)?)\s?kg/i) ?? [])[1] ?? NaN);
+const rankOf = (n: OlyNotification) =>
+  num(n.data?.rank) ??
+  Number((`${n.title} ${n.body}`.match(/#(\d+)/) ?? [])[1] ?? NaN);
+const kgOf = (n: OlyNotification) =>
+  num(n.data?.kg) ??
+  Number((n.body.match(/(\d+(?:\.\d+)?)\s?kg/i) ?? [])[1] ?? NaN);
 
 export const actorName = (n: OlyNotification) =>
   n.actor?.profile?.display_name || n.actor?.name || n.actor?.username || "";
 
 const initials = (name: string) =>
-  name.trim().split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "?";
+  name
+    .trim()
+    .split(/\s+/)
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "?";
 
 /** The bold line and the quiet line. The backend's titles are generic ("New like"), so social rows lead with the sentence instead. */
 function words(n: OlyNotification): { title: string; body?: string } {
@@ -44,12 +55,23 @@ function words(n: OlyNotification): { title: string; body?: string } {
       return { title: n.body };
     case "comment": {
       const i = n.body.indexOf(": ");
-      return i > 0 ? { title: `${n.body.slice(0, i)} commented`, body: n.body.slice(i + 2) } : { title: n.body };
+      return i > 0
+        ? {
+            title: `${n.body.slice(0, i)} commented`,
+            body: n.body.slice(i + 2),
+          }
+        : { title: n.body };
     }
     case "follow":
     case "follow_request":
       return who && n.body.startsWith(who)
-        ? { title: who, body: n.body.slice(who.length).trim().replace(/^./, (c) => c.toUpperCase()) }
+        ? {
+            title: who,
+            body: n.body
+              .slice(who.length)
+              .trim()
+              .replace(/^./, (c) => c.toUpperCase()),
+          }
         : { title: n.body };
     default:
       return { title: n.title, body: n.body || undefined };
@@ -70,14 +92,21 @@ export function shortTime(iso: string) {
 /* ── The picture on the left ─────────────────────────────────── */
 
 const HEX_FACETS: [string, string][] = [
-  ["52,16.9 148,16.9 136,37.6 64,37.6", "#7FBAF2"],
-  ["148,16.9 196,100 172,100 136,37.6", "#3D95E3"],
-  ["196,100 148,183.1 136,162.4 172,100", "#0F6FC4"],
-  ["148,183.1 52,183.1 64,162.4 136,162.4", "#0A4E8C"],
-  ["52,183.1 4,100 28,100 64,162.4", "#0F6FC4"],
-  ["4,100 52,16.9 64,37.6 28,100", "#3D95E3"],
+  ["52,16.9 148,16.9 136,37.6 64,37.6", olyBadge.L1],
+  ["148,16.9 196,100 172,100 136,37.6", olyBadge.L2],
+  ["196,100 148,183.1 136,162.4 172,100", olyBadge.D1],
+  ["148,183.1 52,183.1 64,162.4 136,162.4", olyBadge.D2],
+  ["52,183.1 4,100 28,100 64,162.4", olyBadge.D1],
+  ["4,100 52,16.9 64,37.6 28,100", olyBadge.L2],
 ];
-const GREY_FACETS = ["#8A93A3", "#5E6675", "#454C58", "#343A44", "#454C58", "#5E6675"];
+const GREY_FACETS = [
+  olyBadge.greyL1,
+  olyBadge.greyL2,
+  olyBadge.greyD1,
+  olyBadge.greyD2,
+  olyBadge.greyD1,
+  olyBadge.greyL2,
+];
 const HEX_RIM = "172,100 136,162.4 64,162.4 28,100 64,37.6 136,37.6";
 const HEX_FIELD = "166,100 133,157.2 67,157.2 34,100 67,42.8 133,42.8";
 
@@ -92,17 +121,32 @@ const HEX_OUTER = "196,100 148,183.1 52,183.1 4,100 52,16.9 148,16.9";
  */
 type HexState = "earned" | "progress" | "faded" | "rejected";
 
-function HexMini({ value, state = "earned" }: { value: string; state?: HexState }) {
+function HexMini({
+  value,
+  state = "earned",
+}: {
+  value: string;
+  state?: HexState;
+}) {
   const small = value.length > 3;
   const ink =
-    state === "rejected" ? olyPalette.redInk : state === "faded" ? olyColors.text.secondary : "#FFFFFF";
+    state === "rejected"
+      ? olyPalette.redInk
+      : state === "faded"
+        ? olyColors.text.secondary
+        : olyColors.media.ink;
   return (
     <View style={state === "earned" && styles.hexGlow}>
       <Svg width={LEAD} height={LEAD} viewBox="0 0 200 200">
         {state === "faded" ? (
           <>
-            <Polygon points={HEX_OUTER} fill="rgba(239, 241, 244, 0.05)" stroke="rgba(239, 241, 244, 0.22)" strokeWidth={4} />
-            <Polygon points={HEX_FIELD} fill="rgba(0, 0, 0, 0.22)" />
+            <Polygon
+              points={HEX_OUTER}
+              fill={olyColors.glass.card}
+              stroke={olyColors.glass.idle}
+              strokeWidth={4}
+            />
+            <Polygon points={HEX_FIELD} fill={olyColors.glass.inset} />
           </>
         ) : (
           <>
@@ -115,7 +159,10 @@ function HexMini({ value, state = "earned" }: { value: string; state?: HexState 
               />
             ))}
             {state !== "progress" ? (
-              <Polygon points={HEX_RIM} fill={state === "rejected" ? "#343A44" : "#0A4E8C"} />
+              <Polygon
+                points={HEX_RIM}
+                fill={state === "rejected" ? olyBadge.greyD2 : olyBadge.D2}
+              />
             ) : null}
             <Polygon points={HEX_FIELD} fill={olyPalette.background} />
             {state === "progress" ? (
@@ -147,14 +194,34 @@ function HexMini({ value, state = "earned" }: { value: string; state?: HexState 
   );
 }
 
-function Avatar({ n, size = LEAD, solid }: { n: OlyNotification; size?: number; solid?: boolean }) {
+function Avatar({
+  n,
+  size = LEAD,
+  solid,
+}: {
+  n: OlyNotification;
+  size?: number;
+  solid?: boolean;
+}) {
   const url = n.actor?.profile?.profile_image_url;
   return (
-    <View style={[styles.avatar, { width: size, height: size }, solid && styles.avatarSolid]}>
+    <View
+      style={[
+        styles.avatar,
+        { width: size, height: size },
+        solid && styles.avatarSolid,
+      ]}
+    >
       {url ? (
-        <Image source={{ uri: url }} style={StyleSheet.absoluteFill} contentFit="cover" />
+        <Image
+          source={{ uri: url }}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+        />
       ) : (
-        <Text style={[styles.avatarText, size < LEAD && { fontSize: 12 }]}>{initials(actorName(n))}</Text>
+        <Text style={[styles.avatarText, size < LEAD && { fontSize: 12 }]}>
+          {initials(actorName(n))}
+        </Text>
       )}
     </View>
   );
@@ -166,7 +233,14 @@ function Ring({ done, total }: { done: number; total: number }) {
   return (
     <View style={{ width: LEAD, height: LEAD }}>
       <Svg width={LEAD} height={LEAD} viewBox="0 0 44 44">
-        <Circle cx={22} cy={22} r={r} fill="none" stroke={olyColors.glass.raised} strokeWidth={4} />
+        <Circle
+          cx={22}
+          cy={22}
+          r={r}
+          fill="none"
+          stroke={olyColors.glass.raised}
+          strokeWidth={4}
+        />
         <Circle
           cx={22}
           cy={22}
@@ -194,13 +268,25 @@ function Lead({ n }: { n: OlyNotification }) {
     case "rank_down":
     case "proximity": {
       const r = rankOf(n);
-      const state = n.type === "rank_up" ? "earned" : n.type === "proximity" ? "progress" : "faded";
-      return <HexMini value={Number.isFinite(r) ? String(r) : "#"} state={state} />;
+      const state =
+        n.type === "rank_up"
+          ? "earned"
+          : n.type === "proximity"
+            ? "progress"
+            : "faded";
+      return (
+        <HexMini value={Number.isFinite(r) ? String(r) : "#"} state={state} />
+      );
     }
     case "lift_verified":
     case "lift_rejected": {
       const kg = kgOf(n);
-      return <HexMini value={Number.isFinite(kg) ? String(kg) : "✓"} state={n.type === "lift_rejected" ? "rejected" : "earned"} />;
+      return (
+        <HexMini
+          value={Number.isFinite(kg) ? String(kg) : "✓"}
+          state={n.type === "lift_rejected" ? "rejected" : "earned"}
+        />
+      );
     }
     case "challenge_completed":
       return <HexMini value={`${n.data?.done ?? 3}/${n.data?.total ?? 3}`} />;
@@ -214,9 +300,16 @@ function Lead({ n }: { n: OlyNotification }) {
       return (
         <View style={styles.thumb}>
           {n.data?.thumbnail_url ? (
-            <Image source={{ uri: n.data.thumbnail_url }} style={StyleSheet.absoluteFill} contentFit="cover" />
+            <Image
+              source={{ uri: n.data.thumbnail_url }}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+            />
           ) : (
-            <LinearGradient colors={["#465264", "#1A1E25"]} style={StyleSheet.absoluteFill} />
+            <LinearGradient
+              colors={[olyPalette.cardElevated, olyColors.glass.media]}
+              style={StyleSheet.absoluteFill}
+            />
           )}
         </View>
       );
@@ -259,10 +352,16 @@ export function NotificationCard({
   const { title, body } = words(n);
   const unread = !n.read;
   return (
-    <Pressable onPress={onPress} disabled={!onPress} style={({ pressed }) => pressed && kit.pressed}>
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      style={({ pressed }) => pressed && kit.pressed}
+    >
       <Glass
         radius={olyRadius.tile}
-        borderColor={unread ? olyColors.glass.accentBorder : olyColors.glass.border}
+        borderColor={
+          unread ? olyColors.glass.accentBorder : olyColors.glass.border
+        }
         style={styles.card}
       >
         <Lead n={n} />
@@ -272,10 +371,18 @@ export function NotificationCard({
 
           {n.type === "follow_request" && (onAccept || onDecline) ? (
             <View style={styles.actions}>
-              <Pressable onPress={onAccept} style={[styles.btn, styles.btnPrimary]} accessibilityRole="button">
+              <Pressable
+                onPress={onAccept}
+                style={[styles.btn, styles.btnPrimary]}
+                accessibilityRole="button"
+              >
                 <Text style={styles.btnTextPrimary}>Accept</Text>
               </Pressable>
-              <Pressable onPress={onDecline} style={[styles.btn, styles.btnQuiet]} accessibilityRole="button">
+              <Pressable
+                onPress={onDecline}
+                style={[styles.btn, styles.btnQuiet]}
+                accessibilityRole="button"
+              >
                 <Text style={styles.btnText}>Decline</Text>
               </Pressable>
             </View>
@@ -285,17 +392,25 @@ export function NotificationCard({
             <View style={styles.actionsLeft}>
               <Pressable
                 onPress={followedBack ? undefined : onFollowBack}
-                style={[styles.btn, followedBack ? styles.btnQuiet : styles.btnPrimary, styles.btnSolo]}
+                style={[
+                  styles.btn,
+                  followedBack ? styles.btnQuiet : styles.btnPrimary,
+                  styles.btnSolo,
+                ]}
                 accessibilityRole="button"
               >
-                <Text style={followedBack ? styles.btnText : styles.btnTextPrimary}>
+                <Text
+                  style={followedBack ? styles.btnText : styles.btnTextPrimary}
+                >
                   {followedBack ? "Following" : "Follow back"}
                 </Text>
               </Pressable>
             </View>
           ) : null}
         </View>
-        <Text style={[styles.time, unread && styles.timeUnread]}>{shortTime(n.createdAt)}</Text>
+        <Text style={[styles.time, unread && styles.timeUnread]}>
+          {shortTime(n.createdAt)}
+        </Text>
       </Glass>
     </Pressable>
   );
@@ -340,7 +455,11 @@ const styles = StyleSheet.create({
     borderColor: olyColors.glass.border,
   },
   avatarSolid: { backgroundColor: olyPalette.cardElevated },
-  avatarText: { fontFamily: olyFonts.medium, fontSize: 15, color: olyColors.text.primary },
+  avatarText: {
+    fontFamily: olyFonts.medium,
+    fontSize: 15,
+    color: olyColors.text.primary,
+  },
 
   stackBack: {
     position: "absolute",
@@ -349,11 +468,15 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: olyRadius.full,
-    backgroundColor: "#22272F",
+    backgroundColor: olyPalette.card,
     borderWidth: 1,
     borderColor: olyColors.glass.border,
   },
-  stackText: { fontFamily: olyFonts.bold, fontSize: 11, color: olyColors.text.secondary },
+  stackText: {
+    fontFamily: olyFonts.bold,
+    fontSize: 11,
+    color: olyColors.text.secondary,
+  },
   stackFront: {
     position: "absolute",
     right: 0,
@@ -363,7 +486,11 @@ const styles = StyleSheet.create({
     borderColor: olyPalette.background,
   },
 
-  ringText: { fontFamily: olyFonts.bold, fontSize: 12, color: olyColors.text.primary },
+  ringText: {
+    fontFamily: olyFonts.bold,
+    fontSize: 12,
+    color: olyColors.text.primary,
+  },
 
   hexGlow: {
     shadowColor: olyPalette.primary,
@@ -387,7 +514,12 @@ const styles = StyleSheet.create({
 
   actions: { flexDirection: "row", gap: olySpacing[8], marginTop: 10 },
   actionsLeft: { flexDirection: "row", marginTop: 10 },
-  btn: { height: 36, borderRadius: olyRadius.full, alignItems: "center", justifyContent: "center" },
+  btn: {
+    height: 36,
+    borderRadius: olyRadius.full,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   btnSolo: { flex: 0, paddingHorizontal: olySpacing[16] },
   btnPrimary: { flex: 1, backgroundColor: olyPalette.primary },
   btnQuiet: {
@@ -396,6 +528,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: olyColors.glass.border,
   },
-  btnTextPrimary: { fontFamily: olyFonts.medium, fontSize: 14, color: "#FFFFFF" },
-  btnText: { fontFamily: olyFonts.medium, fontSize: 14, color: olyColors.text.primary },
+  btnTextPrimary: {
+    fontFamily: olyFonts.medium,
+    fontSize: 14,
+    color: olyColors.text.onAccent,
+  },
+  btnText: {
+    fontFamily: olyFonts.medium,
+    fontSize: 14,
+    color: olyColors.text.primary,
+  },
 });

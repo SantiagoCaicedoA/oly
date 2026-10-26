@@ -8,7 +8,14 @@
  * after midnight.
  */
 import React, { useEffect, useMemo, useRef } from "react";
-import { Animated, NativeScrollEvent, NativeSyntheticEvent, StyleSheet, Text, View } from "react-native";
+import {
+  Animated,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import * as Haptics from "expo-haptics";
 import { formatTime } from "@/src/oly-hooks/useNotificationSettings";
 import { olyColors } from "@/src/oly-theme/oly-colors";
@@ -20,7 +27,15 @@ const VISIBLE = 5;
 const LABEL_H = 22;
 const STEPS = Array.from({ length: 48 }, (_, i) => i * 30);
 
-function Column({ value, onChange, label }: { value: number; onChange: (v: number) => void; label: string }) {
+function Column({
+  value,
+  onChange,
+  label,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  label: string;
+}) {
   const index = Math.max(0, STEPS.indexOf(value));
   const y = useRef(new Animated.Value(index * ROW)).current;
   const listRef = useRef<any>(null);
@@ -61,21 +76,43 @@ function Column({ value, onChange, label }: { value: number; onChange: (v: numbe
         data={STEPS}
         keyExtractor={(m: number) => String(m)}
         style={{ height: ROW * VISIBLE }}
-        contentContainerStyle={{ paddingVertical: ROW * Math.floor(VISIBLE / 2) }}
+        contentContainerStyle={{
+          paddingVertical: ROW * Math.floor(VISIBLE / 2),
+        }}
         showsVerticalScrollIndicator={false}
         snapToInterval={ROW}
         decelerationRate={0.988}
         onScroll={onScroll}
         scrollEventThrottle={16}
-        onMomentumScrollEnd={(e: NativeSyntheticEvent<NativeScrollEvent>) => settle(e.nativeEvent.contentOffset.y)}
-        getItemLayout={(_: unknown, i: number) => ({ length: ROW, offset: ROW * i, index: i })}
+        onMomentumScrollEnd={(e: NativeSyntheticEvent<NativeScrollEvent>) =>
+          settle(e.nativeEvent.contentOffset.y)
+        }
+        getItemLayout={(_: unknown, i: number) => ({
+          length: ROW,
+          offset: ROW * i,
+          index: i,
+        })}
         initialScrollIndex={index}
         windowSize={7}
         accessibilityLabel={`${label}, ${formatTime(value)}`}
         renderItem={({ item, index: i }: { item: number; index: number }) => {
-          const range = [(i - 2) * ROW, (i - 1) * ROW, i * ROW, (i + 1) * ROW, (i + 2) * ROW];
-          const opacity = y.interpolate({ inputRange: range, outputRange: [0.15, 0.45, 1, 0.45, 0.15], extrapolate: "clamp" });
-          const scale = y.interpolate({ inputRange: range, outputRange: [0.86, 0.92, 1.14, 0.92, 0.86], extrapolate: "clamp" });
+          const range = [
+            (i - 2) * ROW,
+            (i - 1) * ROW,
+            i * ROW,
+            (i + 1) * ROW,
+            (i + 2) * ROW,
+          ];
+          const opacity = y.interpolate({
+            inputRange: range,
+            outputRange: [0.15, 0.45, 1, 0.45, 0.15],
+            extrapolate: "clamp",
+          });
+          const scale = y.interpolate({
+            inputRange: range,
+            outputRange: [0.86, 0.92, 1.14, 0.92, 0.86],
+            extrapolate: "clamp",
+          });
           return (
             <Animated.View style={[s.row, { opacity, transform: [{ scale }] }]}>
               <Text style={s.item}>{formatTime(item)}</Text>
@@ -100,7 +137,11 @@ export function TimeWheel({
     <View>
       <View style={s.band} pointerEvents="none" />
       <View style={s.cols}>
-        <Column label="Starts" value={start} onChange={(v) => onChange(v, end)} />
+        <Column
+          label="Starts"
+          value={start}
+          onChange={(v) => onChange(v, end)}
+        />
         <View style={s.toWrap} pointerEvents="none">
           <Text style={s.to}>to</Text>
         </View>
@@ -122,7 +163,11 @@ const s = StyleSheet.create({
     height: LABEL_H,
   },
   row: { height: ROW, alignItems: "center", justifyContent: "center" },
-  item: { fontFamily: olyFonts.medium, fontSize: 19, color: olyColors.text.primary },
+  item: {
+    fontFamily: olyFonts.medium,
+    fontSize: 19,
+    color: olyColors.text.primary,
+  },
   band: {
     position: "absolute",
     left: 0,
@@ -130,11 +175,16 @@ const s = StyleSheet.create({
     top: LABEL_H + ROW * 2,
     height: ROW,
     borderRadius: olyRadius.lg,
-    backgroundColor: "rgba(239, 241, 244, 0.07)",
+    backgroundColor: olyColors.glass.card,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: "rgba(239, 241, 244, 0.10)",
+    borderColor: olyColors.glass.raised,
   },
-  toWrap: { width: 28, alignItems: "center", justifyContent: "center", paddingTop: LABEL_H },
+  toWrap: {
+    width: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: LABEL_H,
+  },
   to: { ...olyTypography.caption, color: olyColors.text.hint },
 });

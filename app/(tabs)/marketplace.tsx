@@ -548,16 +548,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-
-  /* Floats over the scroll. Bottom padding leaves a 12pt gap to the balance card. */
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: olyLayout.screenPadding,
-    paddingTop: olySpacing[8],
-    paddingBottom: olySpacing[12],
-  },
-  title: { ...olyTypography.title1, flex: 1, color: olyColors.text.primary },
   headerBtn: {
     width: 38,
     height: 38,
